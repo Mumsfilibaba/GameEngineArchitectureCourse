@@ -1,5 +1,6 @@
 #include <iostream>
 #include <list>
+#include <mutex>
 
 template <typename T>
 class PoolAllocator
@@ -11,9 +12,10 @@ public:
 	~PoolAllocator() = default;
 
 	T* Allocate();
-	void Free();
+	void Free(T*);
 
 private:
+	std::mutex m_Mutex;
 	std::list<ID> m_FreeList;
 	T* m_pMemory;
 };
