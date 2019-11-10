@@ -6,3 +6,15 @@
 *.opendb
 *.suo
 *.vcxproj
+*.tlog
+*.idb
+*.pdb
+*.ilk
+*.user
+*.log
+*.lib
+*.ini
+
+.vs
+Dependencies
+ImGui/bin-int/Debug-windows-x86_64/ImGui/ImGui.vcxproj.FileListAbsolute.txt
