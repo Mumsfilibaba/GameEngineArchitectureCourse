@@ -17,6 +17,16 @@ workspace "Game Engine Architecture"
 	
 	project "*"
 
+	dependson
+	{
+		"ImGui"
+	}
+
+	defines 
+	{ 
+		"SFML_STATIC" 
+	}
+
 	filter "system:windows"
 		sysincludedirs
 		{
@@ -40,12 +50,26 @@ workspace "Game Engine Architecture"
 			"ogg",
 			"ws2_32"
 		}
-
-	filter "configurations:*"
-		defines 
-		{ 
-			"SFML_STATIC" 
+	
+	filter "system:macosx"
+		libdirs
+		{
+			"/usr/local/Cellar/sfml/2.5.1/lib/"
 		}
+		sysincludedirs
+		{
+			"/usr/local/include",
+			"ImGui"
+		}
+		links 
+		{
+			"OpenGL.framework",
+			"sfml-window.2.5.1",
+			"sfml-system.2.5.1",
+			"sfml-audio.2.5.1",
+			"sfml-graphics.2.5.1",
+			"sfml-network.2.5.1"
+		} 
 
     filter "configurations:Debug"
         symbols "On"
@@ -54,6 +78,8 @@ workspace "Game Engine Architecture"
         {
             "DEBUG"
         }
+
+	filter { "configurations:Debug", "system:windows" }
 		links
 		{	
 			"sfml-graphics-s-d",
@@ -71,6 +97,8 @@ workspace "Game Engine Architecture"
         {
             "NDEBUG"
         }
+		
+	filter { "configurations:Debug", "system:windows" }
 		links
 		{	
 			"sfml-graphics-s",
@@ -79,11 +107,6 @@ workspace "Game Engine Architecture"
 			"sfml-audio-s",
 			"sfml-network-s"
 		}
-		
-	dependson
-	{
-		"ImGui"
-	}
 
     project "Assign1_Allocator"
         kind "ConsoleApp"

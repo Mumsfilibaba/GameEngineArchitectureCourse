@@ -18,3 +18,10 @@
 .vs
 Dependencies
 ImGui/bin-int/Debug-windows-x86_64/ImGui/ImGui.vcxproj.FileListAbsolute.txt
+*.plist
+*.pbxproj
+*.a
+*.xcuserstate
+*.xcworkspacedata
+Assignment1/bin/Debug/Assign1_Allocator.dSYM/Contents/Resources/DWARF/Assign1_Allocator
+Assignment1/bin/Debug/Assign1_Allocator
