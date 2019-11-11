@@ -7,34 +7,33 @@
 #include <imgui-SFML.h>
 
 int main(int argc, const char* argv[])
-{   
-	std::cout << "Hello World" << std::endl;
+{
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Engine Architecture");
+    window.setFramerateLimit(60);
+    ImGui::SFML::Init(window);
+    
+    std::cout << "Hello World" << std::endl;
+    
+    sf::CircleShape shape(100.f);
+    shape.setFillColor(sf::Color::Green);
 
-	sf::RenderWindow window(sf::VideoMode(640, 480), "ImGui + SFML = <3");
-	window.setFramerateLimit(60);
-	ImGui::SFML::Init(window);
+    sf::Clock deltaClock;
+    while (window.isOpen())
+    {
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            ImGui::SFML::ProcessEvent(event);
+            if (event.type == sf::Event::Closed)
+            {
+                window.close();
+            }
+        }
 
-	sf::CircleShape shape(100.f);
-	shape.setFillColor(sf::Color::Green);
-
-	sf::Clock deltaClock;
-	while (window.isOpen()) 
-	{	
-		sf::Event event;
-		while (window.pollEvent(event)) 
-		{
-			ImGui::SFML::ProcessEvent(event);
-
-			if (event.type == sf::Event::Closed) 
-			{
-				window.close();
-			}
-		}
-
-		ImGui::SFML::Update(window, deltaClock.restart());
-
+        ImGui::SFML::Update(window, deltaClock.restart());
+        
 		ImGui::ShowTestWindow();
-
+        
 		ImGui::Begin("Hello, world!");
 		ImGui::Button("Look at this pretty button");
 		ImGui::End();
@@ -46,6 +45,5 @@ int main(int argc, const char* argv[])
 	}
 
 	ImGui::SFML::Shutdown();
-
     return 0; 
 }
