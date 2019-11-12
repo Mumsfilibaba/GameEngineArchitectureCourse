@@ -5,11 +5,20 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <imgui.h>
 #include <imgui-SFML.h>
+//#include <crtdbg.h>
 
 #include "StackAllocator.h"
-void testStackAllocator(unsigned int nrOfObjects, StackAllocator<sf::CircleShape>* allocator)
+
+void testStackAllocator(unsigned int nrOfObjects)
 {
+	size_t size = nrOfObjects * sizeof(sf::CircleShape);
+	void* start = alloca(size);
+	void* end = (char*)start + size;
+	StackAllocator<sf::CircleShape> allocator(start, end);
 	sf::Clock timing;
+
+	// ------------------------------------ test 1 -------------------------------
+
 	timing.restart();
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
@@ -20,18 +29,19 @@ void testStackAllocator(unsigned int nrOfObjects, StackAllocator<sf::CircleShape
 
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		sf::CircleShape* tmp = allocator->allocate();
-		tmp = new(tmp) sf::CircleShape(100.f);
-		allocator->free(tmp);
+		sf::CircleShape* tmp = allocator.make_new(sf::CircleShape(100.f));
+		allocator.make_delete(tmp);
 	}
 	sf::Time t2 = timing.restart();
 
-	std::cout << "Created and deleted " << nrOfObjects << " on both the regular heap and implemented stack allocator." << std::endl << "Heap used " << t.asMilliseconds() << " milliseconds" << std::endl << 
-		"Stack used " << t2.asMilliseconds() << " milliseconds";
+	std::cout << "Test 1.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes) " <<  " on both the regular heap and implemented stack allocator." << std::endl << " Heap used " << t.asMilliseconds() << " milliseconds" << std::endl << 
+		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
+
 }
 
 int main(int argc, const char* argv[])
 {
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Engine Architecture");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
@@ -40,37 +50,35 @@ int main(int argc, const char* argv[])
     
     //sf::CircleShape shape(100.f);
     //shape.setFillColor(sf::Color::Green);
+
+	testStackAllocator(1000);
+
+
 	size_t size = sizeof(sf::CircleShape) * 100;
 	void* start = alloca(size);
 	void*end = (char*)start + size;
 
 	StackAllocator<sf::CircleShape> allocator(start, end);
 
-	testStackAllocator(10000, &allocator);
+	
 
-	sf::CircleShape* circle = allocator.allocate();
-	circle = new(circle) sf::CircleShape(100.f);
+	sf::CircleShape* circle = allocator.make_new(sf::CircleShape(100.f));
 	circle->setFillColor(sf::Color::Yellow);
 
-	sf::CircleShape* second = allocator.allocate();
-	second = new(second) sf::CircleShape(100.f);
+	sf::CircleShape* second = allocator.make_new(sf::CircleShape(100.f));
 	second->setFillColor(sf::Color::Red);
 	second->setPosition(100, 0);
 
-	allocator.free(second);
+	allocator.make_delete(second);
 
-	sf::CircleShape* third = allocator.allocate();
-	third = new(third) sf::CircleShape(100.f);
+	sf::CircleShape* third = allocator.make_new(sf::CircleShape(100.f));
 	third->setFillColor(sf::Color::Blue);
 	third->setPosition(0, 100);
-	//second and third should have same adress now, so when second is used later, it will be of the new circle... (a blue one)
+	//second and third should have same adress now, so when second is used later, it will be of the new circle... (a blue one), UNSAFE! yes, but I wish to test it.
 
-	third = allocator.allocate();
-	third = new(third) sf::CircleShape(100.f);
+	third = allocator.make_new(sf::CircleShape(100.f));
 	third->setFillColor(sf::Color::White);
 	third->setPosition(100, 0);
-	allocator.free(third);
-	//memory is free but the object is still there. Third should appear if memory is not changed.
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -101,7 +109,6 @@ int main(int argc, const char* argv[])
 		ImGui::End();
 
 		window.clear();
-		//window.draw(shape);
 		window.draw(*circle);
 		window.draw(*second);
 		window.draw(*third);
@@ -109,6 +116,9 @@ int main(int argc, const char* argv[])
 		window.display();
 	}
 
+	allocator.make_delete(circle);
+	allocator.make_delete(second);
+	allocator.make_delete(third);
 	ImGui::SFML::Shutdown();
     return 0; 
 }
