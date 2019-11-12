@@ -98,7 +98,7 @@ workspace "Game Engine Architecture"
             "NDEBUG"
         }
 		
-	filter { "configurations:Debug", "system:windows" }
+	filter { "configurations:Release", "system:windows" }
 		links
 		{	
 			"sfml-graphics-s",
