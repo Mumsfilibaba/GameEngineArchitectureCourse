@@ -150,30 +150,23 @@ int main(int argc, const char* argv[])
 	char* tstChar = fAlloc.allocate(char('c'));
 	fAlloc.free();
 
-	sf::CircleShape* tstCircle = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* magenta = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
 
-	tstCircle->setFillColor(sf::Color::Magenta);
-	tstCircle->setPosition(100, 100);
+	magenta->setFillColor(sf::Color::Magenta);
+	magenta->setPosition(100, 100);
 
-	StackAllocator allocator(size);
+	sf::CircleShape* green = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
+	green->setFillColor(sf::Color::Green);
 
-	sf::CircleShape* circle = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
-	circle->setFillColor(sf::Color::Yellow);
+	sf::CircleShape* red = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
 
-	sf::CircleShape* second = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
-	second->setFillColor(sf::Color::Red);
-	second->setPosition(100, 0);
+	red->setFillColor(sf::Color::Red);
+	red->setPosition(0, 100);
 
-	allocator.make_delete(second);
+	sf::CircleShape* blue = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
 
-	sf::CircleShape* third = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
-	third->setFillColor(sf::Color::Blue);
-	third->setPosition(0, 100);
-	//second and third should have same adress now, so when second is used later, it will be of the new circle... (a blue one), UNSAFE! yes, but I wish to test it.
-
-	third = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
-	third->setFillColor(sf::Color::White);
-	third->setPosition(100, 0);
+	blue->setFillColor(sf::Color::Blue);
+	blue->setPosition(100, 0);
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -204,17 +197,13 @@ int main(int argc, const char* argv[])
 		ImGui::End();
 
 		window.clear();
-		window.draw(*circle);
-		window.draw(*second);
-		window.draw(*third);
-		window.draw(*tstCircle);
+		window.draw(*green);
+		window.draw(*blue);
+		window.draw(*red);
+		window.draw(*magenta);
 		ImGui::SFML::Render(window);
 		window.display();
 	}
-
-	allocator.make_delete(circle);
-	allocator.make_delete(second);
-	allocator.make_delete(third);
 	ImGui::SFML::Shutdown();
     return 0; 
 }

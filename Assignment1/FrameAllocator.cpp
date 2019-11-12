@@ -7,6 +7,10 @@ FrameAllocator::FrameAllocator(size_t size)
 	m_pCurrent = m_pStart;
 }
 
+FrameAllocator::FrameAllocator(char * start, char * end): m_pStart(start), m_pEnd(end), m_pCurrent(start)
+{
+}
+
 FrameAllocator::~FrameAllocator()
 {
 	delete[] m_pStart;

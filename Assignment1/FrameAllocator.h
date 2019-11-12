@@ -9,6 +9,7 @@ private:
 	char* m_pCurrent;
 public:
 	FrameAllocator(size_t size);
+	FrameAllocator(char* start, char* end);
 	~FrameAllocator();
 
 	template<class T>
