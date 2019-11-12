@@ -29,6 +29,7 @@ void testStackAllocator(unsigned int nrOfObjects)
 	{
 		sf::CircleShape* tmp = allocator.make_new(sf::CircleShape(100.f));
 		allocator.make_delete(tmp);
+		allocator.free(tmp);
 	}
 	sf::Time t2 = timing.restart();
 
@@ -64,6 +65,7 @@ void testStackAllocator(unsigned int nrOfObjects)
 	{
 		allocator.make_delete(pTmp[i]);
 	}
+	allocator.free(pTmp[0]);
 	t2 = timing.restart();
 
 	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
@@ -83,7 +85,7 @@ int main(int argc, const char* argv[])
     //sf::CircleShape shape(100.f);
     //shape.setFillColor(sf::Color::Green);
 
-	testStackAllocator(10000);
+	testStackAllocator(100000);
 
 
 	size_t size = sizeof(sf::CircleShape) * 5;
@@ -98,6 +100,7 @@ int main(int argc, const char* argv[])
 	second->setPosition(100, 0);
 
 	allocator.make_delete(second);
+	allocator.free(second);
 
 	sf::CircleShape* third = allocator.make_new(sf::CircleShape(100.f));
 	third->setFillColor(sf::Color::Blue);

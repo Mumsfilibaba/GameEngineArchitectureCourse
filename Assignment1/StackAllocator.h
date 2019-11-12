@@ -1,5 +1,6 @@
 #ifndef STACKALLOCATOR_H
 #define STACKALLOCATOR_H
+
 template<class T>
 class StackAllocator
 {
@@ -68,7 +69,7 @@ inline void StackAllocator<T>::make_delete(void * ptr)
 	if (ptr)
 	{
 		((T*)ptr)->~T();
-		free(ptr);
+		//free(ptr);
 	}
 }
 
