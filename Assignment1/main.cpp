@@ -148,7 +148,6 @@ int main(int argc, const char* argv[])
 	FrameAllocator fAlloc(size);
 	int* tst = (int*)fAlloc.allocate(int(5));
 	char* tstChar = fAlloc.allocate(char('c'));
-
 	int* arr = fAlloc.allocateArray<int>(3);
 	for (int i = 0; i < 3; i++)
 	{
@@ -157,23 +156,23 @@ int main(int argc, const char* argv[])
 
 	fAlloc.reset();
 
-	/*sf::CircleShape* magenta = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* magenta = fAlloc.allocate(sf::CircleShape(100.f));
 
 	magenta->setFillColor(sf::Color::Magenta);
 	magenta->setPosition(100, 100);
 
-	sf::CircleShape* green = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* green = fAlloc.allocate(sf::CircleShape(100.f));
 	green->setFillColor(sf::Color::Green);
 
-	sf::CircleShape* red = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* red = fAlloc.allocate(sf::CircleShape(100.f));
 
 	red->setFillColor(sf::Color::Red);
 	red->setPosition(0, 100);
 
-	sf::CircleShape* blue = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* blue = fAlloc.allocate(sf::CircleShape(100.f));
 
 	blue->setFillColor(sf::Color::Blue);
-	blue->setPosition(100, 0);*/
+	blue->setPosition(100, 0);
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -204,14 +203,22 @@ int main(int argc, const char* argv[])
 		ImGui::End();
 
 		window.clear();
-		/*window.draw(*green);
+		window.draw(*green);
 		window.draw(*blue);
 		window.draw(*red);
-		window.draw(*magenta);*/
+		window.draw(*magenta);
 		ImGui::SFML::Render(window);
 		window.display();
 	}
 	ImGui::SFML::Shutdown();
+
+	// as long as destructor is called for these (before we lose them in memory) a destruction has to be called
+	magenta->~CircleShape();
+	green->~CircleShape();
+	blue->~CircleShape();
+	red->~CircleShape();
+
 	fAlloc.reset();
+
     return 0; 
 }
