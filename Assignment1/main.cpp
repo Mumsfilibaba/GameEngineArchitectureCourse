@@ -72,6 +72,66 @@ void testStackAllocator(unsigned int nrOfObjects)
 	delete[] pTmp;
 }
 
+void testFrameAllocator(unsigned int nrOfObjects)
+{
+	size_t size = nrOfObjects * sizeof(int);
+	FrameAllocator allocator(size);
+	sf::Clock timing;
+
+	// ------------------------------------ test 1 -------------------------------
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		sf::CircleShape* tmp = new sf::CircleShape(100.f);
+		delete tmp;
+	}
+	sf::Time t = timing.restart();
+
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		sf::CircleShape* tmp = (sf::CircleShape*)allocator.allocate(sf::CircleShape(100.f));
+		allocator.free();
+	}
+	sf::Time t2 = timing.restart();
+
+	std::cout << "Test 1.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes)" << " on both the regular heap and implemented stack allocator." << std::endl << " Heap used " << t.asMilliseconds() << " milliseconds" << std::endl <<
+		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
+
+	//create pointers so that we can keep track of object deletion later.
+	sf::CircleShape** pTmp = new sf::CircleShape*[nrOfObjects];
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i] = new sf::CircleShape(100.f);
+	}
+	t = timing.restart();
+
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		delete pTmp[i];
+	}
+	t2 = timing.restart();
+
+	std::cout << "Test 2.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes) " << " on the regular heap.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl << std::endl;
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i] = (sf::CircleShape*)allocator.allocate(sf::CircleShape(100.f));
+	}
+	t = timing.restart();
+
+	allocator.free();
+
+	t2 = timing.restart();
+
+	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
+
+	delete[] pTmp;
+}
+
 int main(int argc, const char* argv[])
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -81,15 +141,16 @@ int main(int argc, const char* argv[])
     
     std::cout << "Hello World" << std::endl;
 
-	testStackAllocator(10);
+	//testStackAllocator(10);
+	testFrameAllocator(1000000);
 
 	size_t size = sizeof(sf::CircleShape) * 5;
 	FrameAllocator fAlloc(size);
-	int* tst = (int*)fAlloc.allocate(int(5), sizeof(int));
-	char* tstChar = fAlloc.allocate(char('c'), sizeof(char));
+	int* tst = (int*)fAlloc.allocate(int(5));
+	char* tstChar = fAlloc.allocate(char('c'));
 	fAlloc.free();
 
-	sf::CircleShape* tstCircle = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f), sizeof(sf::CircleShape));
+	sf::CircleShape* tstCircle = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
 
 	tstCircle->setFillColor(sf::Color::Magenta);
 	tstCircle->setPosition(100, 100);

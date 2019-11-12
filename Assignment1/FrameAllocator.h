@@ -12,20 +12,21 @@ public:
 	~FrameAllocator();
 
 	template<class T>
-	char * allocate(const T &object, size_t sizeOfObject);
+	char * allocate(const T &object);
 	void free();
 };
 
 #endif
 
 template<class T>
-inline char * FrameAllocator::allocate(const T &object, size_t sizeOfObject)
+inline char * FrameAllocator::allocate(const T &object)
 {
 	char* res = nullptr;
-	if (m_pCurrent + sizeOfObject < m_pEnd)
+	size_t size = sizeof(object);
+	if (m_pCurrent + size < m_pEnd)
 	{
 		res = m_pCurrent;
-		m_pCurrent += sizeOfObject;
+		m_pCurrent += size;
 		new (res) T(object);
 	}
 	return res;
