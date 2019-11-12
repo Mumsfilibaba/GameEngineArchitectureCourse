@@ -91,7 +91,7 @@ void testFrameAllocator(unsigned int nrOfObjects)
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
 		sf::CircleShape* tmp = (sf::CircleShape*)allocator.allocate(sf::CircleShape(100.f));
-		allocator.free();
+		allocator.reset();
 	}
 	sf::Time t2 = timing.restart();
 
@@ -123,7 +123,7 @@ void testFrameAllocator(unsigned int nrOfObjects)
 	}
 	t = timing.restart();
 
-	allocator.free();
+	allocator.reset();
 
 	t2 = timing.restart();
 
@@ -142,15 +142,22 @@ int main(int argc, const char* argv[])
     std::cout << "Hello World" << std::endl;
 
 	//testStackAllocator(10);
-	testFrameAllocator(1000000);
+	//testFrameAllocator(1000000);
 
-	size_t size = sizeof(sf::CircleShape) * 5;
+	size_t size = sizeof(sf::CircleShape) * 10;
 	FrameAllocator fAlloc(size);
 	int* tst = (int*)fAlloc.allocate(int(5));
 	char* tstChar = fAlloc.allocate(char('c'));
-	fAlloc.free();
 
-	sf::CircleShape* magenta = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
+	int* arr = fAlloc.allocateArray<int>(3);
+	for (int i = 0; i < 3; i++)
+	{
+		arr[i] = i;
+	}
+
+	fAlloc.reset();
+
+	/*sf::CircleShape* magenta = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
 
 	magenta->setFillColor(sf::Color::Magenta);
 	magenta->setPosition(100, 100);
@@ -166,7 +173,7 @@ int main(int argc, const char* argv[])
 	sf::CircleShape* blue = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f));
 
 	blue->setFillColor(sf::Color::Blue);
-	blue->setPosition(100, 0);
+	blue->setPosition(100, 0);*/
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -197,13 +204,14 @@ int main(int argc, const char* argv[])
 		ImGui::End();
 
 		window.clear();
-		window.draw(*green);
+		/*window.draw(*green);
 		window.draw(*blue);
 		window.draw(*red);
-		window.draw(*magenta);
+		window.draw(*magenta);*/
 		ImGui::SFML::Render(window);
 		window.display();
 	}
 	ImGui::SFML::Shutdown();
+	fAlloc.reset();
     return 0; 
 }

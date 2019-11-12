@@ -13,8 +13,10 @@ public:
 	~FrameAllocator();
 
 	template<class T>
-	char * allocate(const T &object);
-	void free();
+	char* allocate(const T &object);
+	template<class T>
+	T* allocateArray(unsigned int size);
+	void reset();
 };
 
 #endif
@@ -29,6 +31,21 @@ inline char * FrameAllocator::allocate(const T &object)
 		res = m_pCurrent;
 		m_pCurrent += size;
 		new (res) T(object);
+	}
+	return res;
+}
+
+template<class T>
+inline T * FrameAllocator::allocateArray(unsigned int size)
+{
+	T* res = nullptr;
+	size_t arrSize = sizeof(T) * size;
+
+	if (m_pCurrent + arrSize < m_pEnd)
+	{
+		res = (T*)m_pCurrent;
+		m_pCurrent += arrSize;
+		new (res) T[size];
 	}
 	return res;
 }

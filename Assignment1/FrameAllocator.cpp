@@ -1,5 +1,4 @@
 #include "FrameAllocator.h"
-
 FrameAllocator::FrameAllocator(size_t size)
 {
 	m_pStart = new char[size];
@@ -16,7 +15,7 @@ FrameAllocator::~FrameAllocator()
 	delete[] m_pStart;
 }
 
-void FrameAllocator::free()
+void FrameAllocator::reset()
 {
 	m_pCurrent = m_pStart;
 }
