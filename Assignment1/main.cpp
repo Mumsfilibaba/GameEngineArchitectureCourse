@@ -58,11 +58,19 @@ int main(int argc, const char* argv[])
 	second->setPosition(100, 0);
 
 	allocator.free(second);
+
 	sf::CircleShape* third = allocator.allocate();
-	third = new(second) sf::CircleShape(100.f);
+	third = new(third) sf::CircleShape(100.f);
 	third->setFillColor(sf::Color::Blue);
 	third->setPosition(0, 100);
-	//second and third should have same adress now, so when second is used later, it will be of the new circle...
+	//second and third should have same adress now, so when second is used later, it will be of the new circle... (a blue one)
+
+	third = allocator.allocate();
+	third = new(third) sf::CircleShape(100.f);
+	third->setFillColor(sf::Color::White);
+	third->setPosition(100, 0);
+	allocator.free(third);
+	//memory is free but the object is still there. Third should appear if memory is not changed.
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -96,6 +104,7 @@ int main(int argc, const char* argv[])
 		//window.draw(shape);
 		window.draw(*circle);
 		window.draw(*second);
+		window.draw(*third);
 		ImGui::SFML::Render(window);
 		window.display();
 	}
