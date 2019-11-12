@@ -8,6 +8,7 @@
 #include <crtdbg.h>
 
 #include "StackAllocator.h"
+#include "FrameAllocator.h"
 
 void testStackAllocator(unsigned int nrOfObjects)
 {
@@ -82,18 +83,16 @@ int main(int argc, const char* argv[])
 
 	testStackAllocator(10);
 
-	//create a stackallocator with size enough for 5 ints and 5 circleshapes
-	/*StackAllocator inShape(sizeof(int) * 5 + sizeof(sf::CircleShape) * 5);
-
-	int* tmp = (int*)inShape.make_new(int(5));
-	sf::CircleShape* tmpCircle = (sf::CircleShape*)inShape.make_new(sf::CircleShape(100.f));
-	int* tmpSecond = (int*)inShape.make_new(int(100));
-
-	inShape.make_delete(tmpSecond);
-	sf::CircleShape* tmpCircleSecond = (sf::CircleShape*)inShape.make_new(sf::CircleShape(100.f));
-	inShape.make_delete(inShape.getStart());*/
-
 	size_t size = sizeof(sf::CircleShape) * 5;
+	FrameAllocator fAlloc(size);
+	int* tst = (int*)fAlloc.allocate(int(5), sizeof(int));
+	char* tstChar = fAlloc.allocate(char('c'), sizeof(char));
+	fAlloc.free();
+
+	sf::CircleShape* tstCircle = (sf::CircleShape*)fAlloc.allocate(sf::CircleShape(100.f), sizeof(sf::CircleShape));
+
+	tstCircle->setFillColor(sf::Color::Magenta);
+	tstCircle->setPosition(100, 100);
 
 	StackAllocator allocator(size);
 
@@ -147,6 +146,7 @@ int main(int argc, const char* argv[])
 		window.draw(*circle);
 		window.draw(*second);
 		window.draw(*third);
+		window.draw(*tstCircle);
 		ImGui::SFML::Render(window);
 		window.display();
 	}
