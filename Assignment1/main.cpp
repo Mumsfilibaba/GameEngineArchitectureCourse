@@ -5,16 +5,14 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <imgui.h>
 #include <imgui-SFML.h>
-//#include <crtdbg.h>
+#include <crtdbg.h>
 
 #include "StackAllocator.h"
 
 void testStackAllocator(unsigned int nrOfObjects)
 {
 	size_t size = nrOfObjects * sizeof(sf::CircleShape);
-	void* start = alloca(size);
-	void* end = (char*)start + size;
-	StackAllocator<sf::CircleShape> allocator(start, end);
+	StackAllocator<sf::CircleShape> allocator(size);
 	sf::Clock timing;
 
 	// ------------------------------------ test 1 -------------------------------
@@ -34,14 +32,48 @@ void testStackAllocator(unsigned int nrOfObjects)
 	}
 	sf::Time t2 = timing.restart();
 
-	std::cout << "Test 1.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes) " <<  " on both the regular heap and implemented stack allocator." << std::endl << " Heap used " << t.asMilliseconds() << " milliseconds" << std::endl << 
+	std::cout << "Test 1.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes)" <<  " on both the regular heap and implemented stack allocator." << std::endl << " Heap used " << t.asMilliseconds() << " milliseconds" << std::endl << 
 		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
 
+	//create pointers so that we can keep track of object deletion later.
+	sf::CircleShape** pTmp = new sf::CircleShape*[nrOfObjects];
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i] = new sf::CircleShape(100.f);
+	}
+	t = timing.restart();
+
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		delete pTmp[i];
+	}
+	t2 = timing.restart();
+	
+	std::cout << "Test 2.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes) " << " on the regular heap.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl << std::endl;
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i] = allocator.make_new(sf::CircleShape(100.f));
+	}
+	t = timing.restart();
+
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		allocator.make_delete(pTmp[i]);
+	}
+	t2 = timing.restart();
+
+	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
+
+	delete[] pTmp;
 }
 
 int main(int argc, const char* argv[])
 {
-	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Engine Architecture");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
@@ -51,16 +83,12 @@ int main(int argc, const char* argv[])
     //sf::CircleShape shape(100.f);
     //shape.setFillColor(sf::Color::Green);
 
-	testStackAllocator(1000);
+	testStackAllocator(10000);
 
 
-	size_t size = sizeof(sf::CircleShape) * 100;
-	void* start = alloca(size);
-	void*end = (char*)start + size;
+	size_t size = sizeof(sf::CircleShape) * 5;
 
-	StackAllocator<sf::CircleShape> allocator(start, end);
-
-	
+	StackAllocator<sf::CircleShape> allocator(size);
 
 	sf::CircleShape* circle = allocator.make_new(sf::CircleShape(100.f));
 	circle->setFillColor(sf::Color::Yellow);

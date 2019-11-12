@@ -8,7 +8,7 @@ private:
 	void* m_pEnd;
 	void* m_pCurrent;
 public:
-	StackAllocator(void* start, void* end);
+	StackAllocator(size_t size);
 	~StackAllocator();
 	T* allocate();
 	void free(void* ptr);
@@ -20,14 +20,17 @@ public:
 #endif
 
 template<class T>
-inline StackAllocator<T>::StackAllocator(void * start, void * end): m_pStart(start), m_pEnd(end), m_pCurrent(nullptr)
+inline StackAllocator<T>::StackAllocator(size_t size)
 {
+	m_pStart = malloc(size);
+	m_pEnd = (char*)m_pStart + size;
+	m_pCurrent = nullptr;
 }
 
 template<class T>
 inline StackAllocator<T>::~StackAllocator()
 {
-	//delete m_pStart;
+	delete m_pStart;
 }
 
 template<class T>
@@ -73,6 +76,6 @@ template<class T>
 inline T * StackAllocator<T>::make_new(const T &object)
 {
 	T* res = allocate();
-	res = new (res) T(object);
+	new (res) T(object);
 	return res;
 }
