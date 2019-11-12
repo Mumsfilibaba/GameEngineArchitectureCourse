@@ -20,7 +20,8 @@ public:
 	inline PoolAllocator(int startSize, int blockSize)
 		: m_pMemory(malloc(startSize)),
 		m_pFreeListHead(nullptr),
-		m_SizeInBytes(startSize)
+		m_SizeInBytes(startSize),
+		m_BlockSize(blockSize)
 	{
 		assert(startSize % blockSize == 0);
 		assert(blockSize >= sizeof(Block));
@@ -29,13 +30,14 @@ public:
 		Block* pCurrent = (Block*)m_pMemory;
 		m_pFreeListHead = pCurrent;
 
+		//Init blocks
 		int blockCount = startSize / blockSize;
 		for (int i = 0; i < blockCount; i++)
 		{
 			pCurrent->pNext = (Block*)(((char*)pCurrent) + blockSize); //HACKING;
 			pCurrent->pPrevious = pOld;
 
-			pOld = pCurrent;
+			pOld	 = pCurrent;
 			pCurrent = pCurrent->pNext;
 		}
 
@@ -65,12 +67,14 @@ public:
 	template<typename T, typename... Args>
 	inline T* MakeNew(Args&& ... args)
 	{
+		assert(m_BlockSize >= sizeof(T));
 		return new(AllocateBlock()) T(std::forward<Args>(args) ...);
 	}
 private:
 	void* m_pMemory;
 	Block* m_pFreeListHead;
 	int m_SizeInBytes;
+	int m_BlockSize;
 };
 
 
