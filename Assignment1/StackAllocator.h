@@ -1,43 +1,47 @@
 #ifndef STACKALLOCATOR_H
 #define STACKALLOCATOR_H
 
-template<class T>
 class StackAllocator
 {
 private:
 	void* m_pStart;
 	void* m_pEnd;
 	void* m_pCurrent;
+	size_t toRemove;
 public:
 	StackAllocator(size_t size);
 	~StackAllocator();
-	T* allocate();
 	void free(void* ptr);
+	void* getStart();
 
-	void make_delete(void *ptr);
-	T *make_new(const T &object);
+	template <class T>
+	void make_delete(const T *ptr);
+	template <class T>
+	void *make_new(const T &object);
+
+	void* allocate(size_t size);
 };
 
 #endif
 
-template<class T>
-inline StackAllocator<T>::StackAllocator(size_t size)
+inline StackAllocator::StackAllocator(size_t size)
 {
 	m_pStart = malloc(size);
 	m_pEnd = (char*)m_pStart + size;
 	m_pCurrent = nullptr;
+	toRemove = 0;
 }
 
-template<class T>
-inline StackAllocator<T>::~StackAllocator()
+inline StackAllocator::~StackAllocator()
 {
 	delete m_pStart;
 }
 
-template<class T>
-inline T * StackAllocator<T>::allocate()
+inline void * StackAllocator::allocate(size_t size)
 {
-	size_t size = sizeof(T);
+	if (toRemove > 0)
+		free(m_pCurrent);
+
 	if (m_pCurrent != nullptr)
 		m_pCurrent = (char*)m_pCurrent + size;
 	else
@@ -49,34 +53,39 @@ inline T * StackAllocator<T>::allocate()
 		return nullptr;
 	}
 
-	return (T*)m_pCurrent;
+	return m_pCurrent;
 }
 
-template<class T>
-inline void StackAllocator<T>::free(void * ptr)
+inline void StackAllocator::free(void * ptr)
 {
 	// Free everything up until that pointer!
 
 	if (ptr < m_pEnd && ptr >= m_pStart && ptr <= m_pCurrent)
 	{
-		m_pCurrent = (char*)ptr - sizeof(T);
+		m_pCurrent = (char*)ptr - toRemove;
+		toRemove = 0;
 	}
 }
 
+inline void * StackAllocator::getStart()
+{
+	return m_pStart;
+}
+
 template<class T>
-inline void StackAllocator<T>::make_delete(void * ptr)
+inline void StackAllocator::make_delete(const T * ptr)
 {
 	if (ptr)
 	{
+		toRemove += sizeof(T);
 		((T*)ptr)->~T();
-		//free(ptr);
 	}
 }
 
 template<class T>
-inline T * StackAllocator<T>::make_new(const T &object)
+inline void * StackAllocator::make_new(const T &object)
 {
-	T* res = allocate();
+	void* res = allocate(sizeof(T));
 	new (res) T(object);
 	return res;
 }

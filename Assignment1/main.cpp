@@ -11,8 +11,8 @@
 
 void testStackAllocator(unsigned int nrOfObjects)
 {
-	size_t size = nrOfObjects * sizeof(sf::CircleShape);
-	StackAllocator<sf::CircleShape> allocator(size);
+	size_t size = nrOfObjects * sizeof(int);
+	StackAllocator allocator(size);
 	sf::Clock timing;
 
 	// ------------------------------------ test 1 -------------------------------
@@ -27,9 +27,8 @@ void testStackAllocator(unsigned int nrOfObjects)
 
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		sf::CircleShape* tmp = allocator.make_new(sf::CircleShape(100.f));
+		int* tmp = (int*)allocator.make_new(5);
 		allocator.make_delete(tmp);
-		allocator.free(tmp);
 	}
 	sf::Time t2 = timing.restart();
 
@@ -37,12 +36,12 @@ void testStackAllocator(unsigned int nrOfObjects)
 		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
 
 	//create pointers so that we can keep track of object deletion later.
-	sf::CircleShape** pTmp = new sf::CircleShape*[nrOfObjects];
+	int** pTmp = new int*[nrOfObjects];
 
 	timing.restart();
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		pTmp[i] = new sf::CircleShape(100.f);
+		pTmp[i] = new int(5);
 	}
 	t = timing.restart();
 
@@ -57,7 +56,7 @@ void testStackAllocator(unsigned int nrOfObjects)
 	timing.restart();
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		pTmp[i] = allocator.make_new(sf::CircleShape(100.f));
+		pTmp[i] = (int*)allocator.make_new(5);
 	}
 	t = timing.restart();
 
@@ -65,7 +64,6 @@ void testStackAllocator(unsigned int nrOfObjects)
 	{
 		allocator.make_delete(pTmp[i]);
 	}
-	allocator.free(pTmp[0]);
 	t2 = timing.restart();
 
 	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
@@ -81,33 +79,39 @@ int main(int argc, const char* argv[])
     ImGui::SFML::Init(window);
     
     std::cout << "Hello World" << std::endl;
-    
-    //sf::CircleShape shape(100.f);
-    //shape.setFillColor(sf::Color::Green);
 
-	testStackAllocator(100000);
+	testStackAllocator(10);
 
+	//create a stackallocator with size enough for 5 ints and 5 circleshapes
+	/*StackAllocator inShape(sizeof(int) * 5 + sizeof(sf::CircleShape) * 5);
+
+	int* tmp = (int*)inShape.make_new(int(5));
+	sf::CircleShape* tmpCircle = (sf::CircleShape*)inShape.make_new(sf::CircleShape(100.f));
+	int* tmpSecond = (int*)inShape.make_new(int(100));
+
+	inShape.make_delete(tmpSecond);
+	sf::CircleShape* tmpCircleSecond = (sf::CircleShape*)inShape.make_new(sf::CircleShape(100.f));
+	inShape.make_delete(inShape.getStart());*/
 
 	size_t size = sizeof(sf::CircleShape) * 5;
 
-	StackAllocator<sf::CircleShape> allocator(size);
+	StackAllocator allocator(size);
 
-	sf::CircleShape* circle = allocator.make_new(sf::CircleShape(100.f));
+	sf::CircleShape* circle = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
 	circle->setFillColor(sf::Color::Yellow);
 
-	sf::CircleShape* second = allocator.make_new(sf::CircleShape(100.f));
+	sf::CircleShape* second = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
 	second->setFillColor(sf::Color::Red);
 	second->setPosition(100, 0);
 
 	allocator.make_delete(second);
-	allocator.free(second);
 
-	sf::CircleShape* third = allocator.make_new(sf::CircleShape(100.f));
+	sf::CircleShape* third = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
 	third->setFillColor(sf::Color::Blue);
 	third->setPosition(0, 100);
 	//second and third should have same adress now, so when second is used later, it will be of the new circle... (a blue one), UNSAFE! yes, but I wish to test it.
 
-	third = allocator.make_new(sf::CircleShape(100.f));
+	third = (sf::CircleShape*)allocator.make_new(sf::CircleShape(100.f));
 	third->setFillColor(sf::Color::White);
 	third->setPosition(100, 0);
 
