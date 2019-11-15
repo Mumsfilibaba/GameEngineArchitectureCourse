@@ -10,67 +10,14 @@
 #include "StackAllocator.h"
 #include "FrameAllocator.h"
 
-void testStackAllocator(unsigned int nrOfObjects)
-{
-	size_t size = nrOfObjects * sizeof(int);
-	StackAllocator allocator(size);
-	sf::Clock timing;
 
-	// ------------------------------------ test 1 -------------------------------
+float heapDelCrea;
+float stackDelCrea;
+float heapCrea;
+float stackCrea;
+float heapDel;
+float stackDel;
 
-	timing.restart();
-	for (unsigned int i = 0; i < nrOfObjects; i++)
-	{
-		sf::CircleShape* tmp = new sf::CircleShape(100.f);
-		delete tmp;
-	}
-	sf::Time t = timing.restart();
-
-	for (unsigned int i = 0; i < nrOfObjects; i++)
-	{
-		int* tmp = (int*)allocator.make_new(5);
-		allocator.make_delete(tmp);
-	}
-	sf::Time t2 = timing.restart();
-
-	std::cout << "Test 1.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes)" <<  " on both the regular heap and implemented stack allocator." << std::endl << " Heap used " << t.asMilliseconds() << " milliseconds" << std::endl << 
-		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
-
-	//create pointers so that we can keep track of object deletion later.
-	int** pTmp = new int*[nrOfObjects];
-
-	timing.restart();
-	for (unsigned int i = 0; i < nrOfObjects; i++)
-	{
-		pTmp[i] = new int(5);
-	}
-	t = timing.restart();
-
-	for (unsigned int i = 0; i < nrOfObjects; i++)
-	{
-		delete pTmp[i];
-	}
-	t2 = timing.restart();
-	
-	std::cout << "Test 2.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes) " << " on the regular heap.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl << std::endl;
-
-	timing.restart();
-	for (unsigned int i = 0; i < nrOfObjects; i++)
-	{
-		pTmp[i] = (int*)allocator.make_new(5);
-	}
-	t = timing.restart();
-
-	for (unsigned int i = 0; i < nrOfObjects; i++)
-	{
-		allocator.make_delete(pTmp[i]);
-	}
-	t2 = timing.restart();
-
-	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
-
-	delete[] pTmp;
-}
 
 template <class T, typename ... Args>
 void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
@@ -96,6 +43,8 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 	}
 	sf::Time t2 = timing.restart();
 
+	heapDelCrea += t.asMilliseconds();
+	stackDelCrea += t2.asMilliseconds();
 	std::cout << "Test 1.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes)" << " on both the regular heap and implemented stack allocator." << std::endl << " Heap used " << t.asMilliseconds() << " milliseconds" << std::endl <<
 		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
 
@@ -115,6 +64,8 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 	}
 	t2 = timing.restart();
 
+	heapCrea += t.asMilliseconds();
+	heapDel += t2.asMilliseconds();
 	std::cout << "Test 2.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes) " << " on the regular heap.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl << std::endl;
 
 	timing.restart();
@@ -134,7 +85,8 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 	allocator.reset();
 
 	t2 = timing.restart();
-
+	stackCrea += t.asMilliseconds();
+	stackDel += t2.asMilliseconds();
 	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
 	
 	delete[] pTmp;
@@ -142,6 +94,10 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 
 int main(int argc, const char* argv[])
 {
+	float totalTimeList[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+	int runCount = 0;
+	int nrOfObjects = 0;
+	int nrOfArgs = 0;
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Engine Architecture");
     window.setFramerateLimit(60);
@@ -149,9 +105,9 @@ int main(int argc, const char* argv[])
     
     std::cout << "Hello World" << std::endl;
 
-	testStackAllocator(10);
+	
 	//testFrameAllocator<int>(10000000, 100);
-
+	bool runTest = false;
 	size_t size = sizeof(sf::CircleShape) * 10;
 	FrameAllocator fAlloc(size);
 	fAlloc.allocate<int>(5);
@@ -161,6 +117,7 @@ int main(int argc, const char* argv[])
 	{
 		arr[i] = i;
 	}
+
 	sf::Color bgColor;
 	char windowTitle[255] = "ImGui + SFML = <3";
 	float color[3] = { 0.f, 0.f, 0.f };
@@ -206,24 +163,84 @@ int main(int argc, const char* argv[])
 
 		ImGui::SFML::Update(window, deltaClock.restart());
 
+		ImGui::Begin("Hello, world!");
+		ImGui::InputInt("Number of Test Runs: ", &runCount);
+		ImGui::InputInt("Number Of Objects to allocate: ", &nrOfObjects);
+		ImGui::InputInt("Number Of args?: ", &nrOfArgs);
+
+		if (ImGui::Button("GO!"))
+		{
+			runTest = true;
+
+			for (int i = 0; i < runCount; i++)
+			{
+				testFrameAllocator<int>(nrOfObjects, nrOfArgs);
+			}
+
+			heapDelCrea = heapDelCrea / runCount;
+			stackDelCrea = stackDelCrea / runCount;
+			heapCrea = heapCrea / runCount;
+			stackCrea = stackCrea / runCount;
+			heapDel = heapDel / runCount;
+			stackDel = stackDel / runCount;
+			totalTimeList[0] = heapDelCrea;
+			totalTimeList[1] = stackDelCrea;
+			totalTimeList[2] = heapDel;
+			totalTimeList[3] = heapCrea;
+			totalTimeList[4] = stackDel;
+			totalTimeList[5] = stackCrea;
+		}
+
+	
+
+		std::string text = "Heap time deletion & creation: \n" + std::to_string(heapDelCrea) + " milliseconds";
+		std::string text1 = "Stack time deletion & creation: \n" + std::to_string(stackDelCrea) + " milliseconds";
+		std::string text2 = "Heap time deletion: \n" + std::to_string(heapDel) + " milliseconds";
+		std::string text3 = "Heaptime creation: \n" + std::to_string(heapCrea) + " milliseconds";
+		std::string text4 = "Stack time deletion : \n" + std::to_string(stackDel) + " milliseconds";
+		std::string text5 = "Stack time creation: \n" + std::to_string(stackCrea) + " milliseconds";
+		if (runTest)
+		{	
+			ImGui::Text("Total time for creation and deletion: ");
+			ImGui::BulletText(text.c_str());
+			ImGui::BulletText(text1.c_str());
+			ImGui::Text("Total time for creation and deletion on regular Heap: ");
+			ImGui::BulletText(text2.c_str());
+			ImGui::BulletText(text3.c_str());
+			ImGui::Text("Total time for creation and deletion on Implemented Stack Allocator: ");
+			ImGui::BulletText(text4.c_str());
+			ImGui::BulletText(text5.c_str());
+		}
+
+		ImGui::PlotHistogram(
+			"Average allocation time Table",
+			totalTimeList,
+			IM_ARRAYSIZE(totalTimeList),
+			0, 
+			"1. Heap Create & delete, 2. Stack Create & delete \n3. Heap delete, 4. Heap Create \n5. Stack Delete, 6. Stack Create",
+			0.0f,
+			2000.0f,
+			ImVec2(400, 200));
+
 		ImGui::ShowTestWindow();
 
 
-		ImGui::Begin("Hello, world!");
-
+		
+		ImGui::Separator();
 		// Background color edit
 		if (ImGui::ColorEdit3("Background color", color)) {
 			bgColor.r = static_cast<sf::Uint8>(color[0] * 255.f);
 			bgColor.g = static_cast<sf::Uint8>(color[1] * 255.f);
 			bgColor.b = static_cast<sf::Uint8>(color[2] * 255.f);
 		}
-
+		ImGui::Separator();
 		// Window title text edit
 		ImGui::InputText("Window title", windowTitle, 255);
-
+		ImGui::Separator();
 		if (ImGui::Button("Update window title")) {
 			window.setTitle(windowTitle);
 		}
+
 		ImGui::End(); // end window
 
 
@@ -238,6 +255,7 @@ int main(int argc, const char* argv[])
 		ImGui::SFML::Render(window);
 		window.display();
 	}
+
 	ImGui::SFML::Shutdown();
 
 	// as long as destructor is called for these (before we lose them in memory) a destruction has to be called
