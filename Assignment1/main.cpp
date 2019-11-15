@@ -78,7 +78,6 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 	size_t size = (nrOfObjects) * sizeof(T);
 	FrameAllocator allocator(size);
 	sf::Clock timing;
-
 	// ------------------------------------ test 1 -------------------------------
 
 	timing.restart();
@@ -137,7 +136,7 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 	t2 = timing.restart();
 
 	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
-
+	
 	delete[] pTmp;
 }
 
@@ -150,8 +149,8 @@ int main(int argc, const char* argv[])
     
     std::cout << "Hello World" << std::endl;
 
-	//testStackAllocator(10);
-	testFrameAllocator<int>(10000000, 100);
+	testStackAllocator(10);
+	//testFrameAllocator<int>(10000000, 100);
 
 	size_t size = sizeof(sf::CircleShape) * 10;
 	FrameAllocator fAlloc(size);
@@ -162,7 +161,9 @@ int main(int argc, const char* argv[])
 	{
 		arr[i] = i;
 	}
-
+	sf::Color bgColor;
+	char windowTitle[255] = "ImGui + SFML = <3";
+	float color[3] = { 0.f, 0.f, 0.f };
 	fAlloc.reset();
 
 	sf::CircleShape* magenta = fAlloc.allocate<sf::CircleShape>(100.f);
@@ -203,15 +204,33 @@ int main(int argc, const char* argv[])
 			}
         }
 
-        ImGui::SFML::Update(window, deltaClock.restart());
-        
-		ImGui::ShowTestWindow();
-        
-		ImGui::Begin("Hello, world!");
-		ImGui::Button("Look at this pretty button");
-		ImGui::End();
+		ImGui::SFML::Update(window, deltaClock.restart());
 
-		window.clear();
+		ImGui::ShowTestWindow();
+
+
+		ImGui::Begin("Hello, world!");
+
+		// Background color edit
+		if (ImGui::ColorEdit3("Background color", color)) {
+			bgColor.r = static_cast<sf::Uint8>(color[0] * 255.f);
+			bgColor.g = static_cast<sf::Uint8>(color[1] * 255.f);
+			bgColor.b = static_cast<sf::Uint8>(color[2] * 255.f);
+		}
+
+		// Window title text edit
+		ImGui::InputText("Window title", windowTitle, 255);
+
+		if (ImGui::Button("Update window title")) {
+			window.setTitle(windowTitle);
+		}
+		ImGui::End(); // end window
+
+
+		
+
+
+		window.clear(bgColor);
 		window.draw(*green);
 		window.draw(*blue);
 		window.draw(*red);
