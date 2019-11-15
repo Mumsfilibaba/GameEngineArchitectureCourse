@@ -5,17 +5,18 @@
 
 #include "MemoryManager.h"
 
+#define MB(mb) mb * 1024 * 1024
+
 template<typename T>
 class PoolAllocator
 {
-private:
+public:
     struct Block
     {
         Block* pNext = nullptr;
     };
 
-public:
-    inline PoolAllocator(int sizeInBytes = 4096)
+    inline PoolAllocator(int sizeInBytes = MB(4))
         : m_pMemory(nullptr),
         m_pFreeListHead(nullptr),
 		m_pToFreeListHead(nullptr),
@@ -47,7 +48,6 @@ public:
         //Set the last valid ptr's next to null
         pOld->pNext = nullptr;
     }
-
     
     inline ~PoolAllocator()
     {
@@ -108,6 +108,7 @@ public:
     {
         return m_SizeInBytes;
     }
+
 private:
     void* m_pMemory;
     Block* m_pFreeListHead;

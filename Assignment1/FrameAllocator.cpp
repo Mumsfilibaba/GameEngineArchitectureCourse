@@ -1,4 +1,7 @@
 #include "FrameAllocator.h"
+
+std::unordered_map<std::thread::id, FrameAllocator*> FrameAllocator::s_FrameAllocatorMap = std::unordered_map<std::thread::id, FrameAllocator*>();
+
 FrameAllocator::FrameAllocator(size_t size)
 {
 	m_pStart = new char[size];

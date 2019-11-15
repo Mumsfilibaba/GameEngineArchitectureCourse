@@ -95,7 +95,8 @@ template <class T, typename ... Args>
 void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 {
 	size_t size = (nrOfObjects) * sizeof(T);
-	FrameAllocator allocator(size);
+	//FrameAllocator allocator(size);
+	FrameAllocator& allocator = FrameAllocator::getInstance();
 	sf::Clock timing;
 
 	// ------------------------------------ test 1 -------------------------------
@@ -193,8 +194,7 @@ int main(int argc, const char* argv[])
 	//testStackAllocator(10);
 	testFrameAllocator<int>(10000000, 100);
 
-	size_t size = sizeof(sf::CircleShape) * 10;
-	FrameAllocator frameAllocator(size);
+	FrameAllocator& frameAllocator = FrameAllocator::getInstance();
 	frameAllocator.allocate<int>(5);
 	frameAllocator.allocate<char>('c');
 	int* arr = frameAllocator.allocateArray<int>(3);

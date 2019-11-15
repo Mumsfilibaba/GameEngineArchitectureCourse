@@ -1,5 +1,9 @@
 #ifndef FRAMEALLOCATOR_H
 #define FRAMEALLOCATOR_H
+
+#include <unordered_map>
+#include <thread>
+
 //Objects allocated through this allocator will never have their destruct called from it. Therefore it is up to the user to call upon the destructor before freeing the memory!
 
 class FrameAllocator
@@ -9,8 +13,6 @@ private:
 	char* m_pEnd;
 	char* m_pCurrent;
 public:
-	FrameAllocator(size_t size);
-	FrameAllocator(char* start, char* end);
 	~FrameAllocator();
 
 	template<class T, typename... Args>
@@ -18,6 +20,26 @@ public:
 	template<class T>
 	T* allocateArray(unsigned int size);
 	void reset();
+
+	static std::unordered_map<std::thread::id, FrameAllocator*> s_FrameAllocatorMap;
+
+private:
+	FrameAllocator(size_t size);
+	FrameAllocator(char* start, char* end);
+
+public:
+	static FrameAllocator& getInstance()
+	{
+		std::thread::id id = std::this_thread::get_id();
+		auto search = s_FrameAllocatorMap.find(id);
+		if (search != s_FrameAllocatorMap.end())
+		{
+			return *(search->second);
+		}
+		FrameAllocator* allocator = new FrameAllocator(1024 * 1024 * 1024);
+		s_FrameAllocatorMap.insert({ id, allocator });
+		return *allocator;
+	}
 };
 
 #endif
