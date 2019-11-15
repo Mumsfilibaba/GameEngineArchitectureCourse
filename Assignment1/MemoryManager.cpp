@@ -13,9 +13,23 @@ MemoryManager::~MemoryManager()
 		free(m_pMemory);
 		m_pMemory = nullptr;
 	}
+
+	m_pFreeList = nullptr;
 }
 
-void* MemoryManager::Allocate(size_t sizeInBytes)
+void MemoryManager::RegisterAllocation(size_t sizeInBytes, const std::string& tag, size_t address)
+{
+	std::stringstream stream;
+	stream << std::hex << address;
+	m_Allocations[address] = "A" + tag + "\nStart: " + stream.str() + "\nSize: " + std::to_string(sizeInBytes / 1024) + "kB";
+}
+
+void MemoryManager::RemoveAllocation(size_t address)
+{
+	m_Allocations.erase(address);
+}
+
+void* MemoryManager::Allocate(size_t sizeInBytes, const std::string& tag)
 {
 	size_t totalAllocationSize = sizeInBytes + sizeof(size_t);
 
@@ -40,6 +54,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes)
 			Allocation* pAllocation = new(pCurrentFree) Allocation(totalAllocationSize);
 
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
+			RegisterAllocation(totalAllocationSize, tag, (size_t)pAllocation);
 			return (void*)((size_t)pAllocation + sizeof(size_t));
 		}
 		//Perfect Fit Free Block (No need to create a new FreeEntry after the allocation)
@@ -55,6 +70,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes)
 			Allocation* pAllocation = new(pCurrentFree) Allocation(totalAllocationSize);
 
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
+			RegisterAllocation(totalAllocationSize, tag, (size_t)pAllocation);
 			return (void*)((size_t)pAllocation + sizeof(size_t));
 		}
 
@@ -68,6 +84,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes)
 void MemoryManager::Free(void* allocation)
 {
 	Allocation* pAllocation = reinterpret_cast<Allocation*>(((size_t)allocation - sizeof(size_t))); //HACKING
+	RemoveAllocation((size_t)pAllocation);
 	size_t allocationAddress = (size_t)pAllocation;
 
 	FreeEntry* pClosestLeft = nullptr;
