@@ -5,70 +5,106 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <imgui.h>
 #include <imgui-SFML.h>
+#include <sstream>
 #include "PoolAllocator.h"
 
-int main(int argc, const char* argv[])
-{
-	PoolAllocator<int> allocator(MB(2));
-    
-    sf::Clock clock;
+PoolAllocator<int> g_Allocator(MB(4));
 
-    constexpr int count = 4096 * 64;
-    std::cout << "Total memory consumption: " << count * sizeof(long long) << " bytes" << std::endl;
-    int** ppPoolAllocated	= new int*[count];
-    int** ppOSAllocated		= new int*[count];
-    
-    //Allocate from pool
-    clock.restart();
-    sf::Time t1 = clock.getElapsedTime();
-    for (int i = 0; i < count; i++)
-    {
-        ppPoolAllocated[i] = allocator.MakeNew(i);
-    }
-    sf::Time t2 = clock.getElapsedTime();
-    
-    std::cout << "Allocating " << count << " vars from pool took: " << (t2-t1).asMicroseconds() << "qs" << std::endl;
-    
-    //Allocate from OS
-    clock.restart();
-    t1 = clock.getElapsedTime();
-    for (int i = 0; i < count; i++)
-    {
-        ppOSAllocated[i] = new int(i);
-    }
-    t2 = clock.getElapsedTime();
-    
-    std::cout << "Allocating " << count << " vars from OS took: " << (t2-t1).asMicroseconds() << "qs" << std::endl;
-    
-    //Free to pool
-    clock.restart();
-    t1 = clock.getElapsedTime();
-    for (int i = 0; i < count; i++)
-    {
-        allocator.Free(ppPoolAllocated[i]);
-        ppPoolAllocated[i] = nullptr;
-    }
-    t2 = clock.getElapsedTime();
-    
-    std::cout << "Freeing " << count << " vars from pool took: " << (t2-t1).asMicroseconds() << "qs" << std::endl;
-    
-    //Free to OS
-    clock.restart();
-    t1 = clock.getElapsedTime();
-    for (int i = 0; i < count; i++)
-    {
-        delete ppOSAllocated[i];
-        ppOSAllocated[i] = nullptr;
-    }
-    t2 = clock.getElapsedTime();
-    
-    std::cout << "Freeing " << count << " vars from OS took: " << (t2-t1).asMicroseconds() << "qs" << std::endl;
+void ThreadSafePrintf(const char* pFormat, ...)
+{
+	static std::mutex printMutex;
+	std::lock_guard<std::mutex> lock(printMutex);
+
+	va_list args;
+	va_start(args, pFormat);
+	vprintf(pFormat, args);
+	va_end(args);
+}
+
+void Func()
+{
+	sf::Clock clock;
+
+	std::stringstream ss;
+	ss << std::this_thread::get_id();
+
+	constexpr int count = 1024;
+	ThreadSafePrintf("Total memory consumption: %d bytes\n", count * sizeof(void*));
+	int** ppPoolAllocated = new int* [count];
+	int** ppOSAllocated = new int* [count];
+
+	//Allocate from pool
+	clock.restart();
+	sf::Time t1 = clock.getElapsedTime();
+	for (int i = 0; i < count; i++)
+	{
+		ppPoolAllocated[i] = g_Allocator.MakeNew(i);
+	}
+	sf::Time t2 = clock.getElapsedTime();
+
+	ThreadSafePrintf("Allocating %d vars from pool took %d qs [THREAD %s]\n", count, (t2 - t1).asMicroseconds(), ss.str().c_str());
+
+	//Allocate from OS
+	clock.restart();
+	t1 = clock.getElapsedTime();
+	for (int i = 0; i < count; i++)
+	{
+		ppOSAllocated[i] = new int(i);
+	}
+	t2 = clock.getElapsedTime();
+
+	ThreadSafePrintf("Allocating %d vars from OS took %d qs [THREAD %s]\n", count, (t2 - t1).asMicroseconds(), ss.str().c_str());
+
+	//Free to pool
+	clock.restart();
+	t1 = clock.getElapsedTime();
+	for (int i = 0; i < count; i++)
+	{
+		g_Allocator.Free(ppPoolAllocated[i]);
+		ppPoolAllocated[i] = nullptr;
+	}
+	t2 = clock.getElapsedTime();
+
+	ThreadSafePrintf("Freeing %d vars from pool took %d qs [THREAD %s]\n", count, (t2 - t1).asMicroseconds(), ss.str().c_str());
+
+	//Free to OS
+	clock.restart();
+	t1 = clock.getElapsedTime();
+	for (int i = 0; i < count; i++)
+	{
+		delete ppOSAllocated[i];
+		ppOSAllocated[i] = nullptr;
+	}
+	t2 = clock.getElapsedTime();
+
+	ThreadSafePrintf("Freeing %d vars from pool took %d qs [THREAD %s]\n", count, (t2 - t1).asMicroseconds(), ss.str().c_str());
 
 	delete ppPoolAllocated;
 	ppPoolAllocated = nullptr;
 
 	delete ppOSAllocated;
 	ppOSAllocated = nullptr;
+}
+
+
+int main(int argc, const char* argv[])
+{
+	std::thread t1(Func);
+	std::thread t2(Func);
+	std::thread t3(Func);
+	std::thread t4(Func);
+
+	if (t1.joinable())
+		t1.join();
+
+	if (t2.joinable())
+		t2.join();
+
+	if (t3.joinable())
+		t3.join();
+
+	if (t4.joinable())
+		t4.join();
 
 
 	//Start program
