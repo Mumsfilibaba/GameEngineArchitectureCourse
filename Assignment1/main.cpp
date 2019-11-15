@@ -8,12 +8,12 @@
 #include <sstream>
 #include "PoolAllocator.h"
 
-PoolAllocator<int> g_Allocator(MB(4));
+PoolAllocator<int> g_Allocator;
 
 void ThreadSafePrintf(const char* pFormat, ...)
 {
-	static std::mutex printMutex;
-	std::lock_guard<std::mutex> lock(printMutex);
+	static SpinLock printLock;
+	std::lock_guard<SpinLock> lock(printLock);
 
 	va_list args;
 	va_start(args, pFormat);
@@ -24,14 +24,14 @@ void ThreadSafePrintf(const char* pFormat, ...)
 void Func()
 {
 	sf::Clock clock;
-
+	
 	std::stringstream ss;
 	ss << std::this_thread::get_id();
 
-	constexpr int count = 1024;
-	ThreadSafePrintf("Total memory consumption: %d bytes\n", count * sizeof(void*));
-	int** ppPoolAllocated = new int* [count];
-	int** ppOSAllocated = new int* [count];
+	constexpr int count = 4096;
+	ThreadSafePrintf("Total memory consumption: %d bytes [THREAD %s]\n", count * sizeof(void*), ss.str().c_str());
+	int** ppPoolAllocated = new int*[count];
+	int** ppOSAllocated = new int*[count];
 
 	//Allocate from pool
 	clock.restart();
@@ -77,7 +77,7 @@ void Func()
 	}
 	t2 = clock.getElapsedTime();
 
-	ThreadSafePrintf("Freeing %d vars from pool took %d qs [THREAD %s]\n", count, (t2 - t1).asMicroseconds(), ss.str().c_str());
+	ThreadSafePrintf("Freeing %d vars from OS took %d qs [THREAD %s]\n", count, (t2 - t1).asMicroseconds(), ss.str().c_str());
 
 	delete ppPoolAllocated;
 	ppPoolAllocated = nullptr;
