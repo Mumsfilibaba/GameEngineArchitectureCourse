@@ -40,6 +40,9 @@ void Func()
 	for (int i = 0; i < count; i++)
 	{
 		ppPoolAllocated[i] = g_Allocator.MakeNew(i);
+
+		if (i % 512 == 0)
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 	sf::Time t2 = clock.getElapsedTime();
 
@@ -91,21 +94,6 @@ void Func()
 int main(int argc, const char* argv[])
 {
 	std::thread t1(Func);
-	std::thread t2(Func);
-	std::thread t3(Func);
-	std::thread t4(Func);
-
-	if (t1.joinable())
-		t1.join();
-
-	if (t2.joinable())
-		t2.join();
-
-	if (t3.joinable())
-		t3.join();
-
-	if (t4.joinable())
-		t4.join();
 
 
 	//Start program
@@ -193,6 +181,9 @@ int main(int argc, const char* argv[])
 		ImGui::SFML::Render(window);
 		window.display();
 	}
+
+	if (t1.joinable())
+		t1.join();
 
 	ImGui::SFML::Shutdown();
     return 0; 

@@ -27,7 +27,8 @@ private:
 			assert(sizeInBytes % blockSize == 0);
 
 			//Allocate mem
-			m_pMemory = malloc(m_SizeInBytes);
+			//m_pMemory = malloc(m_SizeInBytes);
+			m_pMemory = MemoryManager::GetInstance().Allocate(sizeInBytes, "Pool Allocation");
 			
 			//Init blocks
 			Block* pOld = nullptr;
@@ -51,7 +52,7 @@ private:
 		{
 			if (m_pMemory)
 			{
-				free(m_pMemory);
+				//free(m_pMemory);
 				m_pMemory = nullptr;
 			}
 		}
