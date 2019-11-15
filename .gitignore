@@ -25,3 +25,7 @@ ImGui/bin-int/Debug-windows-x86_64/ImGui/ImGui.vcxproj.FileListAbsolute.txt
 *.xcworkspacedata
 Assignment1/bin/Debug/Assign1_Allocator.dSYM/Contents/Resources/DWARF/Assign1_Allocator
 Assignment1/bin/Debug/Assign1_Allocator
+Assignment1/bin/Release/Assign1_Allocator
+Assignment1/bin/Release/Assign1_Allocator.dSYM/Contents/Resources/DWARF/Assign1_Allocator
+*.xcscheme
+*.xcbkptlist
