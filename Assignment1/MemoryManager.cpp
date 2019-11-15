@@ -13,6 +13,8 @@ MemoryManager::~MemoryManager()
 		free(m_pMemory);
 		m_pMemory = nullptr;
 	}
+
+	m_pFreeList = nullptr;
 }
 
 void* MemoryManager::Allocate(size_t sizeInBytes)

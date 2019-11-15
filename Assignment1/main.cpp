@@ -99,7 +99,7 @@ int main(int argc, const char* argv[])
         ImGui::SFML::Update(window, deltaClock.restart());
         
 		ImGui::ShowTestWindow();
-        
+
 		ImGui::Begin("Hello, world!");
 		ImGui::Button("Look at this pretty button");
 		ImGui::End();
