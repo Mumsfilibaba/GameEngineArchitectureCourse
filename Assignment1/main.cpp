@@ -7,6 +7,8 @@
 #include <imgui-SFML.h>
 #include "PoolAllocator.h"
 
+#define MB(mb) mb * 1024 * 1024
+
 int main(int argc, const char* argv[])
 {
 	PoolAllocator<int> allocator(MB(2));
@@ -72,7 +74,7 @@ int main(int argc, const char* argv[])
 
 
 	//Start program
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Engine Architecture");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
     

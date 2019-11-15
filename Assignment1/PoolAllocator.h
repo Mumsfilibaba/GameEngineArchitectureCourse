@@ -2,7 +2,7 @@
 #define PoolAllocator_h
 #include <cstdlib>
 
-#define MB(mb) mb * 1024 * 1024
+#include "MemoryManager.h"
 
 template<typename T>
 class PoolAllocator
@@ -23,7 +23,8 @@ public:
         assert(m_SizeInBytes % blockSize == 0);
         
         //Allocate mem
-        m_pMemory = malloc(m_SizeInBytes);
+        //m_pMemory = malloc(m_SizeInBytes);
+		m_pMemory = MemoryManager::getInstance().Allocate(m_SizeInBytes);
         
         //Init blocks
         Block* pOld        = nullptr;
@@ -48,7 +49,7 @@ public:
     {
         if (m_pMemory)
         {
-            free(m_pMemory);
+            //free(m_pMemory);
             m_pMemory = nullptr;
         }
     }
