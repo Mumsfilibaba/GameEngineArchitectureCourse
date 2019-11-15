@@ -1,6 +1,7 @@
 #ifndef PoolAllocator_h
 #define PoolAllocator_h
 #include <cstdlib>
+#include <mutex>
 
 #include "MemoryManager.h"
 
@@ -17,7 +18,10 @@ public:
     inline PoolAllocator(int sizeInBytes = 4096)
         : m_pMemory(nullptr),
         m_pFreeListHead(nullptr),
-        m_SizeInBytes(sizeInBytes)
+		m_pToFreeListHead(nullptr),
+        m_SizeInBytes(sizeInBytes),
+		m_FreeMutex(),
+		m_ToFreeMutex()
     {
         constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
         assert(m_SizeInBytes % blockSize == 0);
@@ -57,8 +61,20 @@ public:
 
     inline void* AllocateBlock()
     {
-        Block* pCurrent = m_pFreeListHead;
-        m_pFreeListHead = m_pFreeListHead->pNext;
+		std::lock_guard<std::mutex> lock(m_FreeMutex);
+        
+		Block* pCurrent = m_pFreeListHead;
+		if (!pCurrent)
+		{
+			std::lock_guard<std::mutex> lock(m_ToFreeMutex);
+
+			m_pFreeListHead = m_pToFreeListHead;
+			m_pToFreeListHead = nullptr;
+		}
+		else
+		{
+			m_pFreeListHead = m_pFreeListHead->pNext;
+		}
         return (void*)pCurrent;
     }
 
@@ -72,9 +88,13 @@ public:
     
     inline void Free(T* pObject)
     {
+		std::lock_guard<std::mutex> lock(m_ToFreeMutex);
+
+		pObject->~T();
+
         Block* pFirst = (Block*)pObject;
-        pFirst->pNext = m_pFreeListHead;
-        m_pFreeListHead = pFirst;
+        pFirst->pNext = m_pToFreeListHead;
+		m_pToFreeListHead = pFirst;
     }
     
     
@@ -91,7 +111,10 @@ public:
 private:
     void* m_pMemory;
     Block* m_pFreeListHead;
+	Block* m_pToFreeListHead;
     size_t m_SizeInBytes;
+	std::mutex m_FreeMutex;
+	std::mutex m_ToFreeMutex;
 };
 
 #endif
