@@ -7,6 +7,8 @@
 #include <imgui-SFML.h>
 #include <sstream>
 #include "PoolAllocator.h"
+#include <crtdbg.h>
+#include "FrameAllocator.h"
 
 #define MB(mb) mb * 1024 * 1024
 
@@ -89,9 +91,79 @@ void Func()
 	ppOSAllocated = nullptr;
 }
 
+template <class T, typename ... Args>
+void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
+{
+	size_t size = (nrOfObjects) * sizeof(T);
+	FrameAllocator allocator(size);
+	sf::Clock timing;
+
+	// ------------------------------------ test 1 -------------------------------
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		T* tmp = new T(std::forward<Args>(args)...);
+		delete tmp;
+	}
+	sf::Time t = timing.restart();
+
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		T* tmp = allocator.allocate<T>(std::forward<Args>(args)...);
+		tmp->~T();
+		allocator.reset();
+	}
+	sf::Time t2 = timing.restart();
+
+	std::cout << "Test 1.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes)" << " on both the regular heap and implemented stack allocator." << std::endl << " Heap used " << t.asMilliseconds() << " milliseconds" << std::endl <<
+		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
+
+	//create pointers so that we can keep track of object deletion later.
+	T** pTmp = new T*[nrOfObjects];
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i] = new T(std::forward<Args>(args)...);
+	}
+	t = timing.restart();
+
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		delete pTmp[i];
+	}
+	t2 = timing.restart();
+
+	std::cout << "Test 2.\n Created and deleted " << nrOfObjects << " objects (" << size << " bytes) " << " on the regular heap.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl << std::endl;
+
+	timing.restart();
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i] = allocator.allocate<T>(std::forward<Args>(args)...);
+	}
+
+	t = timing.restart();
+
+	// Whenever objects need to be destroyed...
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i]->~T();
+	}
+
+	allocator.reset();
+
+	t2 = timing.restart();
+
+	std::cout << " Created and deleted " << nrOfObjects << " objects(" << size << " bytes) " << " on the implemented stack.\n creation took " << t.asMilliseconds() << " milliseconds\n Deletion took " << t2.asMilliseconds() << " milliseconds" << std::endl;
+
+	delete[] pTmp;
+}
 
 int main(int argc, const char* argv[])
 {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
 	std::thread t1(Func);
 	std::thread t2(Func);
 	std::thread t3(Func);
@@ -112,13 +184,44 @@ int main(int argc, const char* argv[])
 
 	//Start program
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");
+
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
     
     std::cout << "Hello World" << std::endl;
-    
-    sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Green);
+
+	//testStackAllocator(10);
+	testFrameAllocator<int>(10000000, 100);
+
+	size_t size = sizeof(sf::CircleShape) * 10;
+	FrameAllocator frameAllocator(size);
+	frameAllocator.allocate<int>(5);
+	frameAllocator.allocate<char>('c');
+	int* arr = frameAllocator.allocateArray<int>(3);
+	for (int i = 0; i < 3; i++)
+	{
+		arr[i] = i;
+	}
+
+	frameAllocator.reset();
+
+	sf::CircleShape* magenta = frameAllocator.allocate<sf::CircleShape>(100.f);
+
+	magenta->setFillColor(sf::Color::Magenta);
+	magenta->setPosition(100, 100);
+
+	sf::CircleShape* green = frameAllocator.allocate<sf::CircleShape>(100.f);
+	green->setFillColor(sf::Color::Green);
+
+	sf::CircleShape* red = frameAllocator.allocate<sf::CircleShape>(100.f);
+
+	red->setFillColor(sf::Color::Red);
+	red->setPosition(0, 100);
+
+	sf::CircleShape* blue = frameAllocator.allocate<sf::CircleShape>(100.f);
+
+	blue->setFillColor(sf::Color::Blue);
+	blue->setPosition(100, 0);
 
     sf::Clock deltaClock;
     while (window.isOpen())
@@ -131,6 +234,13 @@ int main(int argc, const char* argv[])
             {
                 window.close();
             }
+			else if (event.type == sf::Event::KeyPressed)
+			{
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+				{
+					window.close();
+				}
+			}
         }
 
         ImGui::SFML::Update(window, deltaClock.restart());
@@ -142,11 +252,22 @@ int main(int argc, const char* argv[])
 		ImGui::End();
 
 		window.clear();
-		window.draw(shape);
+		window.draw(*green);
+		window.draw(*blue);
+		window.draw(*red);
+		window.draw(*magenta);
 		ImGui::SFML::Render(window);
 		window.display();
 	}
-
 	ImGui::SFML::Shutdown();
+
+	// as long as destructor is called for these (before we lose them in memory) a destruction has to be called
+	magenta->~CircleShape();
+	green->~CircleShape();
+	blue->~CircleShape();
+	red->~CircleShape();
+
+	frameAllocator.reset();
+
     return 0; 
 }
