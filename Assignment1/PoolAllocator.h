@@ -24,7 +24,7 @@ public:
         
         //Allocate mem
         //m_pMemory = malloc(m_SizeInBytes);
-		m_pMemory = MemoryManager::getInstance().Allocate(m_SizeInBytes);
+		m_pMemory = MemoryManager::GetInstance().Allocate(m_SizeInBytes, "Pool Allocator");
         
         //Init blocks
         Block* pOld        = nullptr;

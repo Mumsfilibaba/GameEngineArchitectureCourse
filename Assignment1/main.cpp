@@ -100,6 +100,55 @@ int main(int argc, const char* argv[])
         
 		ImGui::ShowTestWindow();
 
+		std::map<size_t, std::string> currentMemory = std::map<size_t, std::string>(MemoryManager::GetInstance().GetAllocations());
+		const FreeEntry* pCurrentFreeEntry = MemoryManager::GetInstance().GetFreeList();
+
+		size_t counter = 0;
+		while (pCurrentFreeEntry != nullptr)
+		{
+			size_t currentAddress = (size_t)pCurrentFreeEntry;
+			size_t nextAddress = (size_t)pCurrentFreeEntry->pNext;
+
+			std::stringstream currentAddressStream;
+			currentAddressStream << std::hex << currentAddress;
+
+			std::stringstream nextAddressStream;
+			nextAddressStream << std::hex << nextAddress;
+
+			currentMemory[currentAddress] =
+				"FFree Memory " + std::to_string(counter) + 
+				"\nStart: " + currentAddressStream.str() +
+				"\nSize: " + std::to_string(pCurrentFreeEntry->sizeInBytes / 1024) + "kB\nNext: " +
+				nextAddressStream.str();
+
+			pCurrentFreeEntry = pCurrentFreeEntry->pNext;
+			counter++;
+		}
+
+		static const char* current_item = NULL;
+
+		if (ImGui::TreeNode("Allocations"))
+		{
+			for (auto& it = currentMemory.begin(); it != currentMemory.end(); it++)
+			{
+				std::string entry = it->second;
+				char type = entry.substr(0, 1).c_str()[0];
+				std::string entryTag = entry.substr(1, entry.length() - 1);
+
+				switch (type)
+				{
+				case 'A':
+					ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), entryTag.c_str());
+					break;
+				case 'F':
+					ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), entryTag.c_str());
+					break;
+				}
+			}
+
+			ImGui::TreePop();
+		}
+
 		ImGui::Begin("Hello, world!");
 		ImGui::Button("Look at this pretty button");
 		ImGui::End();
