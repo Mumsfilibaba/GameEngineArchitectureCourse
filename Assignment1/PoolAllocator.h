@@ -1,5 +1,6 @@
 #ifndef PoolAllocator_h
 #define PoolAllocator_h
+#include <cstdlib>
 
 #define MB(mb) mb * 1024 * 1024
 
@@ -18,11 +19,11 @@ public:
         m_pFreeListHead(nullptr),
         m_SizeInBytes(sizeInBytes)
     {
-        constexpr int blockSize = std::max(sizeof(T), sizeof(Block));
+        constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
         assert(m_SizeInBytes % blockSize == 0);
         
         //Allocate mem
-        m_pMemory = aligned_alloc(blockSize, m_SizeInBytes);
+        m_pMemory = malloc(m_SizeInBytes);
         
         //Init blocks
         Block* pOld        = nullptr;

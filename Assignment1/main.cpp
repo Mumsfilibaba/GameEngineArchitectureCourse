@@ -15,15 +15,15 @@ int main(int argc, const char* argv[])
 
     constexpr int count = 4096 * 64;
     std::cout << "Total memory consumption: " << count * sizeof(long long) << " bytes" << std::endl;
-    int* pPoolAllocated[count];
-    int* pOSAllocated[count];
+    int** ppPoolAllocated	= new int*[count];
+    int** ppOSAllocated		= new int*[count];
     
     //Allocate from pool
     clock.restart();
     sf::Time t1 = clock.getElapsedTime();
     for (int i = 0; i < count; i++)
     {
-        pPoolAllocated[i] = allocator.MakeNew(i);
+        ppPoolAllocated[i] = allocator.MakeNew(i);
     }
     sf::Time t2 = clock.getElapsedTime();
     
@@ -34,7 +34,7 @@ int main(int argc, const char* argv[])
     t1 = clock.getElapsedTime();
     for (int i = 0; i < count; i++)
     {
-        pOSAllocated[i] = new int(i);
+        ppOSAllocated[i] = new int(i);
     }
     t2 = clock.getElapsedTime();
     
@@ -45,8 +45,8 @@ int main(int argc, const char* argv[])
     t1 = clock.getElapsedTime();
     for (int i = 0; i < count; i++)
     {
-        allocator.Free(pPoolAllocated[i]);
-        pPoolAllocated[i] = nullptr;
+        allocator.Free(ppPoolAllocated[i]);
+        ppPoolAllocated[i] = nullptr;
     }
     t2 = clock.getElapsedTime();
     
@@ -57,14 +57,21 @@ int main(int argc, const char* argv[])
     t1 = clock.getElapsedTime();
     for (int i = 0; i < count; i++)
     {
-        delete pOSAllocated[i];
-        pOSAllocated[i] = nullptr;
+        delete ppOSAllocated[i];
+        ppOSAllocated[i] = nullptr;
     }
     t2 = clock.getElapsedTime();
     
     std::cout << "Freeing " << count << " vars from OS took: " << (t2-t1).asMicroseconds() << "qs" << std::endl;
 
+	delete ppPoolAllocated;
+	ppPoolAllocated = nullptr;
 
+	delete ppOSAllocated;
+	ppOSAllocated = nullptr;
+
+
+	//Start program
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Engine Architecture");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
