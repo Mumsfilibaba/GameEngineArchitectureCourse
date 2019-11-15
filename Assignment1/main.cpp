@@ -72,9 +72,10 @@ void testStackAllocator(unsigned int nrOfObjects)
 	delete[] pTmp;
 }
 
-void testFrameAllocator(unsigned int nrOfObjects)
+template <class T, typename ... Args>
+void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 {
-	size_t size = nrOfObjects * sizeof(int);
+	size_t size = (nrOfObjects) * sizeof(T);
 	FrameAllocator allocator(size);
 	sf::Clock timing;
 
@@ -83,14 +84,15 @@ void testFrameAllocator(unsigned int nrOfObjects)
 	timing.restart();
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		sf::CircleShape* tmp = new sf::CircleShape(100.f);
+		T* tmp = new T(std::forward<Args>(args)...);
 		delete tmp;
 	}
 	sf::Time t = timing.restart();
 
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		sf::CircleShape* tmp = (sf::CircleShape*)allocator.allocate(sf::CircleShape(100.f));
+		T* tmp = allocator.allocate<T>(std::forward<Args>(args)...);
+		tmp->~T();
 		allocator.reset();
 	}
 	sf::Time t2 = timing.restart();
@@ -99,12 +101,12 @@ void testFrameAllocator(unsigned int nrOfObjects)
 		" Stack used " << t2.asMilliseconds() << " milliseconds" << std::endl;
 
 	//create pointers so that we can keep track of object deletion later.
-	sf::CircleShape** pTmp = new sf::CircleShape*[nrOfObjects];
+	T** pTmp = new T*[nrOfObjects];
 
 	timing.restart();
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		pTmp[i] = new sf::CircleShape(100.f);
+		pTmp[i] = new T(std::forward<Args>(args)...);
 	}
 	t = timing.restart();
 
@@ -119,9 +121,16 @@ void testFrameAllocator(unsigned int nrOfObjects)
 	timing.restart();
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		pTmp[i] = (sf::CircleShape*)allocator.allocate(sf::CircleShape(100.f));
+		pTmp[i] = allocator.allocate<T>(std::forward<Args>(args)...);
 	}
+
 	t = timing.restart();
+
+	// Whenever objects need to be destroyed...
+	for (unsigned int i = 0; i < nrOfObjects; i++)
+	{
+		pTmp[i]->~T();
+	}
 
 	allocator.reset();
 
@@ -142,12 +151,12 @@ int main(int argc, const char* argv[])
     std::cout << "Hello World" << std::endl;
 
 	//testStackAllocator(10);
-	//testFrameAllocator(1000000);
+	testFrameAllocator<int>(10000000, 100);
 
 	size_t size = sizeof(sf::CircleShape) * 10;
 	FrameAllocator fAlloc(size);
-	int* tst = (int*)fAlloc.allocate(int(5));
-	char* tstChar = fAlloc.allocate(char('c'));
+	fAlloc.allocate<int>(5);
+	fAlloc.allocate<char>('c');
 	int* arr = fAlloc.allocateArray<int>(3);
 	for (int i = 0; i < 3; i++)
 	{
@@ -156,20 +165,20 @@ int main(int argc, const char* argv[])
 
 	fAlloc.reset();
 
-	sf::CircleShape* magenta = fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* magenta = fAlloc.allocate<sf::CircleShape>(100.f);
 
 	magenta->setFillColor(sf::Color::Magenta);
 	magenta->setPosition(100, 100);
 
-	sf::CircleShape* green = fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* green = fAlloc.allocate<sf::CircleShape>(100.f);
 	green->setFillColor(sf::Color::Green);
 
-	sf::CircleShape* red = fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* red = fAlloc.allocate<sf::CircleShape>(100.f);
 
 	red->setFillColor(sf::Color::Red);
 	red->setPosition(0, 100);
 
-	sf::CircleShape* blue = fAlloc.allocate(sf::CircleShape(100.f));
+	sf::CircleShape* blue = fAlloc.allocate<sf::CircleShape>(100.f);
 
 	blue->setFillColor(sf::Color::Blue);
 	blue->setPosition(100, 0);
