@@ -194,7 +194,7 @@ int main(int argc, const char* argv[])
     std::cout << "Hello World" << std::endl;
 
 	//testStackAllocator(10);
-	testFrameAllocator<int>(10000000, 100);
+	//testFrameAllocator<int>(10000000, 100);
 
 	FrameAllocator& frameAllocator = FrameAllocator::getInstance();
 	frameAllocator.allocate<int>(5);
@@ -203,11 +203,6 @@ int main(int argc, const char* argv[])
 	
 	//testFrameAllocator<int>(10000000, 100);
 	bool runTest = false;
-	size_t size = sizeof(sf::CircleShape) * 10;
-	FrameAllocator fAlloc(size);
-	fAlloc.allocate<int>(5);
-	fAlloc.allocate<char>('c');
-	int* arr = fAlloc.allocateArray<int>(3);
 	for (int i = 0; i < 3; i++)
 	{
 		arr[i] = i;
@@ -217,7 +212,6 @@ int main(int argc, const char* argv[])
 	sf::Color bgColor;
 	char windowTitle[255] = "ImGui + SFML = <3";
 	float color[3] = { 0.f, 0.f, 0.f };
-	fAlloc.reset();
 
 	sf::CircleShape* magenta = frameAllocator.allocate<sf::CircleShape>(100.f);
 
