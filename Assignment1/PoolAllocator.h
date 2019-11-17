@@ -155,6 +155,11 @@ public:
         return m_ChunkSizeInBytes;
     }
 
+	inline int GetTotalMemory() const
+	{
+		return m_ChunkSizeInBytes * m_ppChunks.size();
+	}
+
 private:
 	std::vector<Chunk*> m_ppChunks;
     Block* m_pFreeListHead;

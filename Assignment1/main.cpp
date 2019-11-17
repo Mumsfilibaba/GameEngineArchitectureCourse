@@ -24,7 +24,8 @@ void ThreadSafePrintf(const char* pFormat, ...)
 	va_end(args);
 }
 //global pool allocator vars..
-float g_availableMemory = 0;
+float g_totalMemoryConsumption = 0;
+float g_availableMemory = g_Allocator.GetTotalMemory();
 
 void Func()
 {
@@ -34,7 +35,7 @@ void Func()
 	ss << std::this_thread::get_id();
 
 	constexpr int count = 4096;
-	g_availableMemory = count * sizeof(void*);
+	//g_totalMemoryConsumption = count * sizeof(void*);
 	ThreadSafePrintf("Total memory consumption: %d bytes [THREAD %s]\n", count * sizeof(void*), ss.str().c_str());
 	int** ppPoolAllocated = new int*[count];
 	int** ppOSAllocated = new int*[count];
@@ -45,11 +46,11 @@ void Func()
 	for (int i = 0; i < count; i++)
 	{
 		ppPoolAllocated[i] = g_Allocator.MakeNew(i);
-
+		g_totalMemoryConsumption += sizeof(void*);
+		g_availableMemory = g_Allocator.GetTotalMemory();
 		if (i % 512 == 0)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-			g_availableMemory -= 4096;
 		}
 	}
 	sf::Time t2 = clock.getElapsedTime();
@@ -86,6 +87,11 @@ void Func()
 	{
 		delete ppOSAllocated[i];
 		ppOSAllocated[i] = nullptr;
+		g_totalMemoryConsumption -= sizeof(void*);
+		if (i % 512 == 0)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		}
 	}
 	t2 = clock.getElapsedTime();
 
@@ -270,7 +276,14 @@ int main(int argc, const char* argv[])
 
 		}
 
-		ImGui::ProgressBar(g_availableMemory / (4096 * 8), ImVec2(0.0f, 0.0f));
+		ImGui::ProgressBar(g_totalMemoryConsumption / (4096 * sizeof(void*)), ImVec2(0.0f, 0.0f));
+		ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+		ImGui::Text("Total Memory Consumption");
+
+
+		char buff[32];
+		std::sprintf(buff, "%d/%d", (int)(g_totalMemoryConsumption), (int)g_availableMemory);
+		ImGui::ProgressBar( (g_totalMemoryConsumption/g_availableMemory), ImVec2(0.0f, 0.0f), buff);
 		ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
 		ImGui::Text("Available Memory");
 
@@ -331,7 +344,7 @@ int main(int argc, const char* argv[])
 		ImGui::InputInt("Number Of Objects to allocate: ", &nrOfObjects);
 		ImGui::InputInt("Number Of args?: ", &nrOfArgs);
 
-		if (ImGui::Button("GO!"))
+		if (ImGui::Button("Run Frame Allocator"))
 		{
 			runTest = true;
 
