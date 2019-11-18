@@ -7,7 +7,7 @@ SpinLock FrameAllocator::m_InstanceLock;
 FrameAllocator::FrameAllocator(size_t size)
 {
 	//m_pStart = malloc(size);
-	m_pStart = MemoryManager::GetInstance().Allocate(size, "Frame Allocator");
+	m_pStart = MemoryManager::GetInstance().Allocate(size, 1, "Frame Allocator");
 	m_pEnd = (void*)((size_t)m_pStart + size);
 	m_pCurrent = m_pStart;
 }
@@ -33,10 +33,10 @@ void* FrameAllocator::AllocateMem(size_t size, size_t alignment)
     size_t padding = alignedCurrent - (size_t)m_pCurrent;
     
     void* res = nullptr;
-    if (m_pCurrent + size <= m_pEnd)
+    if ((void*)((size_t)m_pCurrent + size) <= m_pEnd)
     {
         res = m_pCurrent;
-        m_pCurrent += size;
+        m_pCurrent = (void*)((size_t)m_pCurrent + size);
     }
     return res;
 }

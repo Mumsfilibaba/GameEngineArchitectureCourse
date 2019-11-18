@@ -20,32 +20,39 @@ MemoryManager::~MemoryManager()
 	FrameAllocator::Release();
 }
 
-void MemoryManager::RegisterAllocation(size_t sizeInBytes, size_t padding, size_t address, const std::string& tag)
+void MemoryManager::RegisterAllocation(size_t sizeInBytes, size_t alignment, size_t padding, size_t startAddress, size_t endAddress, const std::string& tag)
 {
 	size_t mb = sizeInBytes / (1024 * 1024);
 	size_t kb = (sizeInBytes - mb * (1024 * 1024)) / 1024;
 	size_t bytes = (sizeInBytes - mb * (1024 * 1024) - kb * 1024);
 
-	std::stringstream stream;
-	stream << std::hex << address;
-	m_Allocations[address] = 
+	std::stringstream startStream;
+	startStream << std::hex << startAddress;
+
+	std::stringstream endStream;
+	endStream << std::hex << endAddress;
+
+	m_Allocations[startAddress] =
 		"A" + tag + 
-		"\nStart: " + stream.str() + 
-		"\nSize: " + 
-        "\nPadding:" + std::to_string(padding) +
+		"\nStart: " + startStream.str() +
+		"\nEnd: " + endStream.str() +
+		"\nSize: " +
 		std::to_string(mb) + "MB " +
 		std::to_string(kb) + "kB " +
-		std::to_string(bytes) + "bytes";
+		std::to_string(bytes) + "bytes" +
+		"\nAlignment:" + std::to_string(alignment) +
+		"\nPadding:" + std::to_string(padding);
+		
 }
 
-void MemoryManager::RemoveAllocation(size_t address)
+void MemoryManager::RemoveAllocation(size_t startAddress)
 {
-	m_Allocations.erase(address);
+	m_Allocations.erase(startAddress);
 }
 
 void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::string& tag)
 {
-	assert(alignment % 2 == 0);
+	assert(alignment % 2 == 0 || alignment == 1);
 
 	size_t totalAllocationSize = sizeInBytes + sizeof(Allocation);
 
@@ -75,7 +82,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			Allocation* pAllocation = new(pCurrentFree) Allocation(totalAllocationSize + padding);
 
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
-			RegisterAllocation(totalAllocationSize, padding, (size_t)pAllocation, tag);
+			RegisterAllocation(totalAllocationSize, alignment, padding, (size_t)pAllocation, aligned + totalAllocationSize - 1, tag);
 			return (void*)(aligned);
 		}
 		//Perfect Fit Free Block (No need to create a new FreeEntry after the allocation)
@@ -91,7 +98,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			Allocation* pAllocation = new(pCurrentFree) Allocation(totalAllocationSize + padding);
 
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
-			RegisterAllocation(totalAllocationSize, padding, (size_t)pAllocation, tag);
+			RegisterAllocation(totalAllocationSize, alignment, padding, (size_t)pAllocation, aligned + totalAllocationSize - 1, tag);
 			return (void*)(aligned);
 		}
 

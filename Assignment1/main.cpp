@@ -200,7 +200,6 @@ int main(int argc, const char* argv[])
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
     
-	std::thread t1;
 	bool runOnce = true;
 
 	std::thread t1(Func);
@@ -340,7 +339,7 @@ int main(int argc, const char* argv[])
 			{
 				std::string entry = it.second;
 				char type = entry.substr(0, 1).c_str()[0];
-				std::string entryTag = entry.substr(1, entry.length() - 1);
+				std::string entryTag = entry.substr(1, entry.length() - 1) + "\n\n";
 
 				switch (type)
 				{

@@ -50,7 +50,7 @@ public:
 
 private:
 	MemoryManager();
-	void RegisterAllocation(size_t sizeInBytes, size_t padding, size_t address, const std::string& tag);
+	void RegisterAllocation(size_t sizeInBytes, size_t alignment, size_t padding, size_t startAddress, size_t endAddress, const std::string& tag);
 	void RemoveAllocation(size_t address);
 
 private:
