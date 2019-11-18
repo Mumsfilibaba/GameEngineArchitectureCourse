@@ -1,6 +1,7 @@
 #include "FrameAllocator.h"
 
 std::unordered_map<std::thread::id, FrameAllocator*> FrameAllocator::s_FrameAllocatorMap = std::unordered_map<std::thread::id, FrameAllocator*>();
+SpinLock FrameAllocator::m_InstanceLock;
 
 FrameAllocator::FrameAllocator(size_t size)
 {

@@ -3,6 +3,9 @@
 
 #include <unordered_map>
 #include <thread>
+#include <mutex>
+
+#include "SpinLock.h"
 
 //Objects allocated through this allocator will never have their destruct called from it. Therefore it is up to the user to call upon the destructor before freeing the memory!
 
@@ -12,6 +15,8 @@ private:
 	char* m_pStart;
 	char* m_pEnd;
 	char* m_pCurrent;
+	static SpinLock m_InstanceLock;
+
 public:
 	~FrameAllocator();
 
@@ -30,6 +35,7 @@ private:
 public:
 	static FrameAllocator& getInstance()
 	{
+		std::lock_guard<SpinLock> lock(m_InstanceLock);
 		std::thread::id id = std::this_thread::get_id();
 		auto search = s_FrameAllocatorMap.find(id);
 		if (search != s_FrameAllocatorMap.end())
