@@ -120,7 +120,7 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 {
 	size_t size = (nrOfObjects) * sizeof(T);
 	//FrameAllocator allocator(size);
-	FrameAllocator& allocator = FrameAllocator::getInstance();
+	FrameAllocator& allocator = FrameAllocator::GetInstance();
 	sf::Clock timing;
 	// ------------------------------------ test 1 -------------------------------
 
@@ -134,9 +134,9 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		T* tmp = allocator.allocate<T>(std::forward<Args>(args)...);
+		T* tmp = allocator.Allocate<T>(std::forward<Args>(args)...);
 		tmp->~T();
-		allocator.reset();
+		allocator.Reset();
 	}
 	sf::Time t2 = timing.restart();
 
@@ -168,7 +168,7 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 	timing.restart();
 	for (unsigned int i = 0; i < nrOfObjects; i++)
 	{
-		pTmp[i] = allocator.allocate<T>(std::forward<Args>(args)...);
+		pTmp[i] = allocator.Allocate<T>(std::forward<Args>(args)...);
 	}
 
 	t = timing.restart();
@@ -179,7 +179,7 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 		pTmp[i]->~T();
 	}
 
-	allocator.reset();
+	allocator.Reset();
 
 	t2 = timing.restart();
 	g_stackCrea += t.asMilliseconds();
@@ -214,10 +214,10 @@ int main(int argc, const char* argv[])
 	//testStackAllocator(10);
 	//testFrameAllocator<int>(10000000, 100);
 
-	FrameAllocator& frameAllocator = FrameAllocator::getInstance();
-	frameAllocator.allocate<int>(5);
-	frameAllocator.allocate<char>('c');
-	int* arr = frameAllocator.allocateArray<int>(3);
+	FrameAllocator& frameAllocator = FrameAllocator::GetInstance();
+	frameAllocator.Allocate<int>(5);
+	frameAllocator.AllocateAligned<char>(16, 'c');
+	int* arr = frameAllocator.AllocateArray<int>(3);
 	
 	//testFrameAllocator<int>(10000000, 100);
 	bool runTest = false;
@@ -226,25 +226,25 @@ int main(int argc, const char* argv[])
 		arr[i] = i;
 	}
 
-	frameAllocator.reset();
+	frameAllocator.Reset();
 	sf::Color bgColor;
 	char windowTitle[255] = "ImGui + SFML = <3";
 	float color[3] = { 0.f, 0.f, 0.f };
 
-	sf::CircleShape* magenta = frameAllocator.allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* magenta = frameAllocator.Allocate<sf::CircleShape>(100.f);
 
 	magenta->setFillColor(sf::Color::Magenta);
 	magenta->setPosition(100, 100);
 
-	sf::CircleShape* green = frameAllocator.allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* green = frameAllocator.Allocate<sf::CircleShape>(100.f);
 	green->setFillColor(sf::Color::Green);
 
-	sf::CircleShape* red = frameAllocator.allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* red = frameAllocator.Allocate<sf::CircleShape>(100.f);
 
 	red->setFillColor(sf::Color::Red);
 	red->setPosition(0, 100);
 
-	sf::CircleShape* blue = frameAllocator.allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* blue = frameAllocator.Allocate<sf::CircleShape>(100.f);
 
 	blue->setFillColor(sf::Color::Blue);
 	blue->setPosition(100, 0);
@@ -445,7 +445,7 @@ int main(int argc, const char* argv[])
 	blue->~CircleShape();
 	red->~CircleShape();
 
-	frameAllocator.reset();
+	frameAllocator.Reset();
 
 	if (t1.joinable())
 		t1.join();

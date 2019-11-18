@@ -1,6 +1,4 @@
-#ifndef FRAMEALLOCATOR_H
-#define FRAMEALLOCATOR_H
-
+#pragma once
 #include <unordered_map>
 #include <thread>
 
@@ -16,19 +14,23 @@ public:
 	~FrameAllocator();
 
 	template<class T, typename... Args>
-	T* allocate(Args&& ... args);
+	T* Allocate(Args&& ... args);
+    template<class T, typename... Args>
+    T* AllocateAligned(size_t alignment, Args&& ... args);
 	template<class T>
-	T* allocateArray(unsigned int size);
-	void reset();
+	T* AllocateArray(size_t count, size_t alignment = 1);
+    
+	void Reset();
 
 	static std::unordered_map<std::thread::id, FrameAllocator*> s_FrameAllocatorMap;
 
 private:
 	FrameAllocator(size_t size);
 	FrameAllocator(char* start, char* end);
-
+    
+    void* AllocateMem(size_t size, size_t alignment);
 public:
-	static FrameAllocator& getInstance()
+	static FrameAllocator& GetInstance()
 	{
 		std::thread::id id = std::this_thread::get_id();
 		auto search = s_FrameAllocatorMap.find(id);
@@ -36,39 +38,31 @@ public:
 		{
 			return *(search->second);
 		}
+        
 		FrameAllocator* allocator = new FrameAllocator(1024 * 1024 * 1024);
 		s_FrameAllocatorMap.insert({ id, allocator });
 		return *allocator;
 	}
 };
 
-#endif
 
 template<class T, typename ... Args>
-inline T * FrameAllocator::allocate(Args&&... args)
+inline T* FrameAllocator::Allocate(Args&&... args)
 {
-	T* res = nullptr;
-	size_t size = sizeof(T);
-	if (m_pCurrent + size <= m_pEnd)
-	{
-		res = (T*)m_pCurrent;
-		m_pCurrent += size;
-		new (res) T(std::forward<Args>(args) ...);
-	}
-	return res;
+   return new(AllocateMem(sizeof(T), 1)) T(std::forward<Args>(args) ...);
 }
 
-template<class T>
-inline T * FrameAllocator::allocateArray(unsigned int size)
-{
-	T* res = nullptr;
-	size_t arrSize = sizeof(T) * size;
 
-	if (m_pCurrent + arrSize < m_pEnd)
-	{
-		res = (T*)m_pCurrent;
-		m_pCurrent += arrSize;
-		new (res) T[size];
-	}
-	return res;
+template<class T, typename ... Args>
+inline T* FrameAllocator::AllocateAligned(size_t alignment, Args&&... args)
+{
+   return new(AllocateMem(sizeof(T), alignment)) T(std::forward<Args>(args) ...);
+}
+
+
+template<class T>
+inline T* FrameAllocator::AllocateArray(size_t count, size_t alignment)
+{
+    size_t arrSize = sizeof(T) * count;
+	return new(AllocateMem(arrSize, alignment)) T[count];;
 }
