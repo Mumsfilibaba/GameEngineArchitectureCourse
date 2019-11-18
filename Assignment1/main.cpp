@@ -167,7 +167,9 @@ int main(int argc, const char* argv[])
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	std::thread t1(Func);
-
+	std::thread t2(Func);
+	std::thread t3(Func);
+	std::thread t4(Func);
 
 	//Start program
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");
@@ -242,6 +244,10 @@ int main(int argc, const char* argv[])
 			size_t currentAddress = (size_t)pCurrentFreeEntry;
 			size_t nextAddress = (size_t)pCurrentFreeEntry->pNext;
 
+			size_t mb = pCurrentFreeEntry->sizeInBytes / (1024 * 1024);
+			size_t kb = (pCurrentFreeEntry->sizeInBytes - mb * (1024 * 1024)) / 1024;
+			size_t bytes = (pCurrentFreeEntry->sizeInBytes - mb * (1024 * 1024) - kb * 1024);
+
 			std::stringstream currentAddressStream;
 			currentAddressStream << std::hex << currentAddress;
 
@@ -251,7 +257,10 @@ int main(int argc, const char* argv[])
 			currentMemory[currentAddress] =
 				"FFree Memory " + std::to_string(counter) + 
 				"\nStart: " + currentAddressStream.str() +
-				"\nSize: " + std::to_string(pCurrentFreeEntry->sizeInBytes / 1024) + "kB\nNext: " +
+				"\nSize: " + 
+				std::to_string(mb) + "MB " +
+				std::to_string(kb) + "kB " +
+				std::to_string(bytes) + "bytes\nNext: " +
 				nextAddressStream.str();
 
 			pCurrentFreeEntry = pCurrentFreeEntry->pNext;
@@ -305,6 +314,15 @@ int main(int argc, const char* argv[])
 
 	if (t1.joinable())
 		t1.join();
+
+	if (t2.joinable())
+		t2.join();
+
+	if (t3.joinable())
+		t3.join();
+
+	if (t4.joinable())
+		t4.join();
 
 	ImGui::SFML::Shutdown();
     return 0; 

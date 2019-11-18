@@ -3,15 +3,18 @@
 
 #include <unordered_map>
 #include <thread>
+#include "MemoryManager.h"
 
 //Objects allocated through this allocator will never have their destruct called from it. Therefore it is up to the user to call upon the destructor before freeing the memory!
 
 class FrameAllocator
 {
+	friend MemoryManager;
+
 private:
-	char* m_pStart;
-	char* m_pEnd;
-	char* m_pCurrent;
+	void* m_pStart;
+	void* m_pEnd;
+	void* m_pCurrent;
 public:
 	~FrameAllocator();
 
@@ -25,7 +28,7 @@ public:
 
 private:
 	FrameAllocator(size_t size);
-	FrameAllocator(char* start, char* end);
+	FrameAllocator(void* start, void* end);
 
 public:
 	static FrameAllocator& getInstance()
@@ -36,9 +39,18 @@ public:
 		{
 			return *(search->second);
 		}
-		FrameAllocator* allocator = new FrameAllocator(1024 * 1024 * 1024);
+		FrameAllocator* allocator = new FrameAllocator(1024 * 1024);
 		s_FrameAllocatorMap.insert({ id, allocator });
 		return *allocator;
+	}
+
+private:
+	static void Release()
+	{
+		for (auto& it : s_FrameAllocatorMap)
+		{
+			delete it.second;
+		}
 	}
 };
 
@@ -49,10 +61,10 @@ inline T * FrameAllocator::allocate(Args&&... args)
 {
 	T* res = nullptr;
 	size_t size = sizeof(T);
-	if (m_pCurrent + size <= m_pEnd)
+	if ((size_t)m_pCurrent + size < (size_t)m_pEnd)
 	{
 		res = (T*)m_pCurrent;
-		m_pCurrent += size;
+		m_pCurrent = (void*)((size_t)m_pCurrent + size);
 		new (res) T(std::forward<Args>(args) ...);
 	}
 	return res;
@@ -64,10 +76,10 @@ inline T * FrameAllocator::allocateArray(unsigned int size)
 	T* res = nullptr;
 	size_t arrSize = sizeof(T) * size;
 
-	if (m_pCurrent + arrSize < m_pEnd)
+	if ((size_t)m_pCurrent + arrSize < (size_t)m_pEnd)
 	{
 		res = (T*)m_pCurrent;
-		m_pCurrent += arrSize;
+		m_pCurrent = (void*)((size_t)m_pCurrent + arrSize);
 		new (res) T[size];
 	}
 	return res;

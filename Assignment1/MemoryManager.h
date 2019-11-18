@@ -9,6 +9,8 @@
 #include <string>
 #include <sstream>
 
+#include "SpinLock.h"
+
 //#define SIZE_IN_BYTES (64 * 1024)
 #define SIZE_IN_BYTES 1024 * 1024 * 1024
 
@@ -55,6 +57,7 @@ private:
 	void* m_pMemory;
 	FreeEntry* m_pFreeList;
 	std::map<size_t, std::string> m_Allocations;
+	SpinLock m_MemoryLock;
 
 public:
 	static MemoryManager& GetInstance()

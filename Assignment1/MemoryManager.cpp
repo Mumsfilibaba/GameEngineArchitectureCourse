@@ -1,4 +1,5 @@
 #include "MemoryManager.h"
+#include "FrameAllocator.h"
 
 MemoryManager::MemoryManager()
 	: m_pMemory(malloc(SIZE_IN_BYTES))
@@ -15,13 +16,25 @@ MemoryManager::~MemoryManager()
 	}
 
 	m_pFreeList = nullptr;
+
+	FrameAllocator::Release();
 }
 
 void MemoryManager::RegisterAllocation(size_t sizeInBytes, const std::string& tag, size_t address)
 {
+	size_t mb = sizeInBytes / (1024 * 1024);
+	size_t kb = (sizeInBytes - mb * (1024 * 1024)) / 1024;
+	size_t bytes = (sizeInBytes - mb * (1024 * 1024) - kb * 1024);
+
 	std::stringstream stream;
 	stream << std::hex << address;
-	m_Allocations[address] = "A" + tag + "\nStart: " + stream.str() + "\nSize: " + std::to_string(sizeInBytes / 1024) + "kB";
+	m_Allocations[address] = 
+		"A" + tag + 
+		"\nStart: " + stream.str() + 
+		"\nSize: " + 
+		std::to_string(mb) + "MB " +
+		std::to_string(kb) + "kB " +
+		std::to_string(bytes) + "bytes";
 }
 
 void MemoryManager::RemoveAllocation(size_t address)
@@ -32,6 +45,8 @@ void MemoryManager::RemoveAllocation(size_t address)
 void* MemoryManager::Allocate(size_t sizeInBytes, const std::string& tag)
 {
 	size_t totalAllocationSize = sizeInBytes + sizeof(size_t);
+
+	std::lock_guard<SpinLock> lock(m_MemoryLock);
 
 	FreeEntry* pLastFree = nullptr;
 	FreeEntry* pCurrentFree = m_pFreeList;
@@ -84,6 +99,9 @@ void* MemoryManager::Allocate(size_t sizeInBytes, const std::string& tag)
 void MemoryManager::Free(void* allocation)
 {
 	Allocation* pAllocation = reinterpret_cast<Allocation*>(((size_t)allocation - sizeof(size_t))); //HACKING
+
+	std::lock_guard<SpinLock> lock(m_MemoryLock);
+
 	RemoveAllocation((size_t)pAllocation);
 	size_t allocationAddress = (size_t)pAllocation;
 
