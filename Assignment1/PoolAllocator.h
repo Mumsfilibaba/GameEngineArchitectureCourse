@@ -3,7 +3,6 @@
 #include <vector>
 #include <mutex>
 #include "SpinLock.h"
-
 #include "MemoryManager.h"
 
 #define MB(mb) mb * 1024 * 1024
@@ -108,7 +107,7 @@ public:
 		Block* pCurrent = m_pFreeListHead;
 		if (!pCurrent)
 		{
-			std::lock_guard<SpinLock> lock(m_ToFreeLock);
+			std::lock_guard<SpinLock> lock2(m_ToFreeLock);
 
 			m_pFreeListHead = m_pToFreeListHead;
 			m_pToFreeListHead = nullptr;
@@ -155,11 +154,11 @@ public:
         return m_ChunkSizeInBytes;
     }
 
+    
 	inline int GetTotalMemory() const
 	{
 		return m_ChunkSizeInBytes * m_ppChunks.size();
 	}
-
 private:
 	std::vector<Chunk*> m_ppChunks;
     Block* m_pFreeListHead;
