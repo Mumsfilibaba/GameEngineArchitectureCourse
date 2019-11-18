@@ -13,22 +13,31 @@ private:
 	char* m_pStart;
 	char* m_pEnd;
 	char* m_pCurrent;
+private:
 	static SpinLock m_InstanceLock;
-
+    static std::unordered_map<std::thread::id, FrameAllocator*> s_FrameAllocatorMap;
 public:
-	~FrameAllocator();
+    ~FrameAllocator();
 
-	template<class T, typename... Args>
-	T* Allocate(Args&& ... args);
+    template<class T, typename... Args>
+    T* Allocate(Args&& ... args);
     template<class T, typename... Args>
     T* AllocateAligned(size_t alignment, Args&& ... args);
-	template<class T>
-	T* AllocateArray(size_t count, size_t alignment = 1);
+    template<class T>
+    T* AllocateArray(size_t count, size_t alignment = 1);
     
-	void Reset();
-
-	static std::unordered_map<std::thread::id, FrameAllocator*> s_FrameAllocatorMap;
-
+    void Reset();
+    
+    inline size_t GetAllocatedMemory() const
+    {
+        return (size_t)m_pEnd - (size_t)m_pCurrent;
+    }
+    
+    
+    inline size_t GetTotalMemory() const
+    {
+        return (size_t)m_pEnd - (size_t)m_pStart;
+    }
 private:
 	FrameAllocator(size_t size);
 	FrameAllocator(char* start, char* end);
