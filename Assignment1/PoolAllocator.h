@@ -30,7 +30,7 @@ public:
 
 			//Allocate mem
 			//m_pMemory = malloc(m_SizeInBytes);
-			m_pMemory = MemoryManager::GetInstance().Allocate(sizeInBytes, "Pool Allocation");
+			m_pMemory = MemoryManager::GetInstance().Allocate(sizeInBytes, 16, "Pool Allocation");
 			
 			//Init blocks
 			Block* pOld = nullptr;

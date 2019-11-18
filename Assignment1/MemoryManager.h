@@ -38,7 +38,7 @@ class MemoryManager
 {
 public:
 	~MemoryManager();
-	void* Allocate(size_t sizeInBytes, const std::string& tag);
+	void* Allocate(size_t sizeInBytes, size_t alignment, const std::string& tag);
 	void Free(void* allocation);
 	const std::map<size_t, std::string>& GetAllocations() { return m_Allocations; }
 	const FreeEntry* GetFreeList() { return m_pFreeList; };
@@ -48,7 +48,7 @@ public:
 
 private:
 	MemoryManager();
-	void RegisterAllocation(size_t sizeInBytes, const std::string& tag, size_t address);
+	void RegisterAllocation(size_t sizeInBytes, size_t padding, size_t address, const std::string& tag);
 	void RemoveAllocation(size_t address);
 
 private:
