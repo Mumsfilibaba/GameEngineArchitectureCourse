@@ -7,7 +7,9 @@
 #include <imgui-SFML.h>
 #include <sstream>
 #include "PoolAllocator.h"
-#include <crtdbg.h>
+#if defined(_WIN32)
+    #include <crtdbg.h>
+#endif
 #include "FrameAllocator.h"
 
 #define MB(mb) mb * 1024 * 1024
@@ -193,8 +195,11 @@ int main(int argc, const char* argv[])
 	int runCount = 0;
 	int nrOfObjects = 0;
 	int nrOfArgs = 0;
+    
+#if defined(_WIN32)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
+#endif
+    
 	std::thread t1;
 	bool runOnce = true;
 
@@ -319,9 +324,9 @@ int main(int argc, const char* argv[])
 
 		if (ImGui::TreeNode("Allocations"))
 		{
-			for (auto& it = currentMemory.begin(); it != currentMemory.end(); it++)
+			for (auto it : currentMemory)
 			{
-				std::string entry = it->second;
+				std::string entry = it.second;
 				char type = entry.substr(0, 1).c_str()[0];
 				std::string entryTag = entry.substr(1, entry.length() - 1);
 
