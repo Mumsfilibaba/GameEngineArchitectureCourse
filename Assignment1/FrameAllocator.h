@@ -1,9 +1,9 @@
-#ifndef FRAMEALLOCATOR_H
-#define FRAMEALLOCATOR_H
-
+#pragma once
 #include <unordered_map>
 #include <thread>
 #include "MemoryManager.h"
+
+#include "SpinLock.h"
 
 //Objects allocated through this allocator will never have their destruct called from it. Therefore it is up to the user to call upon the destructor before freeing the memory!
 
@@ -12,27 +12,43 @@ class FrameAllocator
 	friend MemoryManager;
 
 private:
-	void* m_pStart;
+    void* m_pStart;
 	void* m_pEnd;
 	void* m_pCurrent;
+private:
+	static SpinLock m_InstanceLock;
+    static std::unordered_map<std::thread::id, FrameAllocator*> s_FrameAllocatorMap;
 public:
-	~FrameAllocator();
+    ~FrameAllocator();
 
-	template<class T, typename... Args>
-	T* allocate(Args&& ... args);
-	template<class T>
-	T* allocateArray(unsigned int size);
-	void reset();
-
-	static std::unordered_map<std::thread::id, FrameAllocator*> s_FrameAllocatorMap;
-
+    template<class T, typename... Args>
+    T* Allocate(Args&& ... args);
+    template<class T, typename... Args>
+    T* AllocateAligned(size_t alignment, Args&& ... args);
+    template<class T>
+    T* AllocateArray(size_t count, size_t alignment = 1);
+    
+    void Reset();
+    
+    inline size_t GetAllocatedMemory() const
+    {
+        return (size_t)m_pEnd - (size_t)m_pCurrent;
+    }
+    
+    
+    inline size_t GetTotalMemory() const
+    {
+        return (size_t)m_pEnd - (size_t)m_pStart;
+    }
 private:
 	FrameAllocator(size_t size);
 	FrameAllocator(void* start, void* end);
 
+    void* AllocateMem(size_t size, size_t alignment);
 public:
-	static FrameAllocator& getInstance()
+	static FrameAllocator& GetInstance()
 	{
+		std::lock_guard<SpinLock> lock(m_InstanceLock);
 		std::thread::id id = std::this_thread::get_id();
 		auto search = s_FrameAllocatorMap.find(id);
 		if (search != s_FrameAllocatorMap.end())
@@ -54,33 +70,24 @@ private:
 	}
 };
 
-#endif
 
 template<class T, typename ... Args>
-inline T * FrameAllocator::allocate(Args&&... args)
+inline T* FrameAllocator::Allocate(Args&&... args)
 {
-	T* res = nullptr;
-	size_t size = sizeof(T);
-	if ((size_t)m_pCurrent + size < (size_t)m_pEnd)
-	{
-		res = (T*)m_pCurrent;
-		m_pCurrent = (void*)((size_t)m_pCurrent + size);
-		new (res) T(std::forward<Args>(args) ...);
-	}
-	return res;
+   return new(AllocateMem(sizeof(T), 1)) T(std::forward<Args>(args) ...);
 }
 
-template<class T>
-inline T * FrameAllocator::allocateArray(unsigned int size)
-{
-	T* res = nullptr;
-	size_t arrSize = sizeof(T) * size;
 
-	if ((size_t)m_pCurrent + arrSize < (size_t)m_pEnd)
-	{
-		res = (T*)m_pCurrent;
-		m_pCurrent = (void*)((size_t)m_pCurrent + arrSize);
-		new (res) T[size];
-	}
-	return res;
+template<class T, typename ... Args>
+inline T* FrameAllocator::AllocateAligned(size_t alignment, Args&&... args)
+{
+   return new(AllocateMem(sizeof(T), alignment)) T(std::forward<Args>(args) ...);
+}
+
+
+template<class T>
+inline T* FrameAllocator::AllocateArray(size_t count, size_t alignment)
+{
+    size_t arrSize = sizeof(T) * count;
+	return new(AllocateMem(arrSize, alignment)) T[count];;
 }
