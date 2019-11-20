@@ -69,7 +69,9 @@ private:
 
 private:
 	void* m_pMemory;
-	FreeEntry* m_pFreeList;
+	FreeEntry* m_pFreeListStart;
+	FreeEntry* m_pFreeHead;
+	FreeEntry* m_pFreeTail;
 	std::map<size_t, std::string> m_Allocations;
 	SpinLock m_MemoryLock;
 

@@ -3,7 +3,10 @@
 MemoryManager::MemoryManager()
 	: m_pMemory(malloc(SIZE_IN_BYTES))
 {
-	m_pFreeList = new(m_pMemory) FreeEntry(SIZE_IN_BYTES, nullptr);
+	m_pFreeListStart = new(m_pMemory) FreeEntry(SIZE_IN_BYTES, nullptr);
+	m_pFreeListStart->pNext = m_pFreeListStart;
+	m_pFreeHead = m_pFreeListStart;
+	m_pFreeTail = m_pFreeHead;
 }
 
 MemoryManager::~MemoryManager()
@@ -14,7 +17,9 @@ MemoryManager::~MemoryManager()
 		m_pMemory = nullptr;
 	}
 
-	m_pFreeList = nullptr;
+	m_pFreeListStart = nullptr;
+	m_pFreeHead = nullptr;
+	m_pFreeTail = nullptr;
 }
 
 void MemoryManager::RegisterAllocation(
@@ -81,10 +86,10 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 
 	std::lock_guard<SpinLock> lock(m_MemoryLock);
 
-	FreeEntry* pLastFree = nullptr;
-	FreeEntry* pCurrentFree = m_pFreeList;
+	FreeEntry* pLastFree = m_pFreeTail;
+	FreeEntry* pCurrentFree = m_pFreeHead;
 
-	while (pCurrentFree != nullptr)
+	do
 	{
 		size_t offset = (size_t)pCurrentFree + sizeof(Allocation);
 		size_t padding = (-offset & (alignment - 1));
@@ -96,10 +101,9 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			FreeEntry* pNewFreeEntryAfter = new((void*)(aligned + sizeInBytes)) FreeEntry(pCurrentFree->sizeInBytes - (totalAllocationSize + padding), pCurrentFree->pNext);
 
 			//If last free is nullptr we are at start of FreeList
-			if (pLastFree != nullptr)
-				pLastFree->pNext = pNewFreeEntryAfter;
-			else
-				m_pFreeList = pNewFreeEntryAfter;
+			pLastFree->pNext = pNewFreeEntryAfter;
+			m_pFreeTail = pLastFree;
+			m_pFreeHead = pLastFree->pNext;
 
 			size_t internalPadding = padding;
 			size_t externalPadding = 0;
@@ -109,10 +113,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			{
 				FreeEntry* pNewFreeEntryBefore = new(pCurrentFree) FreeEntry(padding, pNewFreeEntryAfter);
 
-				if (pLastFree != nullptr)
-					pLastFree->pNext = pNewFreeEntryBefore;
-				else
-					m_pFreeList = pNewFreeEntryBefore;
+				pLastFree->pNext = pNewFreeEntryBefore;
 
 				externalPadding = internalPadding;
 				internalPadding = 0;
@@ -139,11 +140,9 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 		//Cant fit new Free Block in, but we can fit the allocation in. (We give the allocation some extra memory at the end)
 		else if (pCurrentFree->sizeInBytes >= totalAllocationSize + padding)
 		{
-			//If last free is nullptr we are at start of FreeList
-			if (pLastFree != nullptr)
-				pLastFree->pNext = pCurrentFree->pNext;
-			else
-				m_pFreeList = pCurrentFree->pNext;
+			pLastFree->pNext = pCurrentFree->pNext;
+			m_pFreeTail = pLastFree;
+			m_pFreeHead = pLastFree->pNext;
 
 			size_t internalPadding = padding;
 			size_t externalPadding = 0;
@@ -153,10 +152,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			{
 				FreeEntry* pNewFreeEntryBefore = new(pCurrentFree) FreeEntry(padding, pCurrentFree->pNext);
 
-				if (pLastFree != nullptr)
-					pLastFree->pNext = pNewFreeEntryBefore;
-				else
-					m_pFreeList = pNewFreeEntryBefore;
+				pLastFree->pNext = pNewFreeEntryBefore;
 
 				externalPadding = internalPadding;
 				internalPadding = 0;
@@ -183,7 +179,8 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 
 		pLastFree = pCurrentFree;
 		pCurrentFree = pCurrentFree->pNext;
-	}
+
+	} while (pCurrentFree != m_pFreeHead);
 
 	return nullptr;
 }
@@ -200,19 +197,17 @@ void MemoryManager::Free(void* allocation)
 	FreeEntry* pClosestLeft = nullptr;
 
 	FreeEntry* pLastFree = nullptr;
-	FreeEntry* pCurrentFree = m_pFreeList;
+	FreeEntry* pCurrentFree = m_pFreeListStart;
 
-	while (pCurrentFree != nullptr)
+	do
 	{
 		if (allocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree)
 		{
 			size_t newFreeSize = pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
 			//Memset?
 
-			if (pLastFree != nullptr)
-				pLastFree->pNext = new(pAllocation) FreeEntry(newFreeSize, pCurrentFree->pNext);
-			else
-				m_pFreeList = new(pAllocation) FreeEntry(newFreeSize, pCurrentFree->pNext);
+			pLastFree->pNext = new(pAllocation) FreeEntry(newFreeSize, pCurrentFree->pNext);
+
 			return;
 		}
 
@@ -221,10 +216,8 @@ void MemoryManager::Free(void* allocation)
 
 		pLastFree = pCurrentFree;
 		pCurrentFree = pCurrentFree->pNext;
-	}
 
-	if (pClosestLeft == nullptr)
-		m_pFreeList = new(pAllocation) FreeEntry(pAllocation->sizeInBytes, m_pFreeList->pNext);
-	else
-		pClosestLeft->pNext = new(pAllocation) FreeEntry(pAllocation->sizeInBytes, pClosestLeft->pNext);
+	} while (pCurrentFree != m_pFreeListStart);
+
+	pClosestLeft->pNext = new(pAllocation) FreeEntry(pAllocation->sizeInBytes, pClosestLeft->pNext);
 }
