@@ -313,20 +313,18 @@ int main(int argc, const char* argv[])
 			size_t kb = (pCurrentFreeEntry->sizeInBytes - mb * (1024 * 1024)) / 1024;
 			size_t bytes = (pCurrentFreeEntry->sizeInBytes - mb * (1024 * 1024) - kb * 1024);
 
-			std::stringstream currentAddressStream;
-			currentAddressStream << std::hex << currentAddress;
-
-			std::stringstream nextAddressStream;
-			nextAddressStream << std::hex << nextAddress;
+			std::stringstream addressStream;
+			addressStream << "Start Address: " << std::setw(25) << "0x" << std::hex << currentAddress << std::endl;
+			addressStream << "End Address: " << std::setw(27) << "0x" << std::hex << (currentAddress + pCurrentFreeEntry->sizeInBytes - 1) << std::endl;
+			addressStream << "Next Free Address: " << std::setw(21) << "0x" << std::hex << nextAddress;
 
 			currentMemory[currentAddress] =
-				"FFree Memory " + std::to_string(counter) + 
-				"\nStart: " + currentAddressStream.str() +
-				"\nSize: " + 
+				"FFree Memory " + std::to_string(counter) + "\n" +
+				addressStream.str() +
+				"\nSize: " +
 				std::to_string(mb) + "MB " +
 				std::to_string(kb) + "kB " +
-				std::to_string(bytes) + "bytes\nNext: " +
-				nextAddressStream.str();
+				std::to_string(bytes) + "bytes";
 
 			pCurrentFreeEntry = pCurrentFreeEntry->pNext;
 			counter++;

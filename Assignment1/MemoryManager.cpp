@@ -60,13 +60,12 @@ void MemoryManager::RegisterAllocation(
 		std::to_string(allocationSize_kb) + "kB " +
 		std::to_string(allocationSize_bytes) + "bytes" +
 		"\nAlignment: " + std::to_string(alignment) +
-		"\nInternal Padding: " + std::to_string(internalPadding) +
-		"\nExternal Padding: " + std::to_string(externalPadding) +
+		"\nInternal Padding: " + std::to_string(internalPadding) + " bytes"
+		"\nExternal Padding: " + std::to_string(externalPadding) + " bytes"
 		"\nExtra Memory: " + 
 		std::to_string(extraMemory_mb) + "MB " +
 		std::to_string(extraMemory_kb) + "kB " +
 		std::to_string(extraMemory_bytes) + "bytes";
-		
 }
 
 void MemoryManager::RemoveAllocation(size_t startAddress)
@@ -125,7 +124,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
 			RegisterAllocation(
 				tag, 
-				(size_t)pCurrentFree, 
+				(size_t)pCurrentFree + externalPadding, 
 				(size_t)pCurrentFree + padding,
 				aligned, 
 				aligned + sizeInBytes - 1, 
@@ -169,7 +168,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
 			RegisterAllocation(
 				tag,
-				(size_t)pCurrentFree,
+				(size_t)pCurrentFree + externalPadding,
 				(size_t)pCurrentFree + padding,
 				aligned,
 				(size_t)pCurrentFree + pCurrentFree->sizeInBytes - 1,
