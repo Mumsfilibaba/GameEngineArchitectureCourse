@@ -46,7 +46,7 @@ public:
 	void* Allocate(size_t sizeInBytes, size_t alignment, const std::string& tag);
 	void Free(void* allocation);
 	const std::map<size_t, std::string>& GetAllocations() { return m_Allocations; }
-	const FreeEntry* GetFreeList() { return m_pFreeList; };
+	const FreeEntry* GetFreeList() { return m_pFreeListStart; };
 
 	MemoryManager(MemoryManager const&) = delete;
 	void operator=(MemoryManager const&) = delete;
