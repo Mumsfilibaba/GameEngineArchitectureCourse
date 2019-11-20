@@ -16,8 +16,6 @@ MemoryManager::~MemoryManager()
 	}
 
 	m_pFreeList = nullptr;
-
-	FrameAllocator::Release();
 }
 
 void MemoryManager::RegisterAllocation(size_t sizeInBytes, size_t alignment, size_t padding, size_t startAddress, size_t endAddress, const std::string& tag)

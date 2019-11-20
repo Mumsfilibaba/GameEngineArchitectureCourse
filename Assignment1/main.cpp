@@ -10,7 +10,7 @@
 #if defined(_WIN32)
     #include <crtdbg.h>
 #endif
-#include "FrameAllocator.h"
+#include "StackAllocator.h"
 
 #define MB(mb) mb * 1024 * 1024
 PoolAllocator<int> g_Allocator;
@@ -120,7 +120,7 @@ void testFrameAllocator(unsigned int nrOfObjects, Args&&... args)
 {
 	size_t size = (nrOfObjects) * sizeof(T);
 	//FrameAllocator allocator(size);
-	FrameAllocator& allocator = FrameAllocator::GetInstance();
+	StackAllocator& allocator = StackAllocator::GetInstance();
 	sf::Clock timing;
 	// ------------------------------------ test 1 -------------------------------
 
@@ -218,10 +218,10 @@ int main(int argc, const char* argv[])
 	//testStackAllocator(10);
 	//testFrameAllocator<int>(10000000, 100);
 
-	FrameAllocator& frameAllocator = FrameAllocator::GetInstance();
-	frameAllocator.Allocate<int>(5);
-	frameAllocator.AllocateAligned<char>(16, 'c');
-	int* arr = frameAllocator.AllocateArray<int>(3);
+	StackAllocator& stackAllocator = StackAllocator::GetInstance();
+	stackAllocator.Allocate<int>(5);
+	stackAllocator.AllocateAligned<char>(16, 'c');
+	int* arr = stackAllocator.AllocateArray<int>(3);
 	
 	//testFrameAllocator<int>(10000000, 100);
 	bool runTest = false;
@@ -230,25 +230,25 @@ int main(int argc, const char* argv[])
 		arr[i] = i;
 	}
 
-	frameAllocator.Reset();
+	stackAllocator.Reset();
 	sf::Color bgColor;
 	char windowTitle[255] = "ImGui + SFML = <3";
 	float color[3] = { 0.f, 0.f, 0.f };
 
-	sf::CircleShape* magenta = frameAllocator.Allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* magenta = stackAllocator.Allocate<sf::CircleShape>(100.f);
 
 	magenta->setFillColor(sf::Color::Magenta);
 	magenta->setPosition(100, 100);
 
-	sf::CircleShape* green = frameAllocator.Allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* green = stackAllocator.Allocate<sf::CircleShape>(100.f);
 	green->setFillColor(sf::Color::Green);
 
-	sf::CircleShape* red = frameAllocator.Allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* red = stackAllocator.Allocate<sf::CircleShape>(100.f);
 
 	red->setFillColor(sf::Color::Red);
 	red->setPosition(0, 100);
 
-	sf::CircleShape* blue = frameAllocator.Allocate<sf::CircleShape>(100.f);
+	sf::CircleShape* blue = stackAllocator.Allocate<sf::CircleShape>(100.f);
 
 	blue->setFillColor(sf::Color::Blue);
 	blue->setPosition(100, 0);
@@ -279,7 +279,8 @@ int main(int argc, const char* argv[])
 		{
 			if (runOnce)
 			{
-				t1 = std::thread(Func);
+				//Fixa (detta JA!) ?
+				//t1 = std::thread(Func);
 				runOnce = false;
 			}
 
@@ -456,7 +457,7 @@ int main(int argc, const char* argv[])
 	blue->~CircleShape();
 	red->~CircleShape();
 
-	frameAllocator.Reset();
+	stackAllocator.Reset();
 
 	if (t1.joinable())
 		t1.join();
@@ -470,6 +471,5 @@ int main(int argc, const char* argv[])
 	if (t4.joinable())
 		t4.join();
 
-	ImGui::SFML::Shutdown();
     return 0; 
 }
