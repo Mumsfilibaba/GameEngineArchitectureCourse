@@ -36,11 +36,13 @@ void Func()
 	std::stringstream ss;
 	ss << std::this_thread::get_id();
 
-	constexpr int count = 16;
+	constexpr int count = 512;
 	//g_totalMemoryConsumption = count * sizeof(void*);
 	ThreadSafePrintf("Total memory consumption: %d bytes [THREAD %s]\n", count * sizeof(void*), ss.str().c_str());
-	int** ppPoolAllocated = new int*[count];
-	int** ppOSAllocated = new int*[count];
+	int** ppPoolAllocated	= (int**)allocate(sizeof(int*)*count, 1, "TestVars");
+	int** ppOSAllocated		= new int*[count];
+
+	g_Allocator.MakeNew(0);
 
 	//Allocate from pool
 	clock.restart();
@@ -48,12 +50,6 @@ void Func()
 	for (int i = 0; i < count; i++)
 	{
 		ppPoolAllocated[i] = g_Allocator.MakeNew(i);
-		g_totalMemoryConsumption += sizeof(void*);
-		g_availableMemory = g_Allocator.GetTotalMemory();
-		if (i % 512 == 0)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		}
 	}
 	sf::Time t2 = clock.getElapsedTime();
 
@@ -89,18 +85,10 @@ void Func()
 	{
 		delete ppOSAllocated[i];
 		ppOSAllocated[i] = nullptr;
-		g_totalMemoryConsumption -= sizeof(void*);
-		if (i % 512 == 0)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		}
 	}
 	t2 = clock.getElapsedTime();
 
 	ThreadSafePrintf("Freeing %d vars from OS took %d qs [THREAD %s]\n", count, (t2 - t1).asMicroseconds(), ss.str().c_str());
-
-	delete ppPoolAllocated;
-	ppPoolAllocated = nullptr;
 
 	delete ppOSAllocated;
 	ppOSAllocated = nullptr;
@@ -219,6 +207,7 @@ int main(int argc, const char* argv[])
 	if (t4.joinable())
 		t4.join();
 
+	return 0;
 
 	//Start program
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");

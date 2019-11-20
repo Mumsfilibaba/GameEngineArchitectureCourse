@@ -7,6 +7,7 @@
 
 #define MB(mb) mb * 1024 * 1024
 #define CHUNK_SIZE 4096
+#define CHUNK_SIZE_BYTES CHUNK_SIZE - sizeof(Arena*)
 
 template<typename T>
 class PoolAllocator
@@ -27,26 +28,24 @@ public:
 			constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
 			static_assert(CHUNK_SIZE % blockSize == 0);
 
-			ThreadSafePrintf("Created %p\n", this);
+			//ThreadSafePrintf("Created %p\n", this);
 
 			//Allocate mem
 			s_TotalMemoryUsed += CHUNK_SIZE;
 			
 			//Init blocks
-			Block* pOld = nullptr;
+			constexpr int chunkSize		= CHUNK_SIZE_BYTES;
+			constexpr int blockCount	= chunkSize / blockSize;
+			
 			Block* pCurrent = (Block*)m_Memory;
-
-			int blockCount = CHUNK_SIZE / blockSize;
-			for (int i = 0; i < blockCount; i++)
+			for (int i = 1; i < blockCount; i++)
 			{
 				pCurrent->pNext = (Block*)(((char*)pCurrent) + blockSize); //HACKING;
-
-				pOld = pCurrent;
 				pCurrent = pCurrent->pNext;
 			}
 
 			//Set the last valid ptr's next to null
-			pOld->pNext = nullptr;
+			pCurrent->pNext = nullptr;
 		}
 
 		inline ~Chunk()
@@ -60,15 +59,14 @@ public:
 			return (Block*)m_Memory;
 		}
 
-		inline static Chunk* fromBlock(Block* block)
+		inline static Chunk* FromBlock(Block* block)
 		{
 			constexpr size_t mask = sizeof(Chunk) - 1;
 			return reinterpret_cast<Chunk*>((size_t)block & ~(mask));
 		}
-
 	public:
 		Arena* m_pArena;
-		char m_Memory[CHUNK_SIZE - sizeof(Arena*)];
+		char m_Memory[CHUNK_SIZE_BYTES];
 	};
 
 	struct Arena
@@ -77,14 +75,12 @@ public:
 			m_pFreeListHead(nullptr),
 			m_pToFreeListHead(nullptr)
 		{
-
+			AllocateChunkAndSetHead();	
 		}
 
 		inline ~Arena()
 		{
 			std::lock_guard<SpinLock> lock(m_FreeLock);
-
-			std::cout << "Arena fap" << std::endl;
 			m_Chunks.clear();
 		}
 
@@ -106,7 +102,7 @@ public:
 			return true;
 		}
 
-		inline Block* pop()
+		inline Block* Pop()
 		{
 			Block* pCurrent = m_pFreeListHead;
 			if (!pCurrent)
@@ -167,7 +163,7 @@ public:
 		return s_TotalMemoryUsed;
 	}
 
-	inline Arena* getArena()
+	inline Arena* GetArena()
 	{
 		Arena* arena = m_Current_thread.get();
 		if (!arena)
@@ -180,7 +176,7 @@ public:
 
 	inline void* AllocateBlock()
 	{
-		Block* block = getArena()->pop();
+		Block* block = GetArena()->Pop();
 		return (void*)block;
 	}
 
@@ -188,9 +184,9 @@ public:
 	{
 		pObject->~T();
 		Block* block = (Block*)pObject;
-		Chunk* chunk = Chunk::fromBlock(block);
+		Chunk* chunk = Chunk::FromBlock(block);
 
-		ThreadSafePrintf("Recived %p\n", chunk);
+		//ThreadSafePrintf("Recived %p\n", chunk);
 
 		Arena* arena = chunk->m_pArena;
 		assert(arena);
