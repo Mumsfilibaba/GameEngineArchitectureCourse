@@ -29,3 +29,6 @@ Assignment1/bin/Release/Assign1_Allocator
 Assignment1/bin/Release/Assign1_Allocator.dSYM/Contents/Resources/DWARF/Assign1_Allocator
 *.xcscheme
 *.xcbkptlist
+*.enc
+Assignment1/obj/Release/Assign1_Allocator.vcxproj.FileListAbsolute.txt
+ImGui/bin-int/Release-windows-x86_64/ImGui/ImGui.vcxproj.FileListAbsolute.txt

@@ -239,7 +239,7 @@ namespace ImGui
     IMGUI_API void          StyleColorsLight(ImGuiStyle* dst = NULL);   // best used with borders and a custom, thicker font
 
     // Windows
-    // - Begin() = push window to the stack and start appending to it. End() = pop window from the stack.
+    // - Begin() = push window to the stack and start appending to it. End() = Pop window from the stack.
     // - You may append multiple times to the same window during the same frame.
     // - Passing 'bool* p_open != NULL' shows a window-closing widget in the upper-right corner of the window,
     //   which clicking will set the boolean to false when clicked.
@@ -377,7 +377,7 @@ namespace ImGui
     IMGUI_API void          PushID(const char* str_id_begin, const char* str_id_end);       // push string into the ID stack (will hash string).
     IMGUI_API void          PushID(const void* ptr_id);                                     // push pointer into the ID stack (will hash pointer).
     IMGUI_API void          PushID(int int_id);                                             // push integer into the ID stack (will hash integer).
-    IMGUI_API void          PopID();                                                        // pop from the ID stack.
+    IMGUI_API void          PopID();                                                        // Pop from the ID stack.
     IMGUI_API ImGuiID       GetID(const char* str_id);                                      // calculate unique ID (hash of whole ID stack + given parameter). e.g. if you want to query into ImGuiStorage yourself
     IMGUI_API ImGuiID       GetID(const char* str_id_begin, const char* str_id_end);
     IMGUI_API ImGuiID       GetID(const void* ptr_id);

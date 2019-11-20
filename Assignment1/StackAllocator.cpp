@@ -3,7 +3,7 @@
 
 StackAllocator::StackAllocator(size_t size)
 {
-	m_pStart = MemoryManager::GetInstance().Allocate(size, 1, "Stack Allocator");
+	m_pStart = allocate(size, 1, "Stack Allocator");
 	m_pEnd = (void*)((size_t)m_pStart + size);
 	m_pCurrent = m_pStart;
 }
