@@ -11,12 +11,15 @@ template<typename T>
 class PoolAllocator
 {
 public:
+	struct Arena;
+	
+	//Node
     struct Block
     {
         Block* pNext = nullptr;
     };
 
-
+	//Page
 	class Chunk
 	{
 	public:
@@ -28,8 +31,7 @@ public:
 			assert(sizeInBytes % blockSize == 0);
 
 			//Allocate mem
-			//m_pMemory = malloc(m_SizeInBytes);
-			m_pMemory = MemoryManager::GetInstance().Allocate(sizeInBytes, 16, "Pool Allocation");
+			m_pMemory = MemoryManager::GetInstance().Allocate(sizeInBytes, sizeInBytes, "Pool Allocation");
 			
 			//Init blocks
 			Block* pOld = nullptr;
@@ -63,64 +65,83 @@ public:
 		{
 			return (Block*)m_pMemory;
 		}
-	private:
+	public:
 		void* m_pMemory;
 		size_t m_SizeInBytes;
+		Arena* m_pArena;
 	};
+
+	struct Arena
+	{
+		inline Arena() :
+			m_pFreeListHead(nullptr),
+			m_pToFreeListHead(nullptr)
+		{
+
+		}
+
+		inline ~Arena()
+		{
+			for (auto& pChunk : m_Chunks)
+			{
+				delete pChunk;
+				pChunk = nullptr;
+			}
+			m_Chunks.clear();
+		}
+
+		inline void push(Block* block)
+		{
+			std::lock_guard<SpinLock> lock(m_FreeLock);
+			block->pNext = m_pToFreeListHead;
+			m_pToFreeListHead = block;
+		}
+
+		inline bool AllocateChunkAndSetHead(size_t chunkSizeInBytes)
+		{
+			Chunk* chunk = new Chunk(chunkSizeInBytes);
+			chunk->m_pArena = this;
+			m_Chunks.emplace_back(chunk);
+			m_pFreeListHead = chunk->GetFirstBlock();
+			return true;
+		}
+
+		inline Block* pop(size_t chunkSizeInBytes)
+		{
+			Block* pCurrent = m_pFreeListHead;
+			if (!pCurrent)
+			{
+				m_pFreeListHead = m_pToFreeListHead;
+				m_pToFreeListHead = nullptr;
+				pCurrent = m_pFreeListHead;
+				if (!pCurrent)
+				{
+					AllocateChunkAndSetHead(chunkSizeInBytes);
+					pCurrent = m_pFreeListHead;
+				}
+			}
+
+			m_pFreeListHead = m_pFreeListHead->pNext;
+			return pCurrent;
+		}
+
+	private:
+		std::vector<Chunk*> m_Chunks;
+		Block* m_pFreeListHead;
+		Block* m_pToFreeListHead;
+		SpinLock m_FreeLock;
+	};
+
 public:
     inline PoolAllocator(int chunkSizeInBytes = 4096)
-        : m_ppChunks(),
-		m_pFreeListHead(nullptr),
-		m_pToFreeListHead(nullptr),
-        m_ChunkSizeInBytes(chunkSizeInBytes),
-		m_FreeLock(),
-		m_ToFreeLock()
+        : m_ChunkSizeInBytes(chunkSizeInBytes)
     {
-		//Allocate chunk
-		AllocateChunkAndSetHead();
+
     }
     
     inline ~PoolAllocator()
     {
-		for (auto& pChunk : m_ppChunks)
-		{
-			delete pChunk;
-			pChunk = nullptr;
-		}
-		m_ppChunks.clear();
-    }
-
-
-	inline void AllocateChunkAndSetHead()
-	{
-		Chunk* pChunk = new Chunk(m_ChunkSizeInBytes);
-		m_ppChunks.emplace_back(pChunk);
-
-		m_pFreeListHead = pChunk->GetFirstBlock();
-	}
-
-
-    inline void* AllocateBlock()
-    {
-		std::lock_guard<SpinLock> lock(m_FreeLock);
-        
-		Block* pCurrent = m_pFreeListHead;
-		if (!pCurrent)
-		{
-			std::lock_guard<SpinLock> lock2(m_ToFreeLock);
-
-			m_pFreeListHead = m_pToFreeListHead;
-			m_pToFreeListHead = nullptr;
-			pCurrent = m_pFreeListHead;
-			if (!pCurrent)
-			{
-				AllocateChunkAndSetHead();
-				pCurrent = m_pFreeListHead;
-			}
-		}
 		
-		m_pFreeListHead = m_pFreeListHead->pNext;
-        return (void*)pCurrent;
     }
 
 
@@ -128,18 +149,6 @@ public:
     inline T* MakeNew(Args&& ... args)
     {
         return new(AllocateBlock()) T(std::forward<Args>(args) ...);
-    }
-    
-    
-    inline void Free(T* pObject)
-    {
-		std::lock_guard<SpinLock> lock(m_ToFreeLock);
-
-		pObject->~T();
-
-        Block* pFirst = (Block*)pObject;
-        pFirst->pNext = m_pToFreeListHead;
-		m_pToFreeListHead = pFirst;
     }
     
     
@@ -157,13 +166,35 @@ public:
     
 	inline int GetTotalMemory() const
 	{
-		return m_ChunkSizeInBytes * m_ppChunks.size();
+		return 5;
+		//return m_ChunkSizeInBytes * m_ppChunks.size();
 	}
+
+	inline Arena* getArena()
+	{
+		Arena* arena = m_Current_thread.get();
+		if (!arena)
+		{
+			arena = new Arena();
+			m_Current_thread.reset(arena);
+		}
+		return arena;
+	}
+
+	inline void* AllocateBlock()
+	{
+		Block* block = getArena()->pop(m_ChunkSizeInBytes);
+		return (void*)block;
+	}
+
+	inline void Free(T* pObject)
+	{
+		pObject->~T();
+		Block* pFirst = (Block*)pObject;
+		getArena()->push(pFirst);
+	}
+
 private:
-	std::vector<Chunk*> m_ppChunks;
-    Block* m_pFreeListHead;
-	Block* m_pToFreeListHead;
     size_t m_ChunkSizeInBytes;
-	SpinLock m_FreeLock;
-	SpinLock m_ToFreeLock;
+	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
