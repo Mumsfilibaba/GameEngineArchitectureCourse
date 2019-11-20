@@ -13,7 +13,6 @@
 #include "StackAllocator.h"
 
 #define MB(mb) mb * 1024 * 1024
-PoolAllocator<int> g_Allocator;
 
 void ThreadSafePrintf(const char* pFormat, ...)
 {
@@ -27,7 +26,7 @@ void ThreadSafePrintf(const char* pFormat, ...)
 }
 //global pool allocator vars..
 float g_totalMemoryConsumption = 0;
-float g_availableMemory = g_Allocator.GetTotalMemory();
+float g_availableMemory = PoolAllocator<int>::Get().GetTotalMemory();
 
 void Func()
 {
@@ -42,14 +41,12 @@ void Func()
 	int** ppPoolAllocated	= (int**)allocate(sizeof(int*)*count, 1, "TestVars");
 	int** ppOSAllocated		= new int*[count];
 
-	g_Allocator.MakeNew(0);
-
 	//Allocate from pool
 	clock.restart();
 	sf::Time t1 = clock.getElapsedTime();
 	for (int i = 0; i < count; i++)
 	{
-		ppPoolAllocated[i] = g_Allocator.MakeNew(i);
+		ppPoolAllocated[i] = pool_new(int) int(i);
 	}
 	sf::Time t2 = clock.getElapsedTime();
 
@@ -71,7 +68,7 @@ void Func()
 	t1 = clock.getElapsedTime();
 	for (int i = 0; i < count; i++)
 	{
-		g_Allocator.Free(ppPoolAllocated[i]);
+		PoolAllocator<int>::Get().Free(ppPoolAllocated[i]);
 		ppPoolAllocated[i] = nullptr;
 	}
 	t2 = clock.getElapsedTime();
@@ -284,7 +281,7 @@ int main(int argc, const char* argv[])
 				//Fixa (detta JA!) ?
 				//t1 = std::thread(Func);
 				//runOnce = false;
-				std::cout << g_Allocator.GetTotalMemory() << std::endl;
+				std::cout << PoolAllocator<int>::Get().GetTotalMemory() << std::endl;
 			}
 
 		}

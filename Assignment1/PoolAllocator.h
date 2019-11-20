@@ -80,11 +80,10 @@ public:
 
 		inline ~Arena()
 		{
-			std::lock_guard<SpinLock> lock(m_FreeLock);
 			m_Chunks.clear();
 		}
 
-		inline void push(Block* block)
+		inline void Push(Block* block)
 		{
 			std::lock_guard<SpinLock> lock(m_FreeLock);
 			block->pNext = m_pToFreeListHead;
@@ -120,14 +119,12 @@ public:
 			m_pFreeListHead = m_pFreeListHead->pNext;
 			return pCurrent;
 		}
-
 	private:
 		std::vector<Chunk*> m_Chunks;
 		Block* m_pFreeListHead;
 		Block* m_pToFreeListHead;
 		SpinLock m_FreeLock;
 	};
-
 public:
     inline PoolAllocator()
     {
@@ -182,18 +179,26 @@ public:
 
 	inline void Free(T* pObject)
 	{
-		pObject->~T();
 		Block* block = (Block*)pObject;
 		Chunk* chunk = Chunk::FromBlock(block);
+
+		pObject->~T();
 
 		//ThreadSafePrintf("Recived %p\n", chunk);
 
 		Arena* arena = chunk->m_pArena;
 		assert(arena);
-		arena->push(block);
+		arena->Push(block);
 	}
-
+public:
+	static PoolAllocator& Get()
+	{
+		static PoolAllocator instance;
+		return instance;
+	}
 private:
 	inline static int s_TotalMemoryUsed = 0;
 	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
+
+#define pool_new(x)		new(PoolAllocator<x>::Get().AllocateBlock())
