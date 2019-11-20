@@ -36,7 +36,7 @@ void Func()
 	std::stringstream ss;
 	ss << std::this_thread::get_id();
 
-	constexpr int count = 4096;
+	constexpr int count = 16;
 	//g_totalMemoryConsumption = count * sizeof(void*);
 	ThreadSafePrintf("Total memory consumption: %d bytes [THREAD %s]\n", count * sizeof(void*), ss.str().c_str());
 	int** ppPoolAllocated = new int*[count];
@@ -206,6 +206,19 @@ int main(int argc, const char* argv[])
 	std::thread t2(Func);
 	std::thread t3(Func);
 	std::thread t4(Func);
+
+	if (t1.joinable())
+		t1.join();
+
+	if (t2.joinable())
+		t2.join();
+
+	if (t3.joinable())
+		t3.join();
+
+	if (t4.joinable())
+		t4.join();
+
 
 	//Start program
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");

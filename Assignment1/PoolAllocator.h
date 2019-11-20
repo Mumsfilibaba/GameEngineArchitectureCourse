@@ -6,6 +6,7 @@
 #include "MemoryManager.h"
 
 #define MB(mb) mb * 1024 * 1024
+#define CHUNK_SIZE 4096
 
 template<typename T>
 class PoolAllocator
@@ -21,22 +22,21 @@ public:
 	class Chunk
 	{
 	public:
-		inline Chunk(int sizeInBytes)
-			: m_pMemory(nullptr),
-			m_SizeInBytes(sizeInBytes)
+		inline Chunk()
 		{
 			constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
-			assert(sizeInBytes % blockSize == 0);
+			static_assert(CHUNK_SIZE % blockSize == 0);
+
+			ThreadSafePrintf("Created %p\n", this);
 
 			//Allocate mem
-			m_pMemory = MemoryManager::GetInstance().Allocate(sizeInBytes, sizeInBytes, "Pool Allocation");
-			s_TotalMemoryUsed += sizeInBytes;
+			s_TotalMemoryUsed += CHUNK_SIZE;
 			
 			//Init blocks
 			Block* pOld = nullptr;
-			Block* pCurrent = (Block*)m_pMemory;
+			Block* pCurrent = (Block*)m_Memory;
 
-			int blockCount = m_SizeInBytes / blockSize;
+			int blockCount = CHUNK_SIZE / blockSize;
 			for (int i = 0; i < blockCount; i++)
 			{
 				pCurrent->pNext = (Block*)(((char*)pCurrent) + blockSize); //HACKING;
@@ -49,31 +49,26 @@ public:
 			pOld->pNext = nullptr;
 		}
 
-
 		inline ~Chunk()
 		{
-			if (m_pMemory)
-			{
-				s_TotalMemoryUsed -= m_SizeInBytes;
-				m_pMemory = nullptr;
-			}
+			s_TotalMemoryUsed -= CHUNK_SIZE;
+			m_pArena = nullptr;
 		}
-
 
 		inline Block* GetFirstBlock() const
 		{
-			return (Block*)m_pMemory;
+			return (Block*)m_Memory;
 		}
 
 		inline static Chunk* fromBlock(Block* block)
 		{
-			return reinterpret_cast<Chunk*>(uintptr_t(block) & ~(sizeof(Chunk) - 1));
+			constexpr size_t mask = sizeof(Chunk) - 1;
+			return reinterpret_cast<Chunk*>((size_t)block & ~(mask));
 		}
 
 	public:
-		void* m_pMemory;
-		size_t m_SizeInBytes;
 		Arena* m_pArena;
+		char m_Memory[CHUNK_SIZE - sizeof(Arena*)];
 	};
 
 	struct Arena
@@ -87,13 +82,9 @@ public:
 
 		inline ~Arena()
 		{
-			std::cout << "Arena fap" << std::endl;
+			std::lock_guard<SpinLock> lock(m_FreeLock);
 
-			for (auto& pChunk : m_Chunks)
-			{
-				delete pChunk;
-				pChunk = nullptr;
-			}
+			std::cout << "Arena fap" << std::endl;
 			m_Chunks.clear();
 		}
 
@@ -104,16 +95,18 @@ public:
 			m_pToFreeListHead = block;
 		}
 
-		inline bool AllocateChunkAndSetHead(size_t chunkSizeInBytes)
+		inline bool AllocateChunkAndSetHead()
 		{
-			Chunk* chunk = new Chunk(chunkSizeInBytes);
-			chunk->m_pArena = this;
-			m_Chunks.emplace_back(chunk);
-			m_pFreeListHead = chunk->GetFirstBlock();
+			void* pMem = allocate(sizeof(Chunk), sizeof(Chunk), "Pool Allocation Chunk");
+			Chunk* pChunk = new(pMem) Chunk();
+			pChunk->m_pArena = this;
+
+			m_Chunks.emplace_back(pChunk);
+			m_pFreeListHead = pChunk->GetFirstBlock();
 			return true;
 		}
 
-		inline Block* pop(size_t chunkSizeInBytes)
+		inline Block* pop()
 		{
 			Block* pCurrent = m_pFreeListHead;
 			if (!pCurrent)
@@ -123,7 +116,7 @@ public:
 				pCurrent = m_pFreeListHead;
 				if (!pCurrent)
 				{
-					AllocateChunkAndSetHead(chunkSizeInBytes);
+					AllocateChunkAndSetHead();
 					pCurrent = m_pFreeListHead;
 				}
 			}
@@ -140,17 +133,15 @@ public:
 	};
 
 public:
-    inline PoolAllocator(int chunkSizeInBytes = 4096)
-        : m_ChunkSizeInBytes(chunkSizeInBytes)
+    inline PoolAllocator()
     {
-
+		static_assert(sizeof(T) < CHUNK_SIZE, "sizeof type is too big");
     }
     
     inline ~PoolAllocator()
     {
 		
     }
-
 
     template<typename... Args>
     inline T* MakeNew(Args&& ... args)
@@ -189,7 +180,7 @@ public:
 
 	inline void* AllocateBlock()
 	{
-		Block* block = getArena()->pop(m_ChunkSizeInBytes);
+		Block* block = getArena()->pop();
 		return (void*)block;
 	}
 
@@ -197,12 +188,16 @@ public:
 	{
 		pObject->~T();
 		Block* block = (Block*)pObject;
-		Arena* arena = Chunk::fromBlock(block)->m_pArena;
+		Chunk* chunk = Chunk::fromBlock(block);
+
+		ThreadSafePrintf("Recived %p\n", chunk);
+
+		Arena* arena = chunk->m_pArena;
+		assert(arena);
 		arena->push(block);
 	}
 
 private:
-    size_t m_ChunkSizeInBytes;
 	inline static int s_TotalMemoryUsed = 0;
 	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
