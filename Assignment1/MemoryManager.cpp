@@ -16,8 +16,6 @@ MemoryManager::~MemoryManager()
 	}
 
 	m_pFreeList = nullptr;
-
-	FrameAllocator::Release();
 }
 
 void MemoryManager::RegisterAllocation(
