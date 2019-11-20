@@ -16,12 +16,14 @@
 
 struct Allocation
 {
-	Allocation(size_t sizeInBytes)
+	Allocation(size_t sizeInBytes, size_t padding)
 	{
 		this->sizeInBytes = sizeInBytes;
+		this->padding = padding;
 	}
 
 	size_t sizeInBytes = 0;
+	size_t padding = 0;
 };
 
 struct FreeEntry
@@ -50,7 +52,18 @@ public:
 
 private:
 	MemoryManager();
-	void RegisterAllocation(size_t sizeInBytes, size_t alignment, size_t padding, size_t startAddress, size_t endAddress, const std::string& tag);
+	void RegisterAllocation(
+		const std::string& tag,
+		size_t startAddress,
+		size_t allocationAddress,
+		size_t returnedMemoryAddress,
+		size_t endAddress,
+		size_t blockSizeInBytes,
+		size_t allocationSizeInBytes,
+		size_t alignment,
+		size_t internalPadding,
+		size_t externalPadding,
+		size_t extraMemory);
 	void RemoveAllocation(size_t address);
 
 private:

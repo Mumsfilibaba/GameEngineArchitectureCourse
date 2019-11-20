@@ -20,28 +20,55 @@ MemoryManager::~MemoryManager()
 	FrameAllocator::Release();
 }
 
-void MemoryManager::RegisterAllocation(size_t sizeInBytes, size_t alignment, size_t padding, size_t startAddress, size_t endAddress, const std::string& tag)
+void MemoryManager::RegisterAllocation(
+	const std::string& tag, 
+	size_t startAddress, 
+	size_t allocationAddress, 
+	size_t returnedMemoryAddress, 
+	size_t endAddress, 
+	size_t blockSizeInBytes, 
+	size_t allocationSizeInBytes, 
+	size_t alignment, 
+	size_t internalPadding,
+	size_t externalPadding,
+	size_t extraMemory)
 {
-	size_t mb = sizeInBytes / (1024 * 1024);
-	size_t kb = (sizeInBytes - mb * (1024 * 1024)) / 1024;
-	size_t bytes = (sizeInBytes - mb * (1024 * 1024) - kb * 1024);
+	size_t blockSize_mb = blockSizeInBytes / (1024 * 1024);
+	size_t blockSize_kb = (blockSizeInBytes - blockSize_mb * (1024 * 1024)) / 1024;
+	size_t blockSize_bytes = (blockSizeInBytes - blockSize_mb * (1024 * 1024) - blockSize_kb * 1024);
 
-	std::stringstream startStream;
-	startStream << std::hex << startAddress;
+	size_t allocationSize_mb = allocationSizeInBytes / (1024 * 1024);
+	size_t allocationSize_kb = (allocationSizeInBytes - allocationSize_mb * (1024 * 1024)) / 1024;
+	size_t allocationSize_bytes = (allocationSizeInBytes - allocationSize_mb * (1024 * 1024) - allocationSize_kb * 1024);
 
-	std::stringstream endStream;
-	endStream << std::hex << endAddress;
+	size_t extraMemory_mb = extraMemory / (1024 * 1024);
+	size_t extraMemory_kb = (extraMemory - extraMemory_mb * (1024 * 1024)) / 1024;
+	size_t extraMemory_bytes = (extraMemory - extraMemory_mb * (1024 * 1024) - extraMemory_kb * 1024);
+
+	std::stringstream stream;
+	stream << "Start Address: " << std::setw(25) << "0x" << std::hex << startAddress  << std::endl;
+	stream << "Allocation Address (Start + Padding): " << std::setw(0) << "0x" << std::hex << allocationAddress << std::endl;
+	stream << "Returned Memory Address: " << std::setw(15) << "0x" << std::hex << returnedMemoryAddress << std::endl;
+	stream << "End Address: " << std::setw(27) << "0x" << std::hex << endAddress << std::endl;
 
 	m_Allocations[startAddress] =
-		"A" + tag + 
-		"\nStart: " + startStream.str() +
-		"\nEnd: " + endStream.str() +
-		"\nSize: " +
-		std::to_string(mb) + "MB " +
-		std::to_string(kb) + "kB " +
-		std::to_string(bytes) + "bytes" +
-		"\nAlignment:" + std::to_string(alignment) +
-		"\nPadding:" + std::to_string(padding);
+		"A" + tag + "\n" +
+		stream.str() +
+		"Total Block Size: " +
+		std::to_string(blockSize_mb) + "MB " +
+		std::to_string(blockSize_kb) + "kB " +
+		std::to_string(blockSize_bytes) + "bytes" +
+		"\nAllocation Size: " +
+		std::to_string(allocationSize_mb) + "MB " +
+		std::to_string(allocationSize_kb) + "kB " +
+		std::to_string(allocationSize_bytes) + "bytes" +
+		"\nAlignment: " + std::to_string(alignment) +
+		"\nInternal Padding: " + std::to_string(internalPadding) +
+		"\nExternal Padding: " + std::to_string(externalPadding) +
+		"\nExtra Memory: " + 
+		std::to_string(extraMemory_mb) + "MB " +
+		std::to_string(extraMemory_kb) + "kB " +
+		std::to_string(extraMemory_bytes) + "bytes";
 		
 }
 
@@ -63,30 +90,58 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 
 	while (pCurrentFree != nullptr)
 	{
-		size_t offset = (size_t)pCurrentFree;
+		size_t offset = (size_t)pCurrentFree + sizeof(Allocation);
 		size_t padding = (-offset & (alignment - 1));
 		size_t aligned = offset + padding;
 		//Not Perfect Fit Free Block (Need to create a new FreeEntry after the allocation)
 		if (pCurrentFree->sizeInBytes >= totalAllocationSize + padding + sizeof(FreeEntry))
 		{
 			//Create new FreeEntry after the allocation
-			FreeEntry* pNewFreeEntry = new((void*)(aligned + totalAllocationSize)) FreeEntry(pCurrentFree->sizeInBytes - (totalAllocationSize + padding), pCurrentFree->pNext);
+			FreeEntry* pNewFreeEntryAfter = new((void*)(aligned + sizeInBytes)) FreeEntry(pCurrentFree->sizeInBytes - (totalAllocationSize + padding), pCurrentFree->pNext);
 
 			//If last free is nullptr we are at start of FreeList
 			if (pLastFree != nullptr)
-				pLastFree->pNext = pNewFreeEntry;
+				pLastFree->pNext = pNewFreeEntryAfter;
 			else
-				m_pFreeList = pNewFreeEntry;
+				m_pFreeList = pNewFreeEntryAfter;
+
+			size_t internalPadding = padding;
+			size_t externalPadding = 0;
+
+			//Check if Padding can fit a Free Block
+			if (padding > sizeof(FreeEntry))
+			{
+				FreeEntry* pNewFreeEntryBefore = new(pCurrentFree) FreeEntry(padding, pNewFreeEntryAfter);
+
+				if (pLastFree != nullptr)
+					pLastFree->pNext = pNewFreeEntryBefore;
+				else
+					m_pFreeList = pNewFreeEntryBefore;
+
+				externalPadding = internalPadding;
+				internalPadding = 0;
+			}
 
 			//Create a new Allocation at the CurrentFree Address
-			Allocation* pAllocation = new(pCurrentFree) Allocation(totalAllocationSize + padding);
+			Allocation* pAllocation = new((void*)((size_t)pCurrentFree + padding)) Allocation(totalAllocationSize + internalPadding, internalPadding);
 
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
-			RegisterAllocation(totalAllocationSize, alignment, padding, (size_t)pAllocation, aligned + totalAllocationSize - 1, tag);
+			RegisterAllocation(
+				tag, 
+				(size_t)pCurrentFree, 
+				(size_t)pCurrentFree + padding,
+				aligned, 
+				aligned + sizeInBytes - 1, 
+				padding + totalAllocationSize,
+				sizeInBytes,
+				alignment,
+				internalPadding,
+				externalPadding,
+				0);
 			return (void*)(aligned);
 		}
-		//Perfect Fit Free Block (No need to create a new FreeEntry after the allocation)
-		else if (pCurrentFree->sizeInBytes == totalAllocationSize + padding)
+		//Cant fit new Free Block in, but we can fit the allocation in. (We give the allocation some extra memory at the end)
+		else if (pCurrentFree->sizeInBytes >= totalAllocationSize + padding)
 		{
 			//If last free is nullptr we are at start of FreeList
 			if (pLastFree != nullptr)
@@ -94,11 +149,39 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			else
 				m_pFreeList = pCurrentFree->pNext;
 
+			size_t internalPadding = padding;
+			size_t externalPadding = 0;
+
+			//Check if Padding can fit a Free Block
+			if (padding > sizeof(FreeEntry))
+			{
+				FreeEntry* pNewFreeEntryBefore = new(pCurrentFree) FreeEntry(padding, pCurrentFree->pNext);
+
+				if (pLastFree != nullptr)
+					pLastFree->pNext = pNewFreeEntryBefore;
+				else
+					m_pFreeList = pNewFreeEntryBefore;
+
+				externalPadding = internalPadding;
+				internalPadding = 0;
+			}
+
 			//Create a new Allocation at the CurrentFree Address
-			Allocation* pAllocation = new(pCurrentFree) Allocation(totalAllocationSize + padding);
+			Allocation* pAllocation = new((void*)((size_t)pCurrentFree + padding)) Allocation(pCurrentFree->sizeInBytes - externalPadding, internalPadding);
 
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
-			RegisterAllocation(totalAllocationSize, alignment, padding, (size_t)pAllocation, aligned + totalAllocationSize - 1, tag);
+			RegisterAllocation(
+				tag,
+				(size_t)pCurrentFree,
+				(size_t)pCurrentFree + padding,
+				aligned,
+				(size_t)pCurrentFree + pCurrentFree->sizeInBytes - 1,
+				pCurrentFree->sizeInBytes,
+				sizeInBytes,
+				alignment,
+				internalPadding,
+				externalPadding,
+				pCurrentFree->sizeInBytes - totalAllocationSize + padding);
 			return (void*)(aligned);
 		}
 
@@ -111,12 +194,12 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 
 void MemoryManager::Free(void* allocation)
 {
-	Allocation* pAllocation = reinterpret_cast<Allocation*>(((size_t)allocation - sizeof(size_t))); //HACKING
+	size_t allocationAddress = (size_t)allocation - sizeof(Allocation);
+	Allocation* pAllocation = reinterpret_cast<Allocation*>(allocationAddress); //HACKING
 
 	std::lock_guard<SpinLock> lock(m_MemoryLock);
 
 	RemoveAllocation((size_t)pAllocation);
-	size_t allocationAddress = (size_t)pAllocation;
 
 	FreeEntry* pClosestLeft = nullptr;
 
@@ -125,7 +208,7 @@ void MemoryManager::Free(void* allocation)
 
 	while (pCurrentFree != nullptr)
 	{
-		if ((size_t)pAllocation + pAllocation->sizeInBytes == (size_t)pCurrentFree)
+		if (allocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree)
 		{
 			size_t newFreeSize = pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
 			//Memset?
