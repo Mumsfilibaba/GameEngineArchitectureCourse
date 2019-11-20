@@ -1,5 +1,4 @@
 #include "MemoryManager.h"
-#include "FrameAllocator.h"
 
 MemoryManager::MemoryManager()
 	: m_pMemory(malloc(SIZE_IN_BYTES))
