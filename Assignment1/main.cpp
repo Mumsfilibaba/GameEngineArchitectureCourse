@@ -281,7 +281,8 @@ int main(int argc, const char* argv[])
 			{
 				//Fixa (detta JA!) ?
 				//t1 = std::thread(Func);
-				runOnce = false;
+				//runOnce = false;
+				std::cout << g_Allocator.GetTotalMemory() << std::endl;
 			}
 
 		}

@@ -13,13 +13,11 @@ class PoolAllocator
 public:
 	struct Arena;
 	
-	//Node
     struct Block
     {
         Block* pNext = nullptr;
     };
 
-	//Page
 	class Chunk
 	{
 	public:
@@ -32,6 +30,7 @@ public:
 
 			//Allocate mem
 			m_pMemory = MemoryManager::GetInstance().Allocate(sizeInBytes, sizeInBytes, "Pool Allocation");
+			s_TotalMemoryUsed += sizeInBytes;
 			
 			//Init blocks
 			Block* pOld = nullptr;
@@ -55,7 +54,7 @@ public:
 		{
 			if (m_pMemory)
 			{
-				//free(m_pMemory);
+				s_TotalMemoryUsed -= m_SizeInBytes;
 				m_pMemory = nullptr;
 			}
 		}
@@ -65,6 +64,12 @@ public:
 		{
 			return (Block*)m_pMemory;
 		}
+
+		inline static Chunk* fromBlock(Block* block)
+		{
+			return reinterpret_cast<Chunk*>(uintptr_t(block) & ~(sizeof(Chunk) - 1));
+		}
+
 	public:
 		void* m_pMemory;
 		size_t m_SizeInBytes;
@@ -82,6 +87,8 @@ public:
 
 		inline ~Arena()
 		{
+			std::cout << "Arena fap" << std::endl;
+
 			for (auto& pChunk : m_Chunks)
 			{
 				delete pChunk;
@@ -166,8 +173,7 @@ public:
     
 	inline int GetTotalMemory() const
 	{
-		return 5;
-		//return m_ChunkSizeInBytes * m_ppChunks.size();
+		return s_TotalMemoryUsed;
 	}
 
 	inline Arena* getArena()
@@ -190,11 +196,13 @@ public:
 	inline void Free(T* pObject)
 	{
 		pObject->~T();
-		Block* pFirst = (Block*)pObject;
-		getArena()->push(pFirst);
+		Block* block = (Block*)pObject;
+		Arena* arena = Chunk::fromBlock(block)->m_pArena;
+		arena->push(block);
 	}
 
 private:
     size_t m_ChunkSizeInBytes;
+	inline static int s_TotalMemoryUsed = 0;
 	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
