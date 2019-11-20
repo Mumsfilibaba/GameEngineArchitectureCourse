@@ -66,6 +66,7 @@ private:
 		size_t externalPadding,
 		size_t extraMemory);
 	void RemoveAllocation(size_t address);
+	template <typename I> std::string N2HexStr(I w, size_t hex_len = sizeof(I) << 1);
 
 private:
 	void* m_pMemory;
@@ -82,5 +83,17 @@ public:
 		return instance;
 	}
 };
+
+template <typename I>
+std::string MemoryManager::N2HexStr(I w, size_t hex_len)
+{
+	static const char* digits = "0123456789abcdef";
+	std::string rc(hex_len + 2, '0');
+	rc[0] = '0';
+	rc[1] = 'x';
+	for (size_t i = 2, j = (hex_len - 1) * 4; i < hex_len + 2; ++i, j -= 4)
+		rc[i] = digits[(w >> j) & 0x0f];
+	return rc;
+}
 
 #endif

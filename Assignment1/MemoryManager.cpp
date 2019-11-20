@@ -35,42 +35,50 @@ void MemoryManager::RegisterAllocation(
 	size_t externalPadding,
 	size_t extraMemory)
 {
-	size_t blockSize_mb = blockSizeInBytes / (1024 * 1024);
-	size_t blockSize_kb = (blockSizeInBytes - blockSize_mb * (1024 * 1024)) / 1024;
-	size_t blockSize_bytes = (blockSizeInBytes - blockSize_mb * (1024 * 1024) - blockSize_kb * 1024);
+	constexpr size_t mb = 1024 * 1024;
+	constexpr size_t kb = 1024;
 
-	size_t allocationSize_mb = allocationSizeInBytes / (1024 * 1024);
-	size_t allocationSize_kb = (allocationSizeInBytes - allocationSize_mb * (1024 * 1024)) / 1024;
-	size_t allocationSize_bytes = (allocationSizeInBytes - allocationSize_mb * (1024 * 1024) - allocationSize_kb * 1024);
+	/*size_t blockSize_mb = blockSizeInBytes / mb;
+	size_t blockSize_kb = (blockSizeInBytes - blockSize_mb * mb) / kb;
+	size_t blockSize_bytes = (blockSizeInBytes - blockSize_mb * mb - blockSize_kb * kb);
 
-	size_t extraMemory_mb = extraMemory / (1024 * 1024);
-	size_t extraMemory_kb = (extraMemory - extraMemory_mb * (1024 * 1024)) / 1024;
-	size_t extraMemory_bytes = (extraMemory - extraMemory_mb * (1024 * 1024) - extraMemory_kb * 1024);
+	size_t allocationSize_mb = allocationSizeInBytes / mb;
+	size_t allocationSize_kb = (allocationSizeInBytes - allocationSize_mb * mb) / kb;
+	size_t allocationSize_bytes = (allocationSizeInBytes - allocationSize_mb * mb - allocationSize_kb * kb);
 
-	std::stringstream stream;
+	size_t extraMemory_mb = extraMemory / mb;
+	size_t extraMemory_kb = (extraMemory - extraMemory_mb * mb) / kb;
+	size_t extraMemory_bytes = (extraMemory - extraMemory_mb * mb - extraMemory_kb * kb);*/
+
+	/*std::stringstream stream;
 	stream << "Start Address: " << std::setw(25) << "0x" << std::hex << startAddress  << std::endl;
 	stream << "Allocation Address (Start + Padding): " << std::setw(0) << "0x" << std::hex << allocationAddress << std::endl;
 	stream << "Returned Memory Address: " << std::setw(15) << "0x" << std::hex << returnedMemoryAddress << std::endl;
-	stream << "End Address: " << std::setw(27) << "0x" << std::hex << endAddress << std::endl;
+	stream << "End Address: " << std::setw(27) << "0x" << std::hex << endAddress << std::endl;*/
 
-	m_Allocations[startAddress] =
-		"A" + tag + "\n" +
-		stream.str() +
-		"Total Block Size: " +
-		std::to_string(blockSize_mb) + "MB " +
+	std::string info(512, ' ');
+	info =
+		"A" + tag +
+		"\nStart Address:                        " + N2HexStr(startAddress) +
+		"\nAllocation Address (Start + Padding): " + N2HexStr(allocationAddress) +
+		"\nReturned Memory Address:              " + N2HexStr(returnedMemoryAddress) +
+		"\nEnd Address:                          " + N2HexStr(endAddress) +
+		"\nTotal Block Size: " + std::to_string(blockSizeInBytes) +
+		/*std::to_string(blockSize_mb) + "MB " +
 		std::to_string(blockSize_kb) + "kB " +
-		std::to_string(blockSize_bytes) + "bytes" +
-		"\nAllocation Size: " +
-		std::to_string(allocationSize_mb) + "MB " +
+		std::to_string(blockSize_bytes) + "bytes" +*/
+		"\nAllocation Size: " + std::to_string(allocationSizeInBytes) +
+		/*std::to_string(allocationSize_mb) + "MB " +
 		std::to_string(allocationSize_kb) + "kB " +
-		std::to_string(allocationSize_bytes) + "bytes" +
+		std::to_string(allocationSize_bytes) + "bytes" +*/
 		"\nAlignment: " + std::to_string(alignment) +
-		"\nInternal Padding: " + std::to_string(internalPadding) + " bytes"
-		"\nExternal Padding: " + std::to_string(externalPadding) + " bytes"
-		"\nExtra Memory: " + 
-		std::to_string(extraMemory_mb) + "MB " +
+		"\nInternal Padding: " + std::to_string(internalPadding) + " bytes" +
+		"\nExternal Padding: " + std::to_string(externalPadding) + " bytes" +
+		"\nExtra Memory: " + std::to_string(extraMemory)
+		/*std::to_string(extraMemory_mb) + "MB " +
 		std::to_string(extraMemory_kb) + "kB " +
-		std::to_string(extraMemory_bytes) + "bytes";
+		std::to_string(extraMemory_bytes) + "bytes"*/;
+	m_Allocations[startAddress] = info;
 }
 
 void MemoryManager::RemoveAllocation(size_t startAddress)
@@ -114,6 +122,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 				FreeEntry* pNewFreeEntryBefore = new(pCurrentFree) FreeEntry(padding, pNewFreeEntryAfter);
 
 				pLastFree->pNext = pNewFreeEntryBefore;
+				m_pFreeTail = pNewFreeEntryBefore;
 
 				externalPadding = internalPadding;
 				internalPadding = 0;
@@ -123,7 +132,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 			Allocation* pAllocation = new((void*)((size_t)pCurrentFree + padding)) Allocation(totalAllocationSize + internalPadding, internalPadding);
 
 			//Return the address of the allocation, but offset it so the size member does not get overridden.
-			RegisterAllocation(
+			/*RegisterAllocation(
 				tag, 
 				(size_t)pCurrentFree + externalPadding, 
 				(size_t)pCurrentFree + padding,
@@ -134,7 +143,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 				alignment,
 				internalPadding,
 				externalPadding,
-				0);
+				0);*/
 			return (void*)(aligned);
 		}
 		//Cant fit new Free Block in, but we can fit the allocation in. (We give the allocation some extra memory at the end)
@@ -153,6 +162,7 @@ void* MemoryManager::Allocate(size_t sizeInBytes, size_t alignment, const std::s
 				FreeEntry* pNewFreeEntryBefore = new(pCurrentFree) FreeEntry(padding, pCurrentFree->pNext);
 
 				pLastFree->pNext = pNewFreeEntryBefore;
+				m_pFreeTail = pNewFreeEntryBefore;
 
 				externalPadding = internalPadding;
 				internalPadding = 0;

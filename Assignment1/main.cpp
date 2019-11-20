@@ -36,7 +36,7 @@ void Func()
 	std::stringstream ss;
 	ss << std::this_thread::get_id();
 
-	constexpr int count = 512;
+	constexpr int count = 4096 * 512;
 	//g_totalMemoryConsumption = count * sizeof(void*);
 	ThreadSafePrintf("Total memory consumption: %d bytes [THREAD %s]\n", count * sizeof(void*), ss.str().c_str());
 	int** ppPoolAllocated	= (int**)allocate(sizeof(int*)*count, 1, "TestVars");
@@ -304,10 +304,11 @@ int main(int argc, const char* argv[])
 		ImGui::ShowTestWindow();
 
 		std::map<size_t, std::string> currentMemory = std::map<size_t, std::string>(MemoryManager::GetInstance().GetAllocations());
-		const FreeEntry* pCurrentFreeEntry = MemoryManager::GetInstance().GetFreeList();
+		const FreeEntry* pStartFreeEntry = MemoryManager::GetInstance().GetFreeList();
+		const FreeEntry* pCurrentFreeEntry = pStartFreeEntry;
 
 		size_t counter = 0;
-		while (pCurrentFreeEntry != nullptr)
+		do
 		{
 			size_t currentAddress = (size_t)pCurrentFreeEntry;
 			size_t nextAddress = (size_t)pCurrentFreeEntry->pNext;
@@ -331,7 +332,7 @@ int main(int argc, const char* argv[])
 
 			pCurrentFreeEntry = pCurrentFreeEntry->pNext;
 			counter++;
-		}
+		} while (pCurrentFreeEntry != pStartFreeEntry);
 
 		static const char* current_item = NULL;
 
