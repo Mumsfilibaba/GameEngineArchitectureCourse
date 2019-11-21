@@ -35,7 +35,7 @@ void Func()
 	std::stringstream ss;
 	ss << std::this_thread::get_id();
 
-	constexpr int count = 4096 * 512;
+	constexpr int count = 4096;
 	//g_totalMemoryConsumption = count * sizeof(void*);
 	ThreadSafePrintf("Total memory consumption: %d bytes [THREAD %s]\n", count * sizeof(void*), ss.str().c_str());
 	int** ppPoolAllocated	= (int**)allocate(sizeof(int*)*count, 1, "TestVars");
@@ -206,14 +206,6 @@ int main(int argc, const char* argv[])
 
 	//return 0;
 
-	//Start program
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");
-
-    window.setFramerateLimit(60);
-    ImGui::SFML::Init(window);
-    
-    std::cout << "Hello World" << std::endl;
-
 	//testStackAllocator(10);
 	//testFrameAllocator<int>(10000000, 100);
 
@@ -251,6 +243,24 @@ int main(int argc, const char* argv[])
 
 	blue->setFillColor(sf::Color::Blue);
 	blue->setPosition(100, 0);
+
+	for (int i = 0; i < 1024; i++)
+	{
+		size_t randomSizeExp = (rand() % 16) + 1;
+		size_t randomAlignmentExp = (rand() % randomSizeExp);
+		size_t randomSize = pow(2, randomSizeExp);
+		size_t randomAlignment = pow(2, randomAlignmentExp);
+		std::cout << "Test Allocation " << i << " Size: " << randomSize << " Alignment: " << randomAlignment << std::endl;
+		MemoryManager::GetInstance().Allocate(randomSize, randomAlignment, "Test Allocation " + std::to_string(i));
+	}
+
+	//Start program
+	sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");
+
+	window.setFramerateLimit(60);
+	ImGui::SFML::Init(window);
+
+	std::cout << "Hello World" << std::endl;
 
     sf::Clock deltaClock;
     while (window.isOpen())

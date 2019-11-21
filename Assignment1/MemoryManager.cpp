@@ -100,7 +100,7 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 		size_t offset = (size_t)pCurrentFree;
 		size_t padding = (-offset & (alignment - 1));
 		size_t aligned = offset + padding;
-		void* alignedPtr = (void*)aligned;
+
 		//Not Perfect Fit Free Block (Need to create a new FreeEntry after the allocation)
 		if (pCurrentFree->sizeInBytes >= allocationSizeInBytes + padding)
 		{
@@ -147,7 +147,7 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 			else if (pNewFreeEntryAfter != nullptr)
 			{
 				pLastFree->pNext = pNewFreeEntryAfter;
-				pNewFreeEntryAfter->pNext = pCurrentFree->pNext;
+				pNewFreeEntryAfter->pNext = pCurrentFreeNext;
 
 				m_pFreeTail = pLastFree;
 				m_pFreeHead = pNewFreeEntryAfter;
