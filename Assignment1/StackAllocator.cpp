@@ -13,7 +13,7 @@ StackAllocator::~StackAllocator()
 	
 }
 
-void* StackAllocator::AllocateMem(size_t size, size_t alignment)
+void* StackAllocator::AllocateMemory(size_t size, size_t alignment)
 {
     size_t mask = alignment - 1;
     size_t alignedCurrent = ((size_t)m_pCurrent + mask) & ~mask;
