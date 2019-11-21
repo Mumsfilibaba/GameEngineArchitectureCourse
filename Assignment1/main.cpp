@@ -68,7 +68,7 @@ void Func()
 	t1 = clock.getElapsedTime();
 	for (int i = 0; i < count; i++)
 	{
-		PoolAllocator<int>::Get().Free(ppPoolAllocated[i]);
+		pool_delete(ppPoolAllocated[i]);
 		ppPoolAllocated[i] = nullptr;
 	}
 	t2 = clock.getElapsedTime();

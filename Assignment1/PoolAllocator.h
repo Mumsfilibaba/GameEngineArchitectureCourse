@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <vector>
 #include <mutex>
+#include <type_traits>
 #include "SpinLock.h"
 #include "MemoryManager.h"
 
@@ -201,4 +202,5 @@ private:
 	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
 
-#define pool_new(x)		new(PoolAllocator<x>::Get().AllocateBlock())
+#define pool_new(type)			new(PoolAllocator<type>::Get().AllocateBlock())
+#define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object);
