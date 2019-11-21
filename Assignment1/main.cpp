@@ -204,7 +204,7 @@ int main(int argc, const char* argv[])
 	if (t4.joinable())
 		t4.join();
 
-	return 0;
+	//return 0;
 
 	//Start program
     sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");

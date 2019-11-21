@@ -17,22 +17,27 @@
 
 struct Allocation
 {
+	Allocation()
+	{
+		this->sizeInBytes = 0;
+		this->padding = 0;
+	}
+
 	Allocation(size_t sizeInBytes, size_t padding)
 	{
 		this->sizeInBytes = sizeInBytes;
 		this->padding = padding;
 	}
 
-	size_t sizeInBytes = 0;
-	size_t padding = 0;
+	size_t sizeInBytes;
+	size_t padding;
 };
 
 struct FreeEntry
 {
-	FreeEntry(size_t sizeInBytes, FreeEntry* pNext)
+	FreeEntry(size_t sizeInBytes)
 	{
 		this->sizeInBytes = sizeInBytes;
-		this->pNext = pNext;
 	}
 
 	size_t sizeInBytes = 0;
@@ -43,9 +48,9 @@ class MemoryManager
 {
 public:
 	~MemoryManager();
-	void* Allocate(size_t sizeInBytes, size_t alignment, const std::string& tag);
+	void* Allocate(size_t allocationSizeInBytes, size_t alignment, const std::string& tag);
 	void Free(void* allocation);
-	const std::map<size_t, std::string>& GetAllocations() { return m_Allocations; }
+	const std::map<size_t, std::string>& GetAllocations() { return m_AllocationsInfo; }
 	const FreeEntry* GetFreeList() { return m_pFreeListStart; };
 
 	MemoryManager(MemoryManager const&) = delete;
@@ -56,7 +61,6 @@ private:
 	void RegisterAllocation(
 		const std::string& tag,
 		size_t startAddress,
-		size_t allocationAddress,
 		size_t returnedMemoryAddress,
 		size_t endAddress,
 		size_t blockSizeInBytes,
@@ -70,10 +74,11 @@ private:
 
 private:
 	void* m_pMemory;
+	std::unordered_map<size_t, Allocation> m_AllocationHeaders;
 	FreeEntry* m_pFreeListStart;
 	FreeEntry* m_pFreeHead;
 	FreeEntry* m_pFreeTail;
-	std::map<size_t, std::string> m_Allocations;
+	std::map<size_t, std::string> m_AllocationsInfo;
 	SpinLock m_MemoryLock;
 
 public:
