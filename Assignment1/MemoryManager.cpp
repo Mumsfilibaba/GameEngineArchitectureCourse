@@ -62,9 +62,12 @@ void MemoryManager::RegisterAllocation(
 	stream << "Returned Memory Address: " << std::setw(15) << "0x" << std::hex << returnedMemoryAddress << std::endl;
 	stream << "End Address: " << std::setw(27) << "0x" << std::hex << endAddress << std::endl;*/
 
+	std::stringstream threadId;
+	threadId << std::this_thread::get_id();
+
 	std::string info(512, ' ');
 	info =
-		"A" + tag +
+		"A" + tag + " [Thread ID: " + threadId.str() + "]" +
 		"\nStart Address:                        " + N2HexStr(startAddress) +
 		"\nReturned Memory Address:              " + N2HexStr(returnedMemoryAddress) +
 		"\nEnd Address:                          " + N2HexStr(endAddress) +

@@ -32,3 +32,5 @@ Assignment1/bin/Release/Assign1_Allocator.dSYM/Contents/Resources/DWARF/Assign1_
 *.enc
 Assignment1/obj/Release/Assign1_Allocator.vcxproj.FileListAbsolute.txt
 ImGui/bin-int/Release-windows-x86_64/ImGui/ImGui.vcxproj.FileListAbsolute.txt
+
+Assignment1/obj/Debug/Assign1_Allocator.vcxproj.FileListAbsolute.txt

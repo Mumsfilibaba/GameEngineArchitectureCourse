@@ -44,7 +44,7 @@ public:
 		inline Chunk()
 		{
 			constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
-			static_assert(CHUNK_SIZE % blockSize == 0);
+			//static_assert(CHUNK_SIZE % blockSize == 0);
 
 			//ThreadSafePrintf("Created %p\n", this);
 			PoolAllocatorBase::s_TotalAllocated += CHUNK_SIZE;
