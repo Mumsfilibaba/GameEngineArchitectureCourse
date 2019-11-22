@@ -15,6 +15,12 @@
 
 #define MB(mb) mb * 1024 * 1024
 
+#if defined(_WIN32)
+	#define MEMLEAKCHECK _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
+#else
+	#define MEMLEAKCHECK 
+#endif
+
 void ThreadSafePrintf(const char* pFormat, ...)
 {
 	static SpinLock printLock;
@@ -25,6 +31,7 @@ void ThreadSafePrintf(const char* pFormat, ...)
 	vprintf(pFormat, args);
 	va_end(args);
 }
+
 //global pool allocator vars..
 float g_totalMemoryConsumption = 0;
 float g_availableMemory = PoolAllocator<int>::Get().GetTotalMemory();
@@ -182,9 +189,7 @@ int main(int argc, const char* argv[])
 	int nrOfObjects = 0;
 	int nrOfArgs = 0;
     
-#if defined(_WIN32)
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
+	MEMLEAKCHECK;
     
 	bool runOnce = true;
 
@@ -204,8 +209,6 @@ int main(int argc, const char* argv[])
 
 	if (t4.joinable())
 		t4.join();
-
-	//return 0;
 
 	//testStackAllocator(10);
 	//testFrameAllocator<int>(10000000, 100);
