@@ -17,6 +17,12 @@
 #define PI 3.14159265359f
 #define MB(mb) mb * 1024 * 1024
 
+#endif
+	#define MEMLEAKCHECK
+#else
+	#define MEMLEAKCHECK _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
+#if defined(_WIN32)
+
 #define NUMBER_OF_OBJECTS_IN_TEST 1024 * 64
 
 #ifdef USE_CUSTOM_ALLOCATOR
@@ -331,10 +337,8 @@ void StopTest()
 #endif
 
 int main(int argc, const char* argv[])
-{ 
-#if defined(_WIN32)
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
+{    
+	MEMLEAKCHECK;
 
 	//Start program
 	sf::Color bgColor = sf::Color::Black;
