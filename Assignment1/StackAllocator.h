@@ -62,4 +62,4 @@ inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d)
 }
 
 #define stack_new				new(1, Helpers::StackDummy())
-#define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T()
+#define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T(); }

@@ -8,7 +8,15 @@ workspace "Game Engine Architecture"
     configurations
     {
         "Debug",
-        "Release"
+        "Release",
+		"Stack_Test",
+		"Pool_Test",
+		"Stack_Custom_Test",
+		"Pool_Custom_Test",
+		"Stack_MT_Test",
+		"Pool_MT_Test",
+		"Stack_MT_Custom_Test",
+		"Pool_MT_Custom_Test"
     }
 	
 	group "Dependencies"
@@ -89,7 +97,7 @@ workspace "Game Engine Architecture"
 			"sfml-network-s-d"
 		}
 
-    filter "configurations:Release"
+    filter "configurations:Release" 
         symbols "On"
         runtime "Release"
         optimize "Full"
@@ -98,7 +106,184 @@ workspace "Game Engine Architecture"
             "NDEBUG"
         }
 		
-	filter { "configurations:Release", "system:windows" }
+	filter "configurations:Stack_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_STACK_ALLOCATOR"
+        }
+		
+	filter "configurations:Pool_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_POOL_ALLOCATOR"
+        }
+		
+	filter "configurations:Stack_Custom_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_STACK_ALLOCATOR",
+			"USE_CUSTOM_ALLOCATOR"
+        }
+		
+	filter "configurations:Pool_Custom_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_POOL_ALLOCATOR",
+			"USE_CUSTOM_ALLOCATOR"
+        }
+		
+	filter "configurations:Stack_MT_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_STACK_ALLOCATOR",
+			"MULTI_THREADED"
+        }
+		
+	filter "configurations:Pool_MT_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_POOL_ALLOCATOR",
+			"MULTI_THREADED"
+        }
+		
+	filter "configurations:Stack_MT_Custom_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_STACK_ALLOCATOR",
+			"USE_CUSTOM_ALLOCATOR",
+			"MULTI_THREADED"
+        }
+		
+	filter "configurations:Pool_MT_Custom_Test"
+        symbols "On"
+        runtime "Release"
+        optimize "Full"
+        defines
+        {
+            "NDEBUG",
+			"TEST_POOL_ALLOCATOR",
+			"USE_CUSTOM_ALLOCATOR",
+			"MULTI_THREADED"
+        }
+	
+	filter { "configurations:Release" ,
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Stack_Test",
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Pool_Test",
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Stack_Custom_Test",
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Pool_Custom_Test",
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Stack_MT_Test",
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Pool_MT_Test",
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Stack_MT_Custom_Test",
+		"system:windows" }
+		links
+		{	
+			"sfml-graphics-s",
+			"sfml-window-s",
+			"sfml-system-s",
+			"sfml-audio-s",
+			"sfml-network-s"
+		}
+		
+	filter { "configurations:Pool_MT_Custom_Test",
+		"system:windows" }
 		links
 		{	
 			"sfml-graphics-s",
