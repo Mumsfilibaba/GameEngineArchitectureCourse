@@ -80,13 +80,25 @@ private:
 	FreeEntry* m_pFreeTail;
 	std::map<size_t, std::string> m_AllocationsInfo;
 	SpinLock m_MemoryLock;
-
 public:
 	static MemoryManager& GetInstance()
 	{
 		static MemoryManager instance;
 		return instance;
 	}
+
+	static int GetTotalAvailableMemory()
+	{
+		return s_TotalAllocated;
+	}
+
+	static int GetTotalUsedMemory()
+	{
+		return s_TotalUsed;
+	}
+private:
+	static int s_TotalAllocated;
+	static int s_TotalUsed;
 };
 
 template <typename I>

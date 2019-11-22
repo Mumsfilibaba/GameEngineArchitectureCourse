@@ -1,5 +1,8 @@
 #include "MemoryManager.h"
 
+int MemoryManager::s_TotalAllocated = 0;
+int MemoryManager::s_TotalUsed = 0;
+
 MemoryManager::MemoryManager()
 	: m_pMemory(malloc(SIZE_IN_BYTES))
 {
@@ -9,6 +12,8 @@ MemoryManager::MemoryManager()
 	m_pFreeHead->pNext = m_pFreeTail;
 	
 	m_pFreeListStart = m_pFreeTail;
+	
+	s_TotalAllocated = SIZE_IN_BYTES;
 }
 
 MemoryManager::~MemoryManager()
@@ -168,6 +173,8 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 				internalPadding,
 				externalPadding,
 				0);
+			
+			s_TotalUsed += (allocationSizeInBytes + padding);
 			return (void*)(aligned);
 		}
 

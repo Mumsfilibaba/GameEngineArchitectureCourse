@@ -39,16 +39,31 @@ public:
     {
         return (size_t)m_pEnd - (size_t)m_pStart;
     }
+private:
+	void* m_pStart;
+	void* m_pEnd;
+	void* m_pCurrent;
+	size_t m_Used;
+	const size_t m_Size;
 public:
 	static StackAllocator& GetInstance(size_t size = 4096 * 4096)
 	{
 		thread_local static StackAllocator instance(size);
 		return instance;
 	}
+
+	static int GetTotalAvailableMemory()
+	{
+		return s_TotalAllocated;
+	}
+
+	static int GetTotalUsedMemory()
+	{
+		return s_TotalUsed;
+	}
 private:
-	void* m_pStart;
-	void* m_pEnd;
-	void* m_pCurrent;
+	static int s_TotalAllocated;
+	static int s_TotalUsed;
 };
 
 namespace Helpers
@@ -63,3 +78,4 @@ inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d)
 
 #define stack_new				new(1, Helpers::StackDummy())
 #define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T()
+#define stack_reset				StackAllocator::GetInstance().Reset

@@ -46,6 +46,14 @@ void ThreadSafePrintf(const char* pFormat, ...)
 	va_end(args);
 }
 
+void ImGuiDrawMemoryProgressBar(int used, int available)
+{
+	float usedF = float(used) / float(std::max(available, 1));
+	ImGui::ProgressBar(usedF, ImVec2(0.0f, 0.0f));
+	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+	ImGui::Text("(%d/%d) Bytes", used, available);
+}
+
 void ImGuiPrintMemoryManagerAllocations()
 {
 	std::map<size_t, std::string> currentMemory = std::map<size_t, std::string>(MemoryManager::GetInstance().GetAllocations());
@@ -102,6 +110,54 @@ void ImGuiPrintMemoryManagerAllocations()
 	}
 }
 
+void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
+{
+	static int timer = dt.asMicroseconds();
+	timer += dt.asMicroseconds();
+
+	static int fps = 0;
+	static int currentFps = 0;
+	currentFps++;
+	if (timer >= 1000000)
+	{
+		fps			= currentFps;
+		currentFps	= 0;
+		timer		= 0;
+	}
+
+	ImGui::SetNextWindowBgAlpha(0.75f); // Transparent background
+	if (ImGui::Begin("Frametime", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+	{
+		ImGui::Text("Frametime:");
+		ImGui::Separator();
+		{
+			constexpr int valueCount = 90;
+			static float cpuValues[valueCount] = { 0 };
+			static int   valuesOffset = 0;
+			static float average = 0.0f;
+			cpuValues[valuesOffset] = float(dt.asMicroseconds()) / 1000.0f;
+			valuesOffset = (valuesOffset + 1) % valueCount;
+
+			//Calc average
+			if (timer == 0 && fps > 0)
+			{
+				average = 0;
+				for (int i = 0; i < valueCount; i++)
+					average += cpuValues[valuesOffset];
+				average /= fps;
+			}
+
+			ImGui::Text("FPS: %d", fps);
+			ImGui::Text("CPU Frametime (ms):");
+
+			char overlay[32];
+			sprintf(overlay, "Avg %f", average);
+			ImGui::PlotLines("", cpuValues, valueCount, valuesOffset, overlay, 0.0f, 30.0f, ImVec2(0, 80));
+		}
+	}
+	ImGui::End();
+}
+
 int main(int argc, const char* argv[])
 {    
 	MEMLEAKCHECK;
@@ -109,10 +165,10 @@ int main(int argc, const char* argv[])
 	//Start program
 	sf::Color bgColor = sf::Color::Black;
 	sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");
-
-	window.setFramerateLimit(60);
+	window.setVerticalSyncEnabled(false);
+	window.setFramerateLimit(0);
 	ImGui::SFML::Init(window);
-
+	
 	std::cout << "Hello World" << std::endl;
 
     sf::Clock deltaClock;
@@ -135,13 +191,47 @@ int main(int argc, const char* argv[])
 			}
         }
 
-        ImGui::SFML::Update(window, deltaClock.restart());
+		sf::Time deltaTime = deltaClock.restart();
+        ImGui::SFML::Update(window, deltaTime);
 
-		ImGuiPrintMemoryManagerAllocations();
+		ImGui::ShowDemoWindow();
+
+		for (int i = 0; i < 16384 * 32; i++)
+			stack_new int(i);
+
+		//Draw debug window
+		if (ImGui::Begin("Debug Window"))
+		{
+			ImGui::Columns(2, "Memory", false);
+			{
+				ImGuiDrawMemoryProgressBar(PoolAllocatorBase::GetTotalUsedMemory(), PoolAllocatorBase::GetTotalAvailableMemory());
+				ImGui::NextColumn();
+				ImGui::Text("Pool allocated memory");
+				
+				ImGui::NextColumn();
+				ImGuiDrawMemoryProgressBar(StackAllocator::GetTotalUsedMemory(), StackAllocator::GetTotalAvailableMemory());
+				ImGui::NextColumn();
+				ImGui::Text("Stack allocated memory");
+
+				ImGui::NextColumn();
+				ImGuiDrawMemoryProgressBar(MemoryManager::GetTotalUsedMemory(), MemoryManager::GetTotalAvailableMemory());
+				ImGui::NextColumn();
+				ImGui::Text("Globaly allocated memory");
+			}
+			ImGui::Columns(1);
+
+			ImGui::Separator();
+			ImGuiPrintMemoryManagerAllocations();
+		}
+		ImGui::End();
+
+		ImGuiDrawFrameTimeGraph(deltaTime);
 
 		window.clear(bgColor);
 		ImGui::SFML::Render(window);
 		window.display();
+
+		stack_reset();
 	}
 
 	ImGui::SFML::Shutdown();

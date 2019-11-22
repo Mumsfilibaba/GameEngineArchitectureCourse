@@ -10,8 +10,25 @@
 #define CHUNK_SIZE 4096
 #define CHUNK_SIZE_BYTES CHUNK_SIZE - sizeof(Arena*)
 
+class PoolAllocatorBase
+{
+public:
+	static int GetTotalAvailableMemory()
+	{
+		return s_TotalAllocated;
+	}
+
+	static int GetTotalUsedMemory()
+	{
+		return s_TotalUsed;
+	}
+protected:
+	static int s_TotalAllocated;
+	static int s_TotalUsed;
+};
+
 template<typename T>
-class PoolAllocator
+class PoolAllocator : public PoolAllocatorBase
 {
 public:
 	struct Arena;
@@ -30,9 +47,7 @@ public:
 			static_assert(CHUNK_SIZE % blockSize == 0);
 
 			//ThreadSafePrintf("Created %p\n", this);
-
-			//Allocate mem
-			s_TotalMemoryUsed += CHUNK_SIZE;
+			PoolAllocatorBase::s_TotalAllocated += CHUNK_SIZE;
 			
 			//Init blocks
 			constexpr int chunkSize		= CHUNK_SIZE_BYTES;
@@ -51,7 +66,7 @@ public:
 
 		inline ~Chunk()
 		{
-			s_TotalMemoryUsed -= CHUNK_SIZE;
+			PoolAllocatorBase::s_TotalAllocated -= CHUNK_SIZE;
 			m_pArena = nullptr;
 		}
 
@@ -89,6 +104,8 @@ public:
 			std::lock_guard<SpinLock> lock(m_FreeLock);
 			block->pNext = m_pToFreeListHead;
 			m_pToFreeListHead = block;
+
+			PoolAllocatorBase::s_TotalUsed -= sizeof(T);
 		}
 
 		inline bool AllocateChunkAndSetHead()
@@ -117,6 +134,8 @@ public:
 				}
 			}
 
+			PoolAllocatorBase::s_TotalUsed += sizeof(T);
+
 			m_pFreeListHead = m_pFreeListHead->pNext;
 			return pCurrent;
 		}
@@ -133,8 +152,7 @@ public:
     }
     
     inline ~PoolAllocator()
-    {
-		
+    {	
     }
 
     template<typename... Args>
@@ -192,7 +210,6 @@ public:
 		return instance;
 	}
 private:
-	inline static int s_TotalMemoryUsed = 0;
 	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
 
