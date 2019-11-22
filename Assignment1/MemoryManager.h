@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
-
+#include <unordered_map>
 #include "SpinLock.h"
 
 //#define SIZE_IN_BYTES (64 * 1024)

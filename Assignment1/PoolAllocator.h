@@ -148,12 +148,6 @@ public:
     {
         return sizeof(T);
     }
-    
-    
-    inline int GetChunkSize() const
-    {
-        return m_ChunkSizeInBytes;
-    }
 
     
 	inline int GetTotalMemory() const

@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <imgui-SFML.h>
 #include <sstream>
+#include <thread>
 #include "PoolAllocator.h"
 #if defined(_WIN32)
     #include <crtdbg.h>
