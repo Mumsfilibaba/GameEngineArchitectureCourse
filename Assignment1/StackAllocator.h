@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include "MemoryManager.h"
 
 //Objects allocated through this allocator will never have their destruct called from it. Therefore it is up to the user to call upon the destructor before freeing the memory!
@@ -62,8 +63,8 @@ public:
 		return s_TotalUsed;
 	}
 private:
-	static int s_TotalAllocated;
-	static int s_TotalUsed;
+	static std::atomic_int32_t s_TotalAllocated;
+	static std::atomic_int32_t s_TotalUsed;
 };
 
 namespace Helpers

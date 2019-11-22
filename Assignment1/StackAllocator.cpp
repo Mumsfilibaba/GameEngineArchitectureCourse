@@ -1,8 +1,8 @@
 #include "StackAllocator.h"
 #include "MemoryManager.h"
 
-int StackAllocator::s_TotalAllocated = 0;
-int StackAllocator::s_TotalUsed = 0;
+std::atomic_int32_t StackAllocator::s_TotalAllocated = 0;
+std::atomic_int32_t StackAllocator::s_TotalUsed = 0;
 
 StackAllocator::StackAllocator(size_t size)
 	: m_Size(size),

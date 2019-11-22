@@ -89,7 +89,7 @@ public:
 	{
 		inline Arena() :
 			m_pFreeListHead(nullptr),
-			m_pToFreeListHead(nullptr)
+			m_pBlocksToBeFreedHead(nullptr)
 		{
 			AllocateChunkAndSetHead();	
 		}
@@ -102,8 +102,8 @@ public:
 		inline void Push(Block* block)
 		{
 			std::lock_guard<SpinLock> lock(m_FreeLock);
-			block->pNext = m_pToFreeListHead;
-			m_pToFreeListHead = block;
+			block->pNext = m_pBlocksToBeFreedHead;
+			m_pBlocksToBeFreedHead = block;
 
 			PoolAllocatorBase::s_TotalUsed -= sizeof(T);
 		}
@@ -124,8 +124,8 @@ public:
 			Block* pCurrent = m_pFreeListHead;
 			if (!pCurrent)
 			{
-				m_pFreeListHead = m_pToFreeListHead;
-				m_pToFreeListHead = nullptr;
+				m_pFreeListHead = m_pBlocksToBeFreedHead;
+				m_pBlocksToBeFreedHead = nullptr;
 				pCurrent = m_pFreeListHead;
 				if (!pCurrent)
 				{
@@ -142,7 +142,7 @@ public:
 	private:
 		std::vector<Chunk*> m_Chunks;
 		Block* m_pFreeListHead;
-		Block* m_pToFreeListHead;
+		Block* m_pBlocksToBeFreedHead;
 		SpinLock m_FreeLock;
 	};
 public:

@@ -43,12 +43,15 @@
 #endif
 
 #ifdef MULTI_THREADED
-#define NUMBER_OF_THREADS_IN_MULTI_THREADED 4
-std::thread* gThreads[NUMBER_OF_THREADS_IN_MULTI_THREADED];
-bool gThreadsStarted = false;
-bool gStopThreads = false;
+	#define NUMBER_OF_THREADS_IN_MULTI_THREADED 4
+	std::thread* gThreads[NUMBER_OF_THREADS_IN_MULTI_THREADED];
+	bool g_ThreadsStarted = false;
+	bool g_StopThreads = false;
+	std::atomic_bool g_RunFrame = false;
+	std::unordered_map<std::thread::id, sf::Time> g_ThreadFrameTimes;
+	std::unordered_map<std::thread::id, int> g_ThreadFPSs;
 #else
-#define NUMBER_OF_THREADS_IN_MULTI_THREADED 1
+	#define NUMBER_OF_THREADS_IN_MULTI_THREADED 1
 #endif
 
 #define NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD NUMBER_OF_OBJECTS_IN_TEST / NUMBER_OF_THREADS_IN_MULTI_THREADED
@@ -204,6 +207,36 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 			sprintf(overlay, "Avg %f", average);
 			ImGui::PlotLines("", cpuValues, valueCount, valuesOffset, overlay, 0.0f, 30.0f, ImVec2(0, 80));
 		}
+
+#ifdef MULTI_THREADED
+		{
+			for (auto dt : g_ThreadFrameTimes)
+			{
+				std::stringstream ss;
+				ss << dt.first;
+
+				ImGui::Text("Frametime [Tread %s]:", ss.str().c_str());
+				ImGui::Separator();
+				{
+					constexpr int valueCount = 90;
+					static float cpuValues[valueCount] = { 0 };
+					static int   valuesOffset = 0;
+					static float average = 0.0f;
+
+					float delta = float(dt.second.asMicroseconds()) / 1000.0f;
+					cpuValues[valuesOffset] = delta;
+					valuesOffset = (valuesOffset + 1) % valueCount;
+
+					ImGui::Text("FPS: %d", g_ThreadFPSs[dt.first]);
+					ImGui::Text("CPU Frametime (ms):");
+
+					char overlay[32];
+					sprintf(overlay, "Avg %f", delta);
+					ImGui::PlotLines("", cpuValues, valueCount, valuesOffset, overlay, 0.0f, 30.0f, ImVec2(0, 80));
+				}
+			}
+		}
+#endif
 	}
 	ImGui::End();
 }
@@ -211,9 +244,33 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 void RunTest()
 {
 #ifdef MULTI_THREADED
-	while (!gStopThreads)
+	thread_local static int timer = 0;
+	thread_local static int fps = 0;
+	thread_local static int currentFps = 0;
+
+	sf::Clock deltaClock;
+	while (!g_StopThreads)
 	{
+		//Wait for mainthread to begin frame
+		//while (!g_RunFrame && !g_StopThreads);
+		
+		//Get deltatimes and fps
+		sf::Time dt = deltaClock.restart();
+		timer += dt.asMicroseconds();
+
+		currentFps++;
+		if (timer >= 1000000)
+		{
+			fps = currentFps;
+			currentFps = 0;
+			timer = 0;
+		}
+
+		g_ThreadFrameTimes[std::this_thread::get_id()] = dt;
+		g_ThreadFPSs[std::this_thread::get_id()] = fps;
 #endif
+		
+		//Allocate a bunch of objects
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
 			gContainerArr[i] = STACK_NEW DummyStruct(
@@ -225,6 +282,7 @@ void RunTest()
 				randf(0, 2 * PI));
 		}
 
+		//Do some calculations on those objects
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
 			int randomIndex = rand() % NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD;
@@ -237,16 +295,18 @@ void RunTest()
 			a->rotationY = cosf(b->x) * sinf(b->z) * sinf(a->y);
 		}
 
+		//Call object destructors
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
+			//Delete just to call destructors on object, actual memory is reused
 			STACK_DELETE(gContainerArr[i]);
 			gContainerArr[i] = nullptr;
 		}
 
-#ifdef USE_CUSTOM_ALLOCATOR
-		StackAllocator::GetInstance().Reset();
-#endif
 #ifdef MULTI_THREADED
+#ifdef USE_CUSTOM_ALLOCATOR
+		stack_reset();
+#endif
 	}
 
 	for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
@@ -263,7 +323,7 @@ void RunTest()
 void RunTest()
 {
 #ifdef MULTI_THREADED
-	while (!gStopThreads)
+	while (!g_StopThreads)
 	{
 #endif
 
@@ -336,9 +396,9 @@ void StartTest()
 void StartTest()
 {
 	//Multi-threaded Stack Allocation Test
-	if (!gThreadsStarted)
+	if (!g_ThreadsStarted)
 	{
-		gThreadsStarted = true;
+		g_ThreadsStarted = true;
 
 		for (int i = 0; i < NUMBER_OF_THREADS_IN_MULTI_THREADED; i++)
 		{
@@ -380,7 +440,7 @@ void StopTest()
 #else
 void StopTest()
 {
-	gStopThreads = true;
+	g_StopThreads = true;
 
 	//Multi-threaded Stack Allocation Test
 	for (int i = 0; i < NUMBER_OF_THREADS_IN_MULTI_THREADED; i++)
@@ -390,6 +450,22 @@ void StopTest()
 	}
 }
 #endif
+
+#ifdef MULTI_THREADED
+void BeginFrame()
+{
+	g_RunFrame = true;
+}
+
+void EndFrame()
+{
+	g_RunFrame = false;
+}
+#else
+	#define BeginFrame()
+	#define EndFrame()
+#endif
+
 
 int main(int argc, const char* argv[])
 {    
@@ -432,6 +508,7 @@ int main(int argc, const char* argv[])
 #if defined(TEST_STACK_ALLOCATOR) || defined(TEST_POOL_ALLOCATOR)
 		StartTest();
 #endif
+		BeginFrame();
 
 		//Draw debug window
 		if (ImGui::Begin("Debug Window"))
@@ -463,7 +540,16 @@ int main(int argc, const char* argv[])
 
 		window.clear(bgColor);
 		ImGui::SFML::Render(window);
+
+		EndFrame();
+
 		window.display();
+
+#ifndef MULTI_THREADED
+	#ifdef USE_CUSTOM_ALLOCATOR
+		stack_reset();
+	#endif
+#endif
 	}
 
 #if defined(TEST_STACK_ALLOCATOR) || defined(TEST_POOL_ALLOCATOR)
