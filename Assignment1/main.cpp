@@ -18,7 +18,9 @@
 #if defined(_WIN32)
 	#define MEMLEAKCHECK _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
 #else
-	#define MEMLEAKCHECK 
+	#define MEMLEAKCHECK
+#endif
+
 #define USE_CUSTOM_ALLOCATOR
 
 #ifdef USE_CUSTOM_ALLOCATOR
