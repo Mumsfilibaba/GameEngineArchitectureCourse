@@ -23,8 +23,8 @@ public:
 		return s_TotalUsed;
 	}
 protected:
-	static int s_TotalAllocated;
-	static int s_TotalUsed;
+	static std::atomic_int32_t s_TotalAllocated;
+	static std::atomic_int32_t s_TotalUsed;
 };
 
 template<typename T>
@@ -110,7 +110,7 @@ public:
 
 		inline bool AllocateChunkAndSetHead()
 		{
-			void* pMem = allocate(sizeof(Chunk), sizeof(Chunk), "Pool Allocation Chunk");
+			void* pMem = allocate(sizeof(Chunk), sizeof(Chunk), "Pool Allocation Chunk");			
 			Chunk* pChunk = new(pMem) Chunk();
 			pChunk->m_pArena = this;
 

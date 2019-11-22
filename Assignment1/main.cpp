@@ -48,8 +48,70 @@
 	bool g_ThreadsStarted = false;
 	bool g_StopThreads = false;
 	std::atomic_bool g_RunFrame = false;
-	std::unordered_map<std::thread::id, sf::Time> g_ThreadFrameTimes;
-	std::unordered_map<std::thread::id, int> g_ThreadFPSs;
+
+	struct ThreadPerformanceData
+	{
+		std::string threadID;
+		int	FPS = 0;
+		int CurrentValue = 0;
+		float AverageDelta = 0.0f;
+		float Deltas[90] = {};
+	};
+
+	SpinLock g_ThreadPerfDataLock;
+	std::unordered_map<std::thread::id, ThreadPerformanceData> g_ThreadPerfData;
+
+	void InitThread()
+	{
+		std::lock_guard<SpinLock> lock(g_ThreadPerfDataLock);
+		ThreadPerformanceData& data = g_ThreadPerfData[std::this_thread::get_id()];
+
+		std::stringstream ss;
+		ss << std::this_thread::get_id();
+		data.threadID = ss.str();
+	}
+
+
+	void MeasureThreadPerf()
+	{
+		thread_local static int timer = 0;
+		thread_local static int fps = 0;
+		thread_local static int currentFps = 0;
+		thread_local static sf::Clock deltaClock;
+
+		{
+			//Wait for mainthread to begin frame
+			while (!g_RunFrame && !g_StopThreads);
+
+			//Get deltatimes and fps
+			sf::Time dt = deltaClock.restart();
+			timer += dt.asMicroseconds();
+
+			{
+				std::lock_guard<SpinLock> lock(g_ThreadPerfDataLock);
+				ThreadPerformanceData& data = g_ThreadPerfData[std::this_thread::get_id()];
+
+				currentFps++;
+				if (timer >= 1000000)
+				{
+					fps = currentFps;
+					currentFps = 0;
+					timer = 0;
+
+					float avg = 0.0f;
+					for (int i = 0; i < 90; i++)
+						avg = avg + data.Deltas[i];
+					avg = avg / 90.0f;
+
+					data.AverageDelta = avg;
+				}
+
+				data.FPS = fps;
+				data.Deltas[data.CurrentValue] = float(dt.asMicroseconds()) / 1000.0f;
+				data.CurrentValue = (data.CurrentValue + 1) % 90;
+			}
+		}
+	}
 #else
 	#define NUMBER_OF_THREADS_IN_MULTI_THREADED 1
 #endif
@@ -210,29 +272,23 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 
 #ifdef MULTI_THREADED
 		{
-			for (auto dt : g_ThreadFrameTimes)
-			{
-				std::stringstream ss;
-				ss << dt.first;
+			constexpr int valueCount = 90;
 
-				ImGui::Text("Frametime [Tread %s]:", ss.str().c_str());
+			std::lock_guard<SpinLock> lock(g_ThreadPerfDataLock);
+			for (auto dt : g_ThreadPerfData)
+			{
+				ThreadPerformanceData& data = dt.second;
+
+				ImGui::Text("Frametime [Tread %s]:", data.threadID.c_str());
 				ImGui::Separator();
 				{
-					constexpr int valueCount = 90;
-					static float cpuValues[valueCount] = { 0 };
-					static int   valuesOffset = 0;
-					static float average = 0.0f;
-
-					float delta = float(dt.second.asMicroseconds()) / 1000.0f;
-					cpuValues[valuesOffset] = delta;
-					valuesOffset = (valuesOffset + 1) % valueCount;
-
-					ImGui::Text("FPS: %d", g_ThreadFPSs[dt.first]);
+					ImGui::Text("FPS: %d", data.FPS);
 					ImGui::Text("CPU Frametime (ms):");
 
 					char overlay[32];
-					sprintf(overlay, "Avg %f", delta);
-					ImGui::PlotLines("", cpuValues, valueCount, valuesOffset, overlay, 0.0f, 30.0f, ImVec2(0, 80));
+					sprintf(overlay, "Avg %f", data.AverageDelta);
+
+					ImGui::PlotLines("", data.Deltas, 90, data.CurrentValue, overlay, 0.0f, 30.0f, ImVec2(0, 80));
 				}
 			}
 		}
@@ -244,30 +300,11 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 void RunTest()
 {
 #ifdef MULTI_THREADED
-	thread_local static int timer = 0;
-	thread_local static int fps = 0;
-	thread_local static int currentFps = 0;
+	InitThread();
 
-	sf::Clock deltaClock;
 	while (!g_StopThreads)
 	{
-		//Wait for mainthread to begin frame
-		//while (!g_RunFrame && !g_StopThreads);
-		
-		//Get deltatimes and fps
-		sf::Time dt = deltaClock.restart();
-		timer += dt.asMicroseconds();
-
-		currentFps++;
-		if (timer >= 1000000)
-		{
-			fps = currentFps;
-			currentFps = 0;
-			timer = 0;
-		}
-
-		g_ThreadFrameTimes[std::this_thread::get_id()] = dt;
-		g_ThreadFPSs[std::this_thread::get_id()] = fps;
+		MeasureThreadPerf();
 #endif
 		
 		//Allocate a bunch of objects
@@ -323,10 +360,12 @@ void RunTest()
 void RunTest()
 {
 #ifdef MULTI_THREADED
+	InitThread();
+
 	while (!g_StopThreads)
 	{
+		MeasureThreadPerf();
 #endif
-
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
 			if (gContainerArr[i] == nullptr)
@@ -536,13 +575,13 @@ int main(int argc, const char* argv[])
 		}
 		ImGui::End();
 
+		
 		ImGuiDrawFrameTimeGraph(deltaTime);
 
 		window.clear(bgColor);
 		ImGui::SFML::Render(window);
-
+		
 		EndFrame();
-
 		window.display();
 
 #ifndef MULTI_THREADED

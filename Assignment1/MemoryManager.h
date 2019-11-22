@@ -97,8 +97,8 @@ public:
 		return s_TotalUsed;
 	}
 private:
-	static int s_TotalAllocated;
-	static int s_TotalUsed;
+	static std::atomic_int32_t s_TotalAllocated;
+	static std::atomic_int32_t s_TotalUsed;
 };
 
 template <typename I>
