@@ -256,7 +256,7 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 			average = 0;
 			for (int i = 0; i < valueCount; i++)
 				average += cpuValues[valuesOffset];
-			average /= fps;
+			average /= valueCount;
 		}
 
 		ImGui::Text("FPS: %d", fps);
