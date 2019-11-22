@@ -241,60 +241,54 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 	}
 
 	ImGui::SetNextWindowBgAlpha(0.75f); // Transparent background
-	if (ImGui::Begin("Frametime", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+	ImGui::Text("Frametime:");
 	{
-		ImGui::Text("Frametime:");
-		ImGui::Separator();
+		constexpr int valueCount = 90;
+		static float cpuValues[valueCount] = { 0 };
+		static int   valuesOffset = 0;
+		static float average = 0.0f;
+		cpuValues[valuesOffset] = float(dt.asMicroseconds()) / 1000.0f;
+		valuesOffset = (valuesOffset + 1) % valueCount;
+
+		//Calc average
+		if (timer == 0 && fps > 0)
 		{
-			constexpr int valueCount = 90;
-			static float cpuValues[valueCount] = { 0 };
-			static int   valuesOffset = 0;
-			static float average = 0.0f;
-			cpuValues[valuesOffset] = float(dt.asMicroseconds()) / 1000.0f;
-			valuesOffset = (valuesOffset + 1) % valueCount;
-
-			//Calc average
-			if (timer == 0 && fps > 0)
-			{
-				average = 0;
-				for (int i = 0; i < valueCount; i++)
-					average += cpuValues[valuesOffset];
-				average /= fps;
-			}
-
-			ImGui::Text("FPS: %d", fps);
-			ImGui::Text("CPU Frametime (ms):");
-
-			char overlay[32];
-			sprintf(overlay, "Avg %f", average);
-			ImGui::PlotLines("", cpuValues, valueCount, valuesOffset, overlay, 0.0f, 30.0f, ImVec2(0, 80));
+			average = 0;
+			for (int i = 0; i < valueCount; i++)
+				average += cpuValues[valuesOffset];
+			average /= fps;
 		}
+
+		ImGui::Text("FPS: %d", fps);
+		ImGui::Text("CPU Frametime (ms):");
+
+		char overlay[32];
+		sprintf(overlay, "Avg %f", average);
+		ImGui::PlotLines("", cpuValues, valueCount, valuesOffset, overlay, 0.0f, 30.0f, ImVec2(0, 80));
+	}
 
 #ifdef MULTI_THREADED
+	{
+		constexpr int valueCount = 90;
+
+		std::lock_guard<SpinLock> lock(g_ThreadPerfDataLock);
+		for (auto dt : g_ThreadPerfData)
 		{
-			constexpr int valueCount = 90;
+			ThreadPerformanceData& data = dt.second;
 
-			std::lock_guard<SpinLock> lock(g_ThreadPerfDataLock);
-			for (auto dt : g_ThreadPerfData)
+			ImGui::Text("Frametime [Tread %s]:", data.threadID.c_str());
 			{
-				ThreadPerformanceData& data = dt.second;
+				ImGui::Text("FPS: %d", data.FPS);
+				ImGui::Text("CPU Frametime (ms):");
 
-				ImGui::Text("Frametime [Tread %s]:", data.threadID.c_str());
-				ImGui::Separator();
-				{
-					ImGui::Text("FPS: %d", data.FPS);
-					ImGui::Text("CPU Frametime (ms):");
+				char overlay[32];
+				sprintf(overlay, "Avg %f", data.AverageDelta);
 
-					char overlay[32];
-					sprintf(overlay, "Avg %f", data.AverageDelta);
-
-					ImGui::PlotLines("", data.Deltas, 90, data.CurrentValue, overlay, 0.0f, 30.0f, ImVec2(0, 80));
-				}
+				ImGui::PlotLines("", data.Deltas, 90, data.CurrentValue, overlay, 0.0f, 30.0f, ImVec2(0, 80));
 			}
 		}
-#endif
 	}
-	ImGui::End();
+#endif
 }
 #ifdef TEST_STACK_ALLOCATOR
 void RunTest()
@@ -552,7 +546,8 @@ int main(int argc, const char* argv[])
 		//Draw debug window
 		if (ImGui::Begin("Debug Window"))
 		{
-			ImGui::Columns(2, "Memory", false);
+			static bool v_borders = true;
+			ImGui::Columns(2, "Memory", v_borders);
 			{
 				ImGuiDrawMemoryProgressBar(PoolAllocatorBase::GetTotalUsedMemory(), PoolAllocatorBase::GetTotalAvailableMemory());
 				ImGui::NextColumn();
@@ -568,15 +563,17 @@ int main(int argc, const char* argv[])
 				ImGui::NextColumn();
 				ImGui::Text("Globaly allocated memory");
 			}
-			ImGui::Columns(1);
 
+			ImGui::Columns(1);
 			ImGui::Separator();
+
+			ImGui::Columns(2, "Memory", v_borders);
 			ImGuiPrintMemoryManagerAllocations();
+			
+			ImGui::NextColumn();
+			ImGuiDrawFrameTimeGraph(deltaTime);
 		}
 		ImGui::End();
-
-		
-		ImGuiDrawFrameTimeGraph(deltaTime);
 
 		window.clear(bgColor);
 		ImGui::SFML::Render(window);
