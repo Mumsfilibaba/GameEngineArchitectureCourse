@@ -37,3 +37,7 @@ Assignment1/obj/Debug/Assign1_Allocator.vcxproj.FileListAbsolute.txt
 Assignment1/obj/Stack_MT_Custom_Test/Assign1_Allocator.vcxproj.FileListAbsolute.txt
 *.tmp
 ImGui/bin-int/Stack_MT_Custom_Test-windows-x86_64/ImGui/ImGui.vcxproj.FileListAbsolute.txt
+Assignment1/bin/Pool_MT_Custom_Test/Assign1_Allocator.dSYM/Contents/Resources/DWARF/Assign1_Allocator
+Assignment1/bin/Pool_MT_Custom_Test/Assign1_Allocator
+Assignment1/bin/Stack_MT_Custom_Test/Assign1_Allocator
+Assignment1/bin/Stack_MT_Custom_Test/Assign1_Allocator.dSYM/Contents/Resources/DWARF/Assign1_Allocator

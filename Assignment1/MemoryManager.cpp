@@ -1,4 +1,5 @@
 #include "MemoryManager.h"
+#include <thread>
 
 std::atomic_int32_t MemoryManager::s_TotalAllocated = 0;
 std::atomic_int32_t MemoryManager::s_TotalUsed = 0;

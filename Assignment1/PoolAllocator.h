@@ -160,18 +160,11 @@ public:
     {
         return new(AllocateBlock()) T(std::forward<Args>(args) ...);
     }
-    
-    
+
     inline int GetBlockSize() const
     {
         return sizeof(T);
     }
-
-    
-	inline int GetTotalMemory() const
-	{
-		return s_TotalMemoryUsed;
-	}
 
 	inline Arena* GetArena()
 	{

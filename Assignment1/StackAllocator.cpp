@@ -27,10 +27,10 @@ void* StackAllocator::AllocateMemory(size_t size, size_t alignment)
     size_t padding = alignedCurrent - (size_t)m_pCurrent;
     
     void* pMemory = nullptr;
-    if ((void*)((size_t)m_pCurrent + size) <= m_pEnd)
+    if ((void*)((size_t)alignedCurrent + size) <= m_pEnd)
     {
-        pMemory = m_pCurrent;
-        m_pCurrent = (void*)((size_t)m_pCurrent + size);
+        pMemory = (void*)alignedCurrent;
+        m_pCurrent = (void*)((size_t)alignedCurrent + size);
     }
 
 	m_Used		+= size + padding;
