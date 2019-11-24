@@ -124,8 +124,12 @@ public:
 			Block* pCurrent = m_pFreeListHead;
 			if (!pCurrent)
 			{
-				m_pFreeListHead = m_pBlocksToBeFreedHead;
-				m_pBlocksToBeFreedHead = nullptr;
+				{
+					std::lock_guard<SpinLock> lock(m_FreeLock);
+					m_pFreeListHead = m_pBlocksToBeFreedHead;
+					m_pBlocksToBeFreedHead = nullptr;
+				}
+
 				pCurrent = m_pFreeListHead;
 				if (!pCurrent)
 				{
@@ -144,7 +148,7 @@ public:
 		Block* m_pFreeListHead;
 		Block* m_pBlocksToBeFreedHead;
 		SpinLock m_FreeLock;
-	};
+	};	
 public:
     inline PoolAllocator()
     {

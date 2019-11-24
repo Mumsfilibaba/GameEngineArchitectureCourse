@@ -47,7 +47,7 @@ private:
 	size_t m_Used;
 	const size_t m_Size;
 public:
-	static StackAllocator& GetInstance(size_t size = 4096 * 4096)
+	static StackAllocator& GetInstance(size_t size = 1024 * 1024 * 4) // = 4mb
 	{
 		thread_local static StackAllocator instance(size);
 		return instance;

@@ -15,7 +15,8 @@
 #include "StackAllocator.h"
 
 #define PI 3.14159265359f
-#define MB(mb) mb * 1024 * 1024
+#define MB(mb) (float)mb * 1024.0f * 1024.0f
+#define BTOMB(mb) (float)mb / (1024.0f * 1024.0f)
 
 #if defined(_WIN32)
 	#define MEMLEAKCHECK _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
@@ -23,7 +24,7 @@
 	#define MEMLEAKCHECK
 #endif
 
-#define NUMBER_OF_OBJECTS_IN_TEST 1024 * 64
+#define NUMBER_OF_OBJECTS_IN_TEST 1024 * 256
 
 #ifdef USE_CUSTOM_ALLOCATOR
 #define STACK_NEW stack_new
@@ -166,7 +167,7 @@ void ImGuiDrawMemoryProgressBar(int used, int available)
 	float usedF = float(used) / float(std::max(available, 1));
 	ImGui::ProgressBar(usedF, ImVec2(0.0f, 0.0f));
 	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-	ImGui::Text("(%d/%d) Bytes", used, available);
+	ImGui::Text("(%.2f/%.2f) mb", BTOMB(used), BTOMB(available));
 }
 
 void ImGuiPrintMemoryManagerAllocations()
