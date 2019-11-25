@@ -8,7 +8,9 @@
 #include <sstream>
 #include <thread>
 #include <array>
+#include <algorithm>
 #include "PoolAllocator.h"
+#include "Defines.h"
 #if defined(_WIN32)
     #include <crtdbg.h>
 #endif
@@ -27,21 +29,33 @@
 #define NUMBER_OF_OBJECTS_IN_TEST 1024 * 16
 
 #ifdef USE_CUSTOM_ALLOCATOR
-#define STACK_NEW stack_new
+#define STACK_NEW(tag) stack_new(tag)
 #define STACK_DELETE(object) stack_delete(object)
-#define POOL_NEW(type) pool_new(type)
+#define POOL_NEW(type, tag) pool_new(type, tag)
 #define POOL_DELETE(object) pool_delete(object)
 #else
-#define STACK_NEW new
-#define STACK_DELETE delete
-#define POOL_NEW(Type) new
-#define POOL_DELETE(Object) delete Object
+#define STACK_NEW(tag) new
+#define STACK_DELETE(object) delete object
+#define POOL_NEW(type, tag) new
+#define POOL_DELETE(object) delete object
 #endif
 
 #ifdef TEST_POOL_ALLOCATOR
 #define CHANCE_OF_ALLOCATION 0.3f
 #define CHANCE_OF_FREE 0.3f
 #endif
+
+std::string N2HexStr(size_t w)
+{
+	static const char* digits = "0123456789abcdef";
+	static const size_t hex_len = 16;
+	std::string rc(hex_len + 2, '0');
+	rc[0] = '0';
+	rc[1] = 'x';
+	for (size_t i = 2, j = (hex_len - 1) * 4; i < hex_len + 2; ++i, j -= 4)
+		rc[i] = digits[(w >> j) & 0x0f];
+	return rc;
+}
 
 #ifdef MULTI_THREADED
 	#define NUMBER_OF_THREADS_IN_MULTI_THREADED 4
@@ -170,61 +184,133 @@ void ImGuiDrawMemoryProgressBar(int used, int available)
 	ImGui::Text("(%.2f/%.2f) mb", BTOMB(used), BTOMB(available));
 }
 
+#ifdef SHOW_ALLOCATIONS_DEBUG
 void ImGuiPrintMemoryManagerAllocations()
 {
-	std::map<size_t, std::string> currentMemory = std::map<size_t, std::string>(MemoryManager::GetInstance().GetAllocations());
-	const FreeEntry* pStartFreeEntry = MemoryManager::GetInstance().GetFreeList();
-	const FreeEntry* pCurrentFreeEntry = pStartFreeEntry;
+	static bool showMemoryManagerAllocations = true;
+	static bool showMemoryManagerFreeBlock = true;
+	static bool showPoolAllocations = true;
+	static bool showStackAllocations = true;
 
-	size_t counter = 0;
-	do
-	{
-		size_t currentAddress = (size_t)pCurrentFreeEntry;
-		size_t nextAddress = (size_t)pCurrentFreeEntry->pNext;
-
-		size_t mb = pCurrentFreeEntry->sizeInBytes / (1024 * 1024);
-		size_t kb = (pCurrentFreeEntry->sizeInBytes - mb * (1024 * 1024)) / 1024;
-		size_t bytes = (pCurrentFreeEntry->sizeInBytes - mb * (1024 * 1024) - kb * 1024);
-
-		std::stringstream addressStream;
-		addressStream << "Start Address: " << std::setw(25) << "0x" << std::hex << currentAddress << std::endl;
-		addressStream << "End Address: " << std::setw(27) << "0x" << std::hex << (currentAddress + pCurrentFreeEntry->sizeInBytes - 1) << std::endl;
-		addressStream << "Next Free Address: " << std::setw(21) << "0x" << std::hex << nextAddress;
-
-		currentMemory[currentAddress] =
-			"FFree Memory " + std::to_string(counter) + "\n" +
-			addressStream.str() +
-			"\nSize: " +
-			std::to_string(mb) + "MB " +
-			std::to_string(kb) + "kB " +
-			std::to_string(bytes) + "bytes";
-
-		pCurrentFreeEntry = pCurrentFreeEntry->pNext;
-		counter++;
-	} while (pCurrentFreeEntry != pStartFreeEntry);
+	ImGui::Checkbox("Memory Manager Allocations", &showMemoryManagerAllocations);
+	ImGui::Checkbox("Memory Manager Free Block", &showMemoryManagerFreeBlock);
+	ImGui::Checkbox("Pool Allocations", &showPoolAllocations);
+	ImGui::Checkbox("Stack Allocations", &showStackAllocations);
 
 	if (ImGui::TreeNode("Allocations"))
 	{
-		for (auto it : currentMemory)
-		{
-			std::string entry = it.second;
-			char type = entry.substr(0, 1).c_str()[0];
-			std::string entryTag = entry.substr(1, entry.length() - 1) + "\n\n";
+		auto& memoryManagerAllocationsRef = MemoryManager::GetInstance().GetAllocations();
+		auto& poolAllocationsRef = MemoryManager::GetInstance().GetPoolAllocations();
+		auto& stackAllocationsRef = MemoryManager::GetInstance().GetStackAllocations();
 
-			switch (type)
+		MemoryManager::GetInstance().GetMemoryLock().lock();
+		auto memoryManagerAllocations = std::map<size_t, Allocation>(memoryManagerAllocationsRef);
+		MemoryManager::GetInstance().GetMemoryLock().unlock();
+
+		MemoryManager::GetInstance().GetPoolAllocationLock().lock();
+		auto poolAllocations = std::map<size_t, SubAllocation>(poolAllocationsRef);
+		MemoryManager::GetInstance().GetPoolAllocationLock().unlock();
+
+		MemoryManager::GetInstance().GetStackAllocationLock().lock();
+		auto stackAllocations = std::map<size_t, SubAllocation>(stackAllocationsRef);
+		MemoryManager::GetInstance().GetStackAllocationLock().unlock();
+
+		auto& memoryManagerAllocationIt = memoryManagerAllocations.begin();
+		auto& poolAllocationIt = poolAllocations.begin();
+		auto& stackAllocationIt = stackAllocations.begin();
+		const void* pMemoryManagerStart = MemoryManager::GetInstance().GetMemoryStart();
+		const FreeEntry* pStartFreeEntry = MemoryManager::GetInstance().GetFreeList();
+		const FreeEntry* pCurrentFreeEntry = pStartFreeEntry;
+
+		size_t lastAddress = 0;
+		size_t currentAddress = (size_t)pMemoryManagerStart;
+
+		while (true)
+		{
+			size_t distanceToMemoryManagerAllocation = ULLONG_MAX;
+			if (memoryManagerAllocationIt != memoryManagerAllocations.end())
+				distanceToMemoryManagerAllocation = memoryManagerAllocationIt->first - currentAddress;
+
+			size_t distanceToPoolAllocation = ULLONG_MAX;
+			if (poolAllocationIt != poolAllocations.end())
+				distanceToPoolAllocation = poolAllocationIt->first - currentAddress;
+
+			size_t distanceToStackAllocation = ULLONG_MAX;
+			if (stackAllocationIt != stackAllocations.end())
+				distanceToStackAllocation = stackAllocationIt->first - currentAddress;
+
+			size_t distanceToFreeEntry = ULLONG_MAX;
+			if (pCurrentFreeEntry != pStartFreeEntry || lastAddress == 0)
+				distanceToFreeEntry = (size_t)pCurrentFreeEntry - currentAddress;
+
+			size_t minDistance = std::min(distanceToFreeEntry, std::min(distanceToStackAllocation, std::min(distanceToMemoryManagerAllocation, distanceToPoolAllocation)));
+
+			if (distanceToMemoryManagerAllocation == ULLONG_MAX &&
+				distanceToPoolAllocation == ULLONG_MAX &&
+				distanceToStackAllocation == ULLONG_MAX &&
+				distanceToFreeEntry == ULLONG_MAX)
+				break;
+
+			if (minDistance == distanceToMemoryManagerAllocation)
 			{
-			case 'A':
-				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), entryTag.c_str());
-				break;
-			case 'F':
-				ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), entryTag.c_str());
-				break;
+				std::string allocationStr =
+					memoryManagerAllocationIt->second.tag + "\n"
+					"Address:   " + N2HexStr(memoryManagerAllocationIt->first) + "\n"
+					"Padding: " + std::to_string(memoryManagerAllocationIt->second.padding) + "\n"
+					"Size: " + std::to_string(memoryManagerAllocationIt->second.sizeInBytes) + "bytes\n\n";
+				if (showMemoryManagerAllocations) ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), allocationStr.c_str());
+
+				lastAddress = currentAddress;
+				currentAddress = memoryManagerAllocationIt->first;
+				memoryManagerAllocationIt++;
+			}
+			else if (minDistance == distanceToPoolAllocation)
+			{
+				std::string allocationStr =
+					poolAllocationIt->second.tag + "\n"
+					"Address:   " + N2HexStr(poolAllocationIt->first) + "\n"
+					"Size: " + std::to_string(poolAllocationIt->second.sizeInBytes) + "bytes\n\n";
+				if (showPoolAllocations) ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), allocationStr.c_str());
+
+				lastAddress = currentAddress;
+				currentAddress = poolAllocationIt->first;
+				poolAllocationIt++;
+			}
+			else if (minDistance == distanceToStackAllocation)
+			{
+				std::string allocationStr =
+					stackAllocationIt->second.tag + "\n"
+					"Address:   " + N2HexStr(stackAllocationIt->first) + "\n"
+					"Size: " + std::to_string(stackAllocationIt->second.sizeInBytes) + "bytes\n\n";
+				if (showStackAllocations) ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), allocationStr.c_str());
+
+				lastAddress = currentAddress;
+				currentAddress = stackAllocationIt->first;
+				stackAllocationIt++;
+			}
+			else if (minDistance == distanceToFreeEntry)
+			{
+				std::string freeEntryStr =
+					"Free Memory Block\n"
+					"Address:   " + N2HexStr((size_t)pCurrentFreeEntry) + "\n"
+					"Size: " + std::to_string(pCurrentFreeEntry->sizeInBytes) + "bytes\n"
+					"Next Free: " + N2HexStr((size_t)pCurrentFreeEntry->pNext) + "\n\n";
+				if (showMemoryManagerFreeBlock) ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), freeEntryStr.c_str());
+
+				lastAddress = currentAddress;
+				currentAddress = (size_t)pCurrentFreeEntry;
+				pCurrentFreeEntry = pCurrentFreeEntry->pNext;
+			}
+			else
+			{
+				assert(false);
 			}
 		}
 
 		ImGui::TreePop();
 	}
 }
+#endif
 
 void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 {
@@ -305,7 +391,7 @@ void RunTest()
 		//Allocate a bunch of objects
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
-			gContainerArr[i] = STACK_NEW DummyStruct(
+			gContainerArr[i] = STACK_NEW("Dummy Struct " + std::to_string(i)) DummyStruct(
 				randf(-1024.0f, 1024.0f),
 				randf(-1024.0f, 1024.0f),
 				randf(-1024.0f, 1024.0f),
@@ -370,7 +456,7 @@ void RunTest()
 				{
 					
 
-					gContainerArr[i] = POOL_NEW(DummyStruct) DummyStruct(
+					gContainerArr[i] = POOL_NEW(DummyStruct, "Pool Allocation " + std::to_string(i)) DummyStruct(
 						randf(-1024.0f, 1024.0f),
 						randf(-1024.0f, 1024.0f),
 						randf(-1024.0f, 1024.0f),
@@ -522,7 +608,7 @@ void circlePoolTest()
 				POOL_DELETE(gCircleShapesPoolArray[i]);
 				gCircleShapesPoolArray[i] = nullptr;
 			}
-			gCircleShapesPoolArray[i] = POOL_NEW(sf::CircleShape) sf::CircleShape(CIRCLERADIUS);
+			gCircleShapesPoolArray[i] = POOL_NEW(sf::CircleShape, "sf::CircleShape " + std::to_string(i)) sf::CircleShape(CIRCLERADIUS);
 			gCircleShapesPoolArray[i]->setFillColor(sf::Color::Red);
 			if (i % 10 == 0)
 			{
@@ -559,7 +645,7 @@ void CircleStackTest(sf::RenderWindow& window)
 	float xPos = 0.0f;
 	for (int i = 0; i < NROFCIRCLES; i++)
 	{
-		gCircleShapesStackArray[i] = STACK_NEW sf::CircleShape(CIRCLERADIUS);
+		gCircleShapesStackArray[i] = STACK_NEW("sf::CircleShape " + std::to_string(i)) sf::CircleShape(CIRCLERADIUS);
 		gCircleShapesStackArray[i]->setFillColor(sf::Color::Green);
 		if (i % 10 == 0)
 		{
@@ -672,7 +758,10 @@ int main(int argc, const char* argv[])
 			ImGui::Separator();
 
 			ImGui::Columns(2, "Memory", v_borders);
+
+#ifdef SHOW_ALLOCATIONS_DEBUG
 			ImGuiPrintMemoryManagerAllocations();
+#endif
 
 			ImGui::NextColumn();
 			ImGuiDrawFrameTimeGraph(deltaTime);

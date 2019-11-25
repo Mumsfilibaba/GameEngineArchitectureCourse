@@ -5,6 +5,7 @@
 #include <type_traits>
 #include "SpinLock.h"
 #include "MemoryManager.h"
+#include "Defines.h"
 
 #define MB(mb) mb * 1024 * 1024
 #define CHUNK_SIZE 4096
@@ -181,9 +182,14 @@ public:
 		return arena;
 	}
 
-	inline void* AllocateBlock()
+	inline void* AllocateBlock(const std::string& tag)
 	{
+		constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
+
 		Block* block = GetArena()->Pop();
+#ifdef SHOW_ALLOCATIONS_DEBUG
+		MemoryManager::GetInstance().RegisterPoolAllocation(tag, (size_t)block, blockSize);
+#endif
 		return (void*)block;
 	}
 
@@ -193,6 +199,10 @@ public:
 		Chunk* chunk = Chunk::FromBlock(block);
 
 		pObject->~T();
+
+#ifdef SHOW_ALLOCATIONS_DEBUG
+		MemoryManager::GetInstance().RemovePoolAllocation((size_t)block);
+#endif
 
 		//ThreadSafePrintf("Recived %p\n", chunk);
 
@@ -210,5 +220,5 @@ private:
 	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
 
-#define pool_new(type)			new(PoolAllocator<type>::Get().AllocateBlock())
+#define pool_new(type, tag)			new(PoolAllocator<type>::Get().AllocateBlock(tag))
 #define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object);

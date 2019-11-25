@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include "MemoryManager.h"
+#include "Defines.h"
 
 //Objects allocated through this allocator will never have their destruct called from it. Therefore it is up to the user to call upon the destructor before freeing the memory!
 class StackAllocator
@@ -9,27 +10,8 @@ public:
 	StackAllocator(size_t size);
     ~StackAllocator();
 
-	void* AllocateMemory(size_t size, size_t alignment);
+	void* AllocateMemory(const std::string& tag, size_t size, size_t alignment);
     void Reset();
-
-    template<class T, typename... Args>
-    inline T* Allocate(Args&& ... args)
-	{
-		return new(AllocateMemory(sizeof(T), 1)) T(std::forward<Args>(args) ...);
-	}
-
-    template<class T, typename... Args>
-    inline T* AllocateAligned(size_t alignment, Args&& ... args)
-	{
-		return new(AllocateMemory(sizeof(T), alignment)) T(std::forward<Args>(args) ...);
-	}
-
-    template<class T>
-    inline T* AllocateArray(size_t count, size_t alignment = 1)
-	{
-		size_t arrSize = sizeof(T) * count;
-		return new(AllocateMemory(arrSize, alignment)) T[count];;
-	}
     
     inline size_t GetAllocatedMemory() const
     {
@@ -72,11 +54,11 @@ namespace Helpers
 	struct StackDummy {};
 }
 
-inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d)
+inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d, const std::string& tag)
 {
-	return StackAllocator::GetInstance().AllocateMemory(size, alignment);
+	return StackAllocator::GetInstance().AllocateMemory(tag, size, alignment);
 }
 
-#define stack_new				new(1, Helpers::StackDummy())
+#define stack_new(tag)			new(1, Helpers::StackDummy(), tag)
 #define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T(); }
 #define stack_reset				StackAllocator::GetInstance().Reset

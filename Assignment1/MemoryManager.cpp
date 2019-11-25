@@ -30,71 +30,6 @@ MemoryManager::~MemoryManager()
 	m_pFreeTail = nullptr;
 }
 
-void MemoryManager::RegisterAllocation(
-	const std::string& tag, 
-	size_t startAddress, 
-	size_t returnedMemoryAddress, 
-	size_t endAddress, 
-	size_t blockSizeInBytes, 
-	size_t allocationSizeInBytes, 
-	size_t alignment, 
-	size_t internalPadding,
-	size_t externalPadding,
-	size_t extraMemory)
-{
-	constexpr size_t mb = 1024 * 1024;
-	constexpr size_t kb = 1024;
-
-	/*size_t blockSize_mb = blockSizeInBytes / mb;
-	size_t blockSize_kb = (blockSizeInBytes - blockSize_mb * mb) / kb;
-	size_t blockSize_bytes = (blockSizeInBytes - blockSize_mb * mb - blockSize_kb * kb);
-
-	size_t allocationSize_mb = allocationSizeInBytes / mb;
-	size_t allocationSize_kb = (allocationSizeInBytes - allocationSize_mb * mb) / kb;
-	size_t allocationSize_bytes = (allocationSizeInBytes - allocationSize_mb * mb - allocationSize_kb * kb);
-
-	size_t extraMemory_mb = extraMemory / mb;
-	size_t extraMemory_kb = (extraMemory - extraMemory_mb * mb) / kb;
-	size_t extraMemory_bytes = (extraMemory - extraMemory_mb * mb - extraMemory_kb * kb);*/
-
-	/*std::stringstream stream;
-	stream << "Start Address: " << std::setw(25) << "0x" << std::hex << startAddress  << std::endl;
-	stream << "Allocation Address (Start + Padding): " << std::setw(0) << "0x" << std::hex << allocationAddress << std::endl;
-	stream << "Returned Memory Address: " << std::setw(15) << "0x" << std::hex << returnedMemoryAddress << std::endl;
-	stream << "End Address: " << std::setw(27) << "0x" << std::hex << endAddress << std::endl;*/
-
-	std::stringstream threadId;
-	threadId << std::this_thread::get_id();
-
-	std::string info(512, ' ');
-	info =
-		"A" + tag + " [Thread ID: " + threadId.str() + "]" +
-		"\nStart Address:                        " + N2HexStr(startAddress) +
-		"\nReturned Memory Address:              " + N2HexStr(returnedMemoryAddress) +
-		"\nEnd Address:                          " + N2HexStr(endAddress) +
-		"\nTotal Block Size: " + std::to_string(blockSizeInBytes) +
-		/*std::to_string(blockSize_mb) + "MB " +
-		std::to_string(blockSize_kb) + "kB " +
-		std::to_string(blockSize_bytes) + "bytes" +*/
-		"\nAllocation Size: " + std::to_string(allocationSizeInBytes) +
-		/*std::to_string(allocationSize_mb) + "MB " +
-		std::to_string(allocationSize_kb) + "kB " +
-		std::to_string(allocationSize_bytes) + "bytes" +*/
-		"\nAlignment: " + std::to_string(alignment) +
-		"\nInternal Padding: " + std::to_string(internalPadding) + " bytes" +
-		"\nExternal Padding: " + std::to_string(externalPadding) + " bytes" +
-		"\nExtra Memory: " + std::to_string(extraMemory)
-		/*std::to_string(extraMemory_mb) + "MB " +
-		std::to_string(extraMemory_kb) + "kB " +
-		std::to_string(extraMemory_bytes) + "bytes"*/;
-	m_AllocationsInfo[startAddress] = info;
-}
-
-void MemoryManager::RemoveAllocation(size_t startAddress)
-{
-	m_AllocationsInfo.erase(startAddress);
-}
-
 void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, const std::string& tag)
 {
 	assert(alignment % 2 == 0 || alignment == 1);
@@ -163,21 +98,9 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 			}
 
 			//Create a new Allocation at the CurrentFree Address
-			m_AllocationHeaders[aligned] = Allocation(allocationSizeInBytes + internalPadding, internalPadding);
+			m_AllocationHeaders[aligned] = Allocation(tag, allocationSizeInBytes + internalPadding, internalPadding);
 
-			//Return the address of the allocation, but offset it so the size member does not get overridden.
-			RegisterAllocation(
-				tag, 
-				(size_t)pCurrentFree + externalPadding,
-				aligned, 
-				aligned + allocationSizeInBytes - 1, 
-				padding + allocationSizeInBytes,
-				allocationSizeInBytes,
-				alignment,
-				internalPadding,
-				externalPadding,
-				0);
-			
+			//Return the address of the allocation, but offset it so the size member does not get overridden.			
 			s_TotalUsed += (allocationSizeInBytes + padding);
 			return (void*)(aligned);
 		}
@@ -197,7 +120,6 @@ void MemoryManager::Free(void* allocationPtr)
 	size_t allocationAddress = (size_t)allocationPtr;
 	Allocation& allocation = m_AllocationHeaders[allocationAddress];
 	m_AllocationHeaders.erase(allocationAddress);
-	RemoveAllocation(allocationAddress);
 
 	size_t offsetAllocationAddress = allocationAddress - allocation.padding;
 
@@ -249,3 +171,29 @@ void MemoryManager::Free(void* allocationPtr)
 
 	} while (pCurrentFree != m_pFreeListStart);
 }
+
+#ifdef SHOW_ALLOCATIONS_DEBUG
+void MemoryManager::RegisterPoolAllocation(const std::string& tag, size_t startAddress, size_t size)
+{
+	std::lock_guard<SpinLock> lock(m_PoolAllocationLock);
+	m_PoolAllocations[startAddress] = SubAllocation(tag, size);
+}
+
+void MemoryManager::RemovePoolAllocation(size_t startAddress)
+{
+	std::lock_guard<SpinLock> lock(m_PoolAllocationLock);
+	m_PoolAllocations.erase(startAddress);
+}
+
+void MemoryManager::RegisterStackAllocation(const std::string& tag, size_t startAddress, size_t size)
+{
+	std::lock_guard<SpinLock> lock(m_StackAllocationLock);
+	m_StackAllocations[startAddress] = SubAllocation(tag, size);
+}
+
+void MemoryManager::ClearStackAllocations()
+{
+	std::lock_guard<SpinLock> lock(m_StackAllocationLock);
+	m_StackAllocations.clear();
+}
+#endif

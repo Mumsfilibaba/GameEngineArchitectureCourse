@@ -8,7 +8,7 @@ StackAllocator::StackAllocator(size_t size)
 	: m_Size(size),
 	m_Used(0)
 {
-	m_pStart = allocate(size, 1, "Stack Allocator");
+	m_pStart = allocate(size, 1, "Stack Allocation Chunk");
 	m_pEnd = (void*)((size_t)m_pStart + size);
 	m_pCurrent = m_pStart;
 
@@ -20,7 +20,7 @@ StackAllocator::~StackAllocator()
 	s_TotalAllocated -= m_Size;
 }
 
-void* StackAllocator::AllocateMemory(size_t size, size_t alignment)
+void* StackAllocator::AllocateMemory(const std::string& tag, size_t size, size_t alignment)
 {
     size_t mask = alignment - 1;
     size_t alignedCurrent = ((size_t)m_pCurrent + mask) & ~mask;
@@ -35,6 +35,10 @@ void* StackAllocator::AllocateMemory(size_t size, size_t alignment)
 
 	m_Used		+= size + padding;
 	s_TotalUsed += size + padding;
+
+#ifdef SHOW_ALLOCATIONS_DEBUG
+	MemoryManager::GetInstance().RegisterStackAllocation(tag, (size_t)pMemory, size);
+#endif
     return pMemory;
 }
 
@@ -44,4 +48,8 @@ void StackAllocator::Reset()
 
 	s_TotalUsed -= m_Used;
 	m_Used = 0;
+
+#ifdef SHOW_ALLOCATIONS_DEBUG
+	MemoryManager::GetInstance().ClearStackAllocations();
+#endif
 }
