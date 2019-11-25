@@ -9,6 +9,7 @@
 #include <thread>
 #include <array>
 #include <algorithm>
+#include <fstream>
 #include "PoolAllocator.h"
 #include "Defines.h"
 #if defined(_WIN32)
@@ -29,10 +30,17 @@
 #define NUMBER_OF_OBJECTS_IN_TEST 1024 * 16
 
 #ifdef USE_CUSTOM_ALLOCATOR
+#ifdef SHOW_ALLOCATIONS_DEBUG
 #define STACK_NEW(tag) stack_new(tag)
 #define STACK_DELETE(object) stack_delete(object)
 #define POOL_NEW(type, tag) pool_new(type, tag)
 #define POOL_DELETE(object) pool_delete(object)
+#else
+#define STACK_NEW(tag) stack_new
+#define STACK_DELETE(object) stack_delete(object)
+#define POOL_NEW(type, tag) pool_new(type)
+#define POOL_DELETE(object) pool_delete(object)
+#endif
 #else
 #define STACK_NEW(tag) new
 #define STACK_DELETE(object) delete object
@@ -43,6 +51,11 @@
 #ifdef TEST_POOL_ALLOCATOR
 #define CHANCE_OF_ALLOCATION 0.3f
 #define CHANCE_OF_FREE 0.3f
+#endif
+
+#ifdef COLLECT_PERFORMANCE_DATA
+#define NUM_FRAMES_TO_COLLECT_OVER 10000
+	std::map<std::thread::id, size_t> g_ThreadFrameSums;
 #endif
 
 std::string N2HexStr(size_t w)
@@ -64,6 +77,7 @@ std::string N2HexStr(size_t w)
 	bool g_StopThreads = false;
 	std::atomic_bool g_RunFrame = false;
 
+#ifdef SHOW_GRAPHS
 	struct ThreadPerformanceData
 	{
 		std::string threadID;
@@ -127,8 +141,43 @@ std::string N2HexStr(size_t w)
 			}
 		}
 	}
+#endif
 #else
 	#define NUMBER_OF_THREADS_IN_MULTI_THREADED 1
+#endif
+#ifdef COLLECT_PERFORMANCE_DATA
+	SpinLock g_ThreadFrameSumsLock;
+
+	struct ThreadPerformanceData
+	{
+		ThreadPerformanceData()
+		{
+			this->threadID = std::this_thread::get_id();
+			this->frameTimeSum = 0.0f;
+		}
+
+		~ThreadPerformanceData()
+		{
+			std::lock_guard<SpinLock> lock(g_ThreadFrameSumsLock);
+			g_ThreadFrameSums[threadID] = frameTimeSum;
+		}
+
+		std::thread::id threadID;
+		size_t frameTimeSum;
+	};
+
+	thread_local static ThreadPerformanceData threadPerformanceData;
+
+	void MeasureThreadPerf()
+	{
+		thread_local static sf::Clock deltaClock;
+
+		{
+			//Get deltatimes and fps
+			sf::Time dt = deltaClock.restart();
+			threadPerformanceData.frameTimeSum += dt.asMicroseconds();
+		}
+	}
 #endif
 
 #define NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD NUMBER_OF_OBJECTS_IN_TEST / NUMBER_OF_THREADS_IN_MULTI_THREADED
@@ -312,6 +361,7 @@ void ImGuiPrintMemoryManagerAllocations()
 }
 #endif
 
+#ifdef SHOW_GRAPHS
 void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 {
 	static int timer = dt.asMicroseconds();
@@ -377,20 +427,30 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 	}
 #endif
 }
+#endif
 #ifdef TEST_STACK_ALLOCATOR
 void RunTest()
 {
 #ifdef MULTI_THREADED
+#ifdef SHOW_GRAPHS
 	InitThread();
-
+#endif
+#ifndef COLLECT_PERFORMANCE_DATA
 	while (!g_StopThreads)
 	{
+#else
+	for(size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+	{
+#endif
+#endif
+#if (defined(MULTI_THREADED) && defined(SHOW_GRAPHS)) || defined(COLLECT_PERFORMANCE_DATA)
 		MeasureThreadPerf();
 #endif
 		
 		//Allocate a bunch of objects
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
+#ifdef SIMULATE_WORKLOADS
 			gContainerArr[i] = STACK_NEW("Dummy Struct " + std::to_string(i)) DummyStruct(
 				randf(-1024.0f, 1024.0f),
 				randf(-1024.0f, 1024.0f),
@@ -398,9 +458,18 @@ void RunTest()
 				randf(0, 2 * PI),
 				randf(0, 2 * PI),
 				randf(0, 2 * PI));
-			
+#else
+			gContainerArr[i] = STACK_NEW("Dummy Struct") DummyStruct(
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f);
+#endif
 		}
 
+#ifdef SIMULATE_WORKLOADS
 		//Do some calculations on those objects
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
@@ -413,7 +482,7 @@ void RunTest()
 			a->rotationY = cosf(b->x) * sinf(b->z) + cosf(a->x) * sinf(a->z);
 			a->rotationY = cosf(b->x) * sinf(b->z) * sinf(a->y);
 		}
-
+#endif
 		//Call object destructors
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
@@ -427,35 +496,34 @@ void RunTest()
 		stack_reset();
 #endif
 	}
-
-	for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
-	{
-		if (gContainerArr[i] != nullptr)
-		{
-			STACK_DELETE(gContainerArr[i]);
-			gContainerArr[i] = nullptr;
-		}
-	}
 #endif
 }
 #elif defined(TEST_POOL_ALLOCATOR)
 void RunTest()
 {
-#ifdef MULTI_THREADED
+#ifdef MULTI_THREADED 
+#ifdef SHOW_GRAPHS
 	InitThread();
-
+#endif
+#ifndef COLLECT_PERFORMANCE_DATA
 	while (!g_StopThreads)
 	{
+#else
+	for (size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+	{
+#endif
+#endif
+#if (defined(MULTI_THREADED) && defined(SHOW_GRAPHS)) || defined(COLLECT_PERFORMANCE_DATA)
 		MeasureThreadPerf();
 #endif
+
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
+#ifdef SIMULATE_WORKLOADS
 			if (gContainerArr[i] == nullptr)
 			{
 				if (randf() < CHANCE_OF_ALLOCATION)
 				{
-					
-
 					gContainerArr[i] = POOL_NEW(DummyStruct, "Pool Allocation " + std::to_string(i)) DummyStruct(
 						randf(-1024.0f, 1024.0f),
 						randf(-1024.0f, 1024.0f),
@@ -465,9 +533,18 @@ void RunTest()
 						randf(0, 2 * PI));
 				}
 			}
-
+#else 
+			gContainerArr[i] = POOL_NEW(DummyStruct, "Pool Allocation") DummyStruct(
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f);
+#endif
 		}
 
+#ifdef SIMULATE_WORKLOADS
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
 			int randomIndex = rand() % NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD;
@@ -482,9 +559,11 @@ void RunTest()
 				a->rotationY = cosf(b->x) * sinf(b->z) * sinf(a->y);
 			}
 		}
+#endif
 
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
 		{
+#ifdef SIMULATE_WORKLOADS
 			if (gContainerArr[i] != nullptr)
 			{
 				if (randf() < CHANCE_OF_FREE)
@@ -493,6 +572,10 @@ void RunTest()
 					gContainerArr[i] = nullptr;
 				}
 			}
+#else
+			POOL_DELETE(gContainerArr[i]);
+			gContainerArr[i] = nullptr;
+#endif
 		}
 #ifdef MULTI_THREADED
 	}
@@ -590,6 +673,7 @@ void EndFrame()
 	#define EndFrame()
 #endif
 
+#ifdef ENABLE_GRAPHICAL_TEST
 #define NROFCIRCLES 100
 #define CIRCLERADIUS 10.0f
 #define CIRCLEDIAMETER CIRCLERADIUS * 2
@@ -675,13 +759,14 @@ void CircleStackTest(sf::RenderWindow& window)
 	}
 }
 
-
+#endif
 
 int main(int argc, const char* argv[])
 {    
 	MEMLEAKCHECK;
 
 	//Start program
+#ifndef COLLECT_PERFORMANCE_DATA
 	sf::Color bgColor = sf::Color::Black;
 	sf::RenderWindow window(sf::VideoMode(1280, 720), "Game Engine Architecture");
 	window.setVerticalSyncEnabled(false);
@@ -722,6 +807,7 @@ int main(int argc, const char* argv[])
 		
 		window.clear(bgColor);
 
+#ifdef ENABLE_GRAPHICAL_TEST
 		circlePoolTest();
 		for (auto i : gCircleShapesPoolArray)
 		{
@@ -732,6 +818,7 @@ int main(int argc, const char* argv[])
 		}		
 		
 		CircleStackTest(window);
+#endif
 
 		//Draw debug window
 		if (ImGui::Begin("Debug Window"))
@@ -764,7 +851,9 @@ int main(int argc, const char* argv[])
 #endif
 
 			ImGui::NextColumn();
+#ifdef SHOW_GRAPHS
 			ImGuiDrawFrameTimeGraph(deltaTime);
+#endif
 		}
 		ImGui::End();
 		ImGui::SFML::Render(window);
@@ -782,6 +871,57 @@ int main(int argc, const char* argv[])
 #endif
 
 	ImGui::SFML::Shutdown();
+#else
+#if defined(TEST_STACK_ALLOCATOR) || defined(TEST_POOL_ALLOCATOR)
+	for (size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+	{
+		StartTest();
 
+#ifdef USE_CUSTOM_ALLOCATOR
+		stack_reset();
+#endif
+	}
+
+	StopTest();
+
+#ifndef MULTI_THREADED
+	g_ThreadFrameSums[std::this_thread::get_id()] = threadPerformanceData.frameTimeSum;
+#endif
+
+	std::stringstream fileName;
+	fileName << "Results/";
+
+#ifdef TEST_POOL_ALLOCATOR
+	fileName << "Pool ";
+#endif
+#ifdef TEST_STACK_ALLOCATOR
+	fileName << "Stack ";
+#endif
+#ifdef MULTI_THREADED
+	fileName << "MT ";
+#endif
+#ifdef USE_CUSTOM_ALLOCATOR
+	fileName << "Custom Allocator ";
+#else
+	fileName << "Malloc ";
+#endif
+
+	fileName << NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD << " ObjPerThread";
+	fileName << ".txt";
+	
+	std::ofstream file;
+	file.open(fileName.str(), std::ios::out | std::ios::trunc);
+
+	for (auto it : g_ThreadFrameSums)
+	{
+		size_t totalMicroSeconds = it.second;
+		float averageMicroSeconds = (float)totalMicroSeconds / NUM_FRAMES_TO_COLLECT_OVER;
+		std::cout << averageMicroSeconds << std::endl;
+		file << averageMicroSeconds << "|" << std::endl;
+	}
+
+	file.close();
+#endif
+#endif
 	return 0; 
 }

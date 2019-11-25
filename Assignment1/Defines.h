@@ -2,5 +2,9 @@
 #define DEFINES_H
 
 //#define SHOW_ALLOCATIONS_DEBUG
+//#define SHOW_GRAPHS
+#define COLLECT_PERFORMANCE_DATA
+//#define SIMULATE_WORKLOADS
+//#define ENABLE_GRAPHICAL_TEST
 
 #endif

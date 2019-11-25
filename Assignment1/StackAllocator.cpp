@@ -20,6 +20,7 @@ StackAllocator::~StackAllocator()
 	s_TotalAllocated -= m_Size;
 }
 
+#ifdef SHOW_ALLOCATIONS_DEBUG
 void* StackAllocator::AllocateMemory(const std::string& tag, size_t size, size_t alignment)
 {
     size_t mask = alignment - 1;
@@ -36,11 +37,29 @@ void* StackAllocator::AllocateMemory(const std::string& tag, size_t size, size_t
 	m_Used		+= size + padding;
 	s_TotalUsed += size + padding;
 
-#ifdef SHOW_ALLOCATIONS_DEBUG
 	MemoryManager::GetInstance().RegisterStackAllocation(tag, (size_t)pMemory, size);
-#endif
     return pMemory;
 }
+#else
+void* StackAllocator::AllocateMemory(size_t size, size_t alignment)
+{
+	size_t mask = alignment - 1;
+	size_t alignedCurrent = ((size_t)m_pCurrent + mask) & ~mask;
+	size_t padding = alignedCurrent - (size_t)m_pCurrent;
+
+	void* pMemory = nullptr;
+	if ((void*)((size_t)alignedCurrent + size) <= m_pEnd)
+	{
+		pMemory = (void*)alignedCurrent;
+		m_pCurrent = (void*)((size_t)alignedCurrent + size);
+	}
+
+	m_Used += size + padding;
+	s_TotalUsed += size + padding;
+
+	return pMemory;
+}
+#endif
 
 void StackAllocator::Reset()
 {

@@ -10,7 +10,11 @@ public:
 	StackAllocator(size_t size);
     ~StackAllocator();
 
+#ifdef SHOW_ALLOCATIONS_DEBUG
 	void* AllocateMemory(const std::string& tag, size_t size, size_t alignment);
+#else
+	void* AllocateMemory(size_t size, size_t alignment);
+#endif
     void Reset();
     
     inline size_t GetAllocatedMemory() const
@@ -54,6 +58,7 @@ namespace Helpers
 	struct StackDummy {};
 }
 
+#ifdef SHOW_ALLOCATIONS_DEBUG
 inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d, const std::string& tag)
 {
 	return StackAllocator::GetInstance().AllocateMemory(tag, size, alignment);
@@ -62,3 +67,13 @@ inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d, 
 #define stack_new(tag)			new(1, Helpers::StackDummy(), tag)
 #define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T(); }
 #define stack_reset				StackAllocator::GetInstance().Reset
+#else
+inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d)
+{
+	return StackAllocator::GetInstance().AllocateMemory(size, alignment);
+}
+
+#define stack_new				new(1, Helpers::StackDummy())
+#define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T(); }
+#define stack_reset				StackAllocator::GetInstance().Reset
+#endif

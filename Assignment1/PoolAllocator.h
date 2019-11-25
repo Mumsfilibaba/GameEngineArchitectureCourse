@@ -182,16 +182,24 @@ public:
 		return arena;
 	}
 
+#ifdef SHOW_ALLOCATIONS_DEBUG
 	inline void* AllocateBlock(const std::string& tag)
 	{
 		constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
 
 		Block* block = GetArena()->Pop();
-#ifdef SHOW_ALLOCATIONS_DEBUG
+
 		MemoryManager::GetInstance().RegisterPoolAllocation(tag, (size_t)block, blockSize);
-#endif
 		return (void*)block;
 	}
+#else
+	inline void* AllocateBlock()
+	{
+		Block* block = GetArena()->Pop();
+
+		return (void*)block;
+	}
+#endif
 
 	inline void Free(T* pObject)
 	{
@@ -220,5 +228,10 @@ private:
 	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
 };
 
-#define pool_new(type, tag)			new(PoolAllocator<type>::Get().AllocateBlock(tag))
+#ifdef SHOW_ALLOCATIONS_DEBUG
+#define pool_new(type, tag)		new(PoolAllocator<type>::Get().AllocateBlock(tag))
 #define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object);
+#else
+#define pool_new(type)			new(PoolAllocator<type>::Get().AllocateBlock())
+#define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object);
+#endif
