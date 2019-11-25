@@ -24,7 +24,7 @@
 	#define MEMLEAKCHECK
 #endif
 
-#define NUMBER_OF_OBJECTS_IN_TEST 1024 * 256
+#define NUMBER_OF_OBJECTS_IN_TEST 1024 * 16
 
 #ifdef USE_CUSTOM_ALLOCATOR
 #define STACK_NEW stack_new
@@ -312,6 +312,7 @@ void RunTest()
 				randf(0, 2 * PI),
 				randf(0, 2 * PI),
 				randf(0, 2 * PI));
+			
 		}
 
 		//Do some calculations on those objects
@@ -367,6 +368,8 @@ void RunTest()
 			{
 				if (randf() < CHANCE_OF_ALLOCATION)
 				{
+					
+
 					gContainerArr[i] = POOL_NEW(DummyStruct) DummyStruct(
 						randf(-1024.0f, 1024.0f),
 						randf(-1024.0f, 1024.0f),
@@ -376,6 +379,7 @@ void RunTest()
 						randf(0, 2 * PI));
 				}
 			}
+
 		}
 
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
@@ -500,6 +504,92 @@ void EndFrame()
 	#define EndFrame()
 #endif
 
+#define NROFCIRCLES 100
+#define CIRCLERADIUS 10.0f
+#define CIRCLEDIAMETER CIRCLERADIUS * 2
+std::array<sf::CircleShape*, NROFCIRCLES> gCircleShapesPoolArray;
+
+void circlePoolTest()
+{
+	float yPos = 0.0f;
+	float xPos = 0.0f;
+	for (int i = 0; i < NROFCIRCLES; i++)
+	{
+		if (randf() < 0.3f)
+		{
+			if (gCircleShapesPoolArray[i] != nullptr)
+			{
+				POOL_DELETE(gCircleShapesPoolArray[i]);
+				gCircleShapesPoolArray[i] = nullptr;
+			}
+			gCircleShapesPoolArray[i] = POOL_NEW(sf::CircleShape) sf::CircleShape(CIRCLERADIUS);
+			gCircleShapesPoolArray[i]->setFillColor(sf::Color::Red);
+			if (i % 10 == 0)
+			{
+				yPos += CIRCLEDIAMETER;
+				xPos = 0;
+			}
+			gCircleShapesPoolArray[i]->setPosition(xPos * CIRCLEDIAMETER, yPos);
+			xPos++;
+
+		}
+
+	}
+
+
+	for (int i = 0; i < NROFCIRCLES; i++)
+	{
+		if (gCircleShapesPoolArray[i] != nullptr)
+		{
+			if (randf() < 0.3f)
+			{
+				POOL_DELETE(gCircleShapesPoolArray[i]);
+				gCircleShapesPoolArray[i] = nullptr;
+			}
+		}
+
+	}
+}
+
+std::array<sf::CircleShape*, NROFCIRCLES> gCircleShapesStackArray;
+void CircleStackTest(sf::RenderWindow& window)
+{
+	//Allocate a bunch of objects
+	float yPos = CIRCLEDIAMETER * (NROFCIRCLES / 10);
+	float xPos = 0.0f;
+	for (int i = 0; i < NROFCIRCLES; i++)
+	{
+		gCircleShapesStackArray[i] = STACK_NEW sf::CircleShape(CIRCLERADIUS);
+		gCircleShapesStackArray[i]->setFillColor(sf::Color::Green);
+		if (i % 10 == 0)
+		{
+			yPos += CIRCLEDIAMETER;
+			xPos = 0;
+		}
+		gCircleShapesStackArray[i]->setPosition(xPos * CIRCLEDIAMETER, yPos);
+		xPos++;
+	}
+
+	//draw and change color on random circles
+	for (int i = 0; i < NROFCIRCLES; i++)
+	{
+		if (randf() < 0.3f)
+		{
+			gCircleShapesStackArray[i]->setFillColor(sf::Color::Blue);
+		}
+		window.draw(*gCircleShapesStackArray[i]);
+	}
+	
+	//Call object destructors
+	for (int i = 0; i < NROFCIRCLES; i++)
+	{
+		//Delete just to call destructors on object, actual memory is reused
+		STACK_DELETE(gCircleShapesStackArray[i]);
+		gCircleShapesStackArray[i] = nullptr;
+	}
+}
+
+
 
 int main(int argc, const char* argv[])
 {    
@@ -543,6 +633,19 @@ int main(int argc, const char* argv[])
 		StartTest();
 #endif
 		BeginFrame();
+		
+		window.clear(bgColor);
+
+		circlePoolTest();
+		for (auto i : gCircleShapesPoolArray)
+		{
+			if (i != nullptr)
+			{
+				window.draw(*i);
+			}
+		}		
+		
+		CircleStackTest(window);
 
 		//Draw debug window
 		if (ImGui::Begin("Debug Window"))
@@ -553,7 +656,7 @@ int main(int argc, const char* argv[])
 				ImGuiDrawMemoryProgressBar(PoolAllocatorBase::GetTotalUsedMemory(), PoolAllocatorBase::GetTotalAvailableMemory());
 				ImGui::NextColumn();
 				ImGui::Text("Pool allocated memory");
-				
+
 				ImGui::NextColumn();
 				ImGuiDrawMemoryProgressBar(StackAllocator::GetTotalUsedMemory(), StackAllocator::GetTotalAvailableMemory());
 				ImGui::NextColumn();
@@ -570,23 +673,19 @@ int main(int argc, const char* argv[])
 
 			ImGui::Columns(2, "Memory", v_borders);
 			ImGuiPrintMemoryManagerAllocations();
-			
+
 			ImGui::NextColumn();
 			ImGuiDrawFrameTimeGraph(deltaTime);
 		}
 		ImGui::End();
-
-		window.clear(bgColor);
 		ImGui::SFML::Render(window);
-		
 		EndFrame();
+
 		window.display();
 
-#ifndef MULTI_THREADED
 	#ifdef USE_CUSTOM_ALLOCATOR
 		stack_reset();
 	#endif
-#endif
 	}
 
 #if defined(TEST_STACK_ALLOCATOR) || defined(TEST_POOL_ALLOCATOR)
