@@ -905,6 +905,9 @@ int main(int argc, const char* argv[])
 #else
 	fileName << "Malloc ";
 #endif
+#ifdef SIMULATE_WORKLOADS
+	fileName << "Sim Workload ";
+#endif
 
 	fileName << NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD << " ObjPerThread";
 	fileName << ".txt";
