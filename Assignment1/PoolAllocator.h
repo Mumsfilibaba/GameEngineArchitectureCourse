@@ -8,7 +8,13 @@
 #include "Defines.h"
 
 #define MB(mb) mb * 1024 * 1024
-#define CHUNK_SIZE 4096
+
+#ifndef CONFIG_CHUNK_SIZE
+	#define CHUNK_SIZE 4096
+#else
+	#define CHUNK_SIZE CONFIG_CHUNK_SIZE
+#endif
+
 #define CHUNK_SIZE_BYTES CHUNK_SIZE - sizeof(Arena*)
 
 class PoolAllocatorBase
@@ -196,7 +202,6 @@ public:
 	inline void* AllocateBlock()
 	{
 		Block* block = GetArena()->Pop();
-
 		return (void*)block;
 	}
 #endif

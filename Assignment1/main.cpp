@@ -30,31 +30,31 @@
 #define NUMBER_OF_OBJECTS_IN_TEST 1024 * 16
 
 #ifdef USE_CUSTOM_ALLOCATOR
-#ifdef SHOW_ALLOCATIONS_DEBUG
-#define STACK_NEW(tag) stack_new(tag)
-#define STACK_DELETE(object) stack_delete(object)
-#define POOL_NEW(type, tag) pool_new(type, tag)
-#define POOL_DELETE(object) pool_delete(object)
-#else
-#define STACK_NEW(tag) stack_new
-#define STACK_DELETE(object) stack_delete(object)
-#define POOL_NEW(type, tag) pool_new(type)
-#define POOL_DELETE(object) pool_delete(object)
+	#ifdef SHOW_ALLOCATIONS_DEBUG
+		#define STACK_NEW(tag) stack_new(tag)
+		#define STACK_DELETE(object) stack_delete(object)
+		#define POOL_NEW(type, tag) pool_new(type, tag)
+		#define POOL_DELETE(object) pool_delete(object)
+	#else
+		#define STACK_NEW(tag) stack_new
+		#define STACK_DELETE(object) stack_delete(object)
+		#define POOL_NEW(type, tag) pool_new(type)
+		#define POOL_DELETE(object) pool_delete(object)
 #endif
 #else
-#define STACK_NEW(tag) new
-#define STACK_DELETE(object) delete object
-#define POOL_NEW(type, tag) new
-#define POOL_DELETE(object) delete object
+	#define STACK_NEW(tag) new
+	#define STACK_DELETE(object) delete object
+	#define POOL_NEW(type, tag) new
+	#define POOL_DELETE(object) delete object
 #endif
 
 #ifdef TEST_POOL_ALLOCATOR
-#define CHANCE_OF_ALLOCATION 0.3f
-#define CHANCE_OF_FREE 0.3f
+	#define CHANCE_OF_ALLOCATION 0.3f
+	#define CHANCE_OF_FREE 0.3f
 #endif
 
 #ifdef COLLECT_PERFORMANCE_DATA
-#define NUM_FRAMES_TO_COLLECT_OVER 10000
+	#define NUM_FRAMES_TO_COLLECT_OVER 10000
 	std::map<std::thread::id, size_t> g_ThreadFrameSums;
 #endif
 
@@ -72,6 +72,7 @@ std::string N2HexStr(size_t w)
 
 #ifdef MULTI_THREADED
 	#define NUMBER_OF_THREADS_IN_MULTI_THREADED 4
+	
 	std::thread* gThreads[NUMBER_OF_THREADS_IN_MULTI_THREADED];
 	bool g_ThreadsStarted = false;
 	bool g_StopThreads = false;
@@ -180,7 +181,7 @@ std::string N2HexStr(size_t w)
 	}
 #endif
 
-#define NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD NUMBER_OF_OBJECTS_IN_TEST / NUMBER_OF_THREADS_IN_MULTI_THREADED
+#define NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD (NUMBER_OF_OBJECTS_IN_TEST / NUMBER_OF_THREADS_IN_MULTI_THREADED)
 
 struct DummyStruct
 {

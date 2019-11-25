@@ -12,11 +12,15 @@ workspace "Game Engine Architecture"
 		"Stack_Test",
 		"Pool_Test",
 		"Stack_Custom_Test",
-		"Pool_Custom_Test",
+		"Pool_Custom_Test_4096_Chunk",
+		"Pool_Custom_Test_8192_Chunk",
+		"Pool_Custom_Test_16384_Chunk",
 		"Stack_MT_Test",
 		"Pool_MT_Test",
 		"Stack_MT_Custom_Test",
-		"Pool_MT_Custom_Test"
+		"Pool_MT_Custom_Test_4096_Chunk",
+		"Pool_MT_Custom_Test_8192_Chunk",
+		"Pool_MT_Custom_Test_16384_Chunk",
     }
 	
 	group "Dependencies"
@@ -97,7 +101,7 @@ workspace "Game Engine Architecture"
 			"sfml-network-s-d"
 		}
 
-    filter "configurations:Release" 
+    filter "configurations:Release or Stack_Test or Pool_Test or Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Pool_MT_Test or Stack_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk" 
         symbols "On"
         runtime "Release"
         optimize "Full"
@@ -106,183 +110,50 @@ workspace "Game Engine Architecture"
             "NDEBUG"
         }
 		
-	filter "configurations:Stack_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
-        defines
+	filter "configurations:Stack_Test or Stack_Custom_Test or Stack_MT_Test or Stack_MT_Custom_Test"
+		defines
         {
-            "NDEBUG",
 			"TEST_STACK_ALLOCATOR"
         }
 		
-	filter "configurations:Pool_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
+	filter "configurations:Pool_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Pool_MT_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
         defines
-        {
-            "NDEBUG",
+		{
 			"TEST_POOL_ALLOCATOR"
         }
 		
-	filter "configurations:Stack_Custom_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
+	filter "configurations:Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
         defines
         {
-            "NDEBUG",
-			"TEST_STACK_ALLOCATOR",
 			"USE_CUSTOM_ALLOCATOR"
         }
 		
-	filter "configurations:Pool_Custom_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
+	filter "configurations:Stack_MT_Test or Pool_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
         defines
         {
-            "NDEBUG",
-			"TEST_POOL_ALLOCATOR",
-			"USE_CUSTOM_ALLOCATOR"
-        }
-		
-	filter "configurations:Stack_MT_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
-        defines
-        {
-            "NDEBUG",
-			"TEST_STACK_ALLOCATOR",
 			"MULTI_THREADED"
         }
-		
-	filter "configurations:Pool_MT_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
+			
+	filter "configurations:Pool_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_4096_Chunk"
         defines
         {
-            "NDEBUG",
-			"TEST_POOL_ALLOCATOR",
-			"MULTI_THREADED"
+			"CONFIG_CHUNK_SIZE = 4096"
         }
 		
-	filter "configurations:Stack_MT_Custom_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
+	filter "configurations:Pool_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_8192_Chunk"
         defines
         {
-            "NDEBUG",
-			"TEST_STACK_ALLOCATOR",
-			"USE_CUSTOM_ALLOCATOR",
-			"MULTI_THREADED"
+			"CONFIG_CHUNK_SIZE = 8192"
         }
 		
-	filter "configurations:Pool_MT_Custom_Test"
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
+	filter "configurations:Pool_Custom_Test_16384_Chunk or Pool_MT_Custom_Test_16384_Chunk"
         defines
         {
-            "NDEBUG",
-			"TEST_POOL_ALLOCATOR",
-			"USE_CUSTOM_ALLOCATOR",
-			"MULTI_THREADED"
+			"CONFIG_CHUNK_SIZE = 16384"
         }
+
 	
-	filter { "configurations:Release" ,
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Stack_Test",
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Pool_Test",
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Stack_Custom_Test",
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Pool_Custom_Test",
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Stack_MT_Test",
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Pool_MT_Test",
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Stack_MT_Custom_Test",
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
-		}
-		
-	filter { "configurations:Pool_MT_Custom_Test",
+	filter { "configurations:Release or Stack_Test or Pool_Test or Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Stack_MT_Test or Pool_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk" ,
 		"system:windows" }
 		links
 		{	
