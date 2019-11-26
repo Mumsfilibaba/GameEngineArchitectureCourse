@@ -54,8 +54,10 @@
 #endif
 
 #ifdef COLLECT_PERFORMANCE_DATA
-#define NUM_FRAMES_TO_COLLECT_OVER 10000
-	std::map<std::thread::id, size_t> g_ThreadFrameSums;
+#define NUM_TESTS_TO_AVERAGE_OVER 500
+#define NUM_FRAMES_TO_COLLECT_OVER 100
+	std::map<size_t, size_t> g_ThreadFrameSums;
+	std::map<size_t, size_t*> g_ThreadFrameTimes;
 #endif
 
 std::string N2HexStr(size_t w)
@@ -152,30 +154,54 @@ std::string N2HexStr(size_t w)
 	{
 		ThreadPerformanceData()
 		{
-			this->threadID = std::this_thread::get_id();
 			this->frameTimeSum = 0.0f;
+			this->currentFrame = 0;
 		}
 
 		~ThreadPerformanceData()
 		{
 			std::lock_guard<SpinLock> lock(g_ThreadFrameSumsLock);
 			g_ThreadFrameSums[threadID] = frameTimeSum;
+
+			if (g_ThreadFrameTimes.find(threadID) == g_ThreadFrameTimes.end())
+			{
+				size_t* frameTimesArr = new size_t[NUM_FRAMES_TO_COLLECT_OVER];
+
+				for (size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+				{
+					frameTimesArr[i] = 0;
+				}
+
+				g_ThreadFrameTimes[threadID] = frameTimesArr;
+			}
+
+			size_t* frameTimesArr = g_ThreadFrameTimes[threadID];
+
+			for (size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+			{
+				frameTimesArr[i] += frameTimes[i];
+			}
 		}
 
-		std::thread::id threadID;
+		size_t threadID;
 		size_t frameTimeSum;
+		size_t frameTimes[NUM_FRAMES_TO_COLLECT_OVER];
+		size_t currentFrame;
 	};
 
 	thread_local static ThreadPerformanceData threadPerformanceData;
 
-	void MeasureThreadPerf()
+	void MeasureThreadPerf(size_t threadId)
 	{
+		threadPerformanceData.threadID = threadId;
 		thread_local static sf::Clock deltaClock;
 
 		{
 			//Get deltatimes and fps
 			sf::Time dt = deltaClock.restart();
-			threadPerformanceData.frameTimeSum += dt.asMicroseconds();
+			size_t microSecondsDelta = dt.asMicroseconds();
+			threadPerformanceData.frameTimeSum += microSecondsDelta;
+			threadPerformanceData.frameTimes[threadPerformanceData.currentFrame++] = microSecondsDelta;
 		}
 	}
 #endif
@@ -429,7 +455,7 @@ void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
 }
 #endif
 #ifdef TEST_STACK_ALLOCATOR
-void RunTest()
+void RunTest(size_t threadID)
 {
 #ifdef MULTI_THREADED
 #ifdef SHOW_GRAPHS
@@ -445,6 +471,8 @@ void RunTest()
 #endif
 #if (defined(MULTI_THREADED) && defined(SHOW_GRAPHS)) || defined(COLLECT_PERFORMANCE_DATA)
 		MeasureThreadPerf();
+#elif defined(COLLECT_PERFORMANCE_DATA)
+		MeasureThreadPerf(threadID);
 #endif
 		
 		//Allocate a bunch of objects
@@ -499,7 +527,7 @@ void RunTest()
 #endif
 }
 #elif defined(TEST_POOL_ALLOCATOR)
-void RunTest()
+void RunTest(size_t threadID)
 {
 #ifdef MULTI_THREADED 
 #ifdef SHOW_GRAPHS
@@ -513,8 +541,10 @@ void RunTest()
 	{
 #endif
 #endif
-#if (defined(MULTI_THREADED) && defined(SHOW_GRAPHS)) || defined(COLLECT_PERFORMANCE_DATA)
+#if (defined(MULTI_THREADED) && defined(SHOW_GRAPHS)) 
 		MeasureThreadPerf();
+#elif defined(COLLECT_PERFORMANCE_DATA)
+		MeasureThreadPerf(threadID);
 #endif
 
 		for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
@@ -579,15 +609,6 @@ void RunTest()
 		}
 #ifdef MULTI_THREADED
 	}
-
-	for (int i = 0; i < NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD; i++)
-	{
-		if (gContainerArr[i] != nullptr)
-		{
-			POOL_DELETE(gContainerArr[i]);
-			gContainerArr[i] = nullptr;
-		}
-	}
 #endif
 }
 #endif
@@ -597,7 +618,7 @@ void RunTest()
 void StartTest()
 {
 	//Not Multi-threaded Stack Allocation Test
-	RunTest();
+	RunTest(0);
 }
 #else
 void StartTest()
@@ -609,7 +630,7 @@ void StartTest()
 
 		for (int i = 0; i < NUMBER_OF_THREADS_IN_MULTI_THREADED; i++)
 		{
-			gThreads[i] = new std::thread(RunTest);
+			gThreads[i] = new std::thread(RunTest, i);
 		}
 	}
 }
@@ -873,16 +894,23 @@ int main(int argc, const char* argv[])
 	ImGui::SFML::Shutdown();
 #else
 #if defined(TEST_STACK_ALLOCATOR) || defined(TEST_POOL_ALLOCATOR)
-	for (size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+
+	for (size_t t = 0; t < NUM_TESTS_TO_AVERAGE_OVER; t++)
 	{
-		StartTest();
+		for (size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+		{
+			StartTest();
 
 #ifdef USE_CUSTOM_ALLOCATOR
-		stack_reset();
+			stack_reset();
 #endif
-	}
+		}
 
-	StopTest();
+		StopTest();
+		g_ThreadsStarted = false;
+		MemoryManager::GetInstance().Reset();
+	}
+	
 
 #ifndef MULTI_THREADED
 	g_ThreadFrameSums[std::this_thread::get_id()] = threadPerformanceData.frameTimeSum;
@@ -919,8 +947,18 @@ int main(int argc, const char* argv[])
 	{
 		size_t totalMicroSeconds = it.second;
 		float averageMicroSeconds = (float)totalMicroSeconds / NUM_FRAMES_TO_COLLECT_OVER;
-		std::cout << averageMicroSeconds << std::endl;
-		file << averageMicroSeconds << "|" << std::endl;
+		//std::cout << averageMicroSeconds << std::endl;
+		//file << averageMicroSeconds << "|" << std::endl;
+	}
+
+	for (auto it : g_ThreadFrameTimes)
+	{
+		for (size_t i = 0; i < NUM_FRAMES_TO_COLLECT_OVER; i++)
+			file << ((float)it.second[i] / NUM_TESTS_TO_AVERAGE_OVER) << "|";
+
+		file << std::endl;
+
+		delete[] it.second;
 	}
 
 	file.close();
