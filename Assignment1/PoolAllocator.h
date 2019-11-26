@@ -62,8 +62,9 @@ public:
 			//static_assert(CHUNK_SIZE % blockSize == 0);
 
 			//ThreadSafePrintf("Created %p\n", this);
+#ifndef COLLECT_PERFORMANCE_DATA
 			PoolAllocatorBase::s_TotalAllocated += CHUNK_SIZE;
-			
+#endif
 			//Init blocks
 			constexpr int chunkSize		= CHUNK_SIZE_BYTES;
 			constexpr int blockCount	= chunkSize / blockSize;
@@ -81,7 +82,9 @@ public:
 
 		inline ~Chunk()
 		{
+#ifndef COLLECT_PERFORMANCE_DATA
 			PoolAllocatorBase::s_TotalAllocated -= CHUNK_SIZE;
+#endif
 			m_pArena = nullptr;
 		}
 
@@ -120,7 +123,9 @@ public:
 			block->pNext = m_pBlocksToBeFreedHead;
 			m_pBlocksToBeFreedHead = block;
 
+#ifndef COLLECT_PERFORMANCE_DATA
 			PoolAllocatorBase::s_TotalUsed -= sizeof(T);
+#endif
 		}
 
 		inline bool AllocateChunkAndSetHead()
@@ -153,8 +158,9 @@ public:
 				}
 			}
 
+#ifndef COLLECT_PERFORMANCE_DATA
 			PoolAllocatorBase::s_TotalUsed += sizeof(T);
-
+#endif
 			m_pFreeListHead = m_pFreeListHead->pNext;
 			return pCurrent;
 		}

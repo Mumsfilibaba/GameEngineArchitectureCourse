@@ -70,6 +70,7 @@ class MemoryManager
 {
 public:
 	~MemoryManager();
+	void Reset();
 	void* Allocate(size_t allocationSizeInBytes, size_t alignment, const std::string& tag);
 	void Free(void* allocation);
 

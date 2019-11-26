@@ -12,12 +12,16 @@ StackAllocator::StackAllocator(size_t size)
 	m_pEnd = (void*)((size_t)m_pStart + size);
 	m_pCurrent = m_pStart;
 
+#ifndef COLLECT_PERFORMANCE_DATA
 	s_TotalAllocated += m_Size;
+#endif
 }
 
 StackAllocator::~StackAllocator()
 {
+#ifndef COLLECT_PERFORMANCE_DATA
 	s_TotalAllocated -= m_Size;
+#endif
 }
 
 #ifdef SHOW_ALLOCATIONS_DEBUG
@@ -35,7 +39,10 @@ void* StackAllocator::AllocateMemory(const std::string& tag, size_t size, size_t
     }
 
 	m_Used		+= size + padding;
+
+#ifndef COLLECT_PERFORMANCE_DATA
 	s_TotalUsed += size + padding;
+#endif
 
 	MemoryManager::GetInstance().RegisterStackAllocation(tag, (size_t)pMemory, size);
     return pMemory;
@@ -55,7 +62,10 @@ void* StackAllocator::AllocateMemory(size_t size, size_t alignment)
 	}
 
 	m_Used += size + padding;
+
+#ifndef COLLECT_PERFORMANCE_DATA
 	s_TotalUsed += size + padding;
+#endif
 
 	return pMemory;
 }
@@ -64,8 +74,9 @@ void* StackAllocator::AllocateMemory(size_t size, size_t alignment)
 void StackAllocator::Reset()
 {
 	m_pCurrent = m_pStart;
-
+#ifndef COLLECT_PERFORMANCE_DATA
 	s_TotalUsed -= m_Used;
+#endif
 	m_Used = 0;
 
 #ifdef SHOW_ALLOCATIONS_DEBUG

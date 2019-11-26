@@ -13,8 +13,10 @@ MemoryManager::MemoryManager()
 	m_pFreeHead->pNext = m_pFreeTail;
 	
 	m_pFreeListStart = m_pFreeTail;
-	
+
+#ifndef COLLECT_PERFORMANCE_DATA
 	s_TotalAllocated = SIZE_IN_BYTES;
+#endif
 }
 
 MemoryManager::~MemoryManager()
@@ -28,6 +30,27 @@ MemoryManager::~MemoryManager()
 	m_pFreeListStart = nullptr;
 	m_pFreeHead = nullptr;
 	m_pFreeTail = nullptr;
+}
+
+void MemoryManager::Reset()
+{
+	if (m_pMemory != nullptr)
+	{
+		free(m_pMemory);
+		m_pMemory = nullptr;
+	}
+
+	m_pFreeListStart = nullptr;
+	m_pFreeHead = nullptr;
+	m_pFreeTail = nullptr;
+
+	m_pMemory = malloc(SIZE_IN_BYTES);
+	m_pFreeTail = new(m_pMemory) FreeEntry(SIZE_IN_BYTES / 2);
+	m_pFreeHead = new((void*)((size_t)m_pMemory + SIZE_IN_BYTES / 2)) FreeEntry(SIZE_IN_BYTES / 2);
+	m_pFreeTail->pNext = m_pFreeHead;
+	m_pFreeHead->pNext = m_pFreeTail;
+
+	m_pFreeListStart = m_pFreeTail;
 }
 
 void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, const std::string& tag)
@@ -100,8 +123,10 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 			//Create a new Allocation at the CurrentFree Address
 			m_AllocationHeaders[aligned] = Allocation(tag, allocationSizeInBytes + internalPadding, internalPadding);
 
-			//Return the address of the allocation, but offset it so the size member does not get overridden.			
+			//Return the address of the allocation, but offset it so the size member does not get overridden.
+#ifndef COLLECT_PERFORMANCE_DATA
 			s_TotalUsed += (allocationSizeInBytes + padding);
+#endif
 			return (void*)(aligned);
 		}
 
