@@ -9,6 +9,14 @@
 
 #define MB(mb) mb * 1024 * 1024
 
+#ifdef CONFIG_CHUNK_SIZE_4096
+	#define CONFIG_CHUNK_SIZE 4096
+#elif defined(CONFIG_CHUNK_SIZE_8192)
+	#define CONFIG_CHUNK_SIZE 8192
+#elif defined(CONFIG_CHUNK_SIZE_16384)
+	#define CONFIG_CHUNK_SIZE 16384
+#endif
+
 #ifndef CONFIG_CHUNK_SIZE
 	#define CHUNK_SIZE 4096
 #else

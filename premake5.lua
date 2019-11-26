@@ -137,19 +137,19 @@ workspace "Game Engine Architecture"
 	filter "configurations:Pool_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_4096_Chunk"
         defines
         {
-			"CONFIG_CHUNK_SIZE = 4096"
+			"CONFIG_CHUNK_SIZE_4096"
         }
 		
 	filter "configurations:Pool_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_8192_Chunk"
         defines
         {
-			"CONFIG_CHUNK_SIZE = 8192"
+			"CONFIG_CHUNK_SIZE_8192"
         }
 		
 	filter "configurations:Pool_Custom_Test_16384_Chunk or Pool_MT_Custom_Test_16384_Chunk"
         defines
         {
-			"CONFIG_CHUNK_SIZE = 16384"
+			"CONFIG_CHUNK_SIZE_16384"
         }
 
 	
