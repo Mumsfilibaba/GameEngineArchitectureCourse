@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "MemoryManager.h"
+#include "StringHash.h"
 
 class Archiver
 {
@@ -96,13 +97,15 @@ public:
 	~Archiver();
 
 	void OpenCompressedPackage(const std::string& filename);
-	void* ReadPackageData(size_t hash, size_t& size);
+	size_t ReadRequiredSizeForPackageData(size_t hash);
+	void ReadPackageData(size_t hash, void* pBuf, size_t bufSize);
 	void CloseCompressedPackage();
 
 	void CreateUncompressedPackage();
 	void AddToUncompressedPackage(size_t hash, size_t sizeInBytes, void* pData);
 	void RemoveFromUncompressedPackage(size_t hash);
-	void SaveUncompressedPackage(const std::string& filename, bool saveDebugCopy = false);
+	void SaveUncompressedPackage(const std::string& filename);
+	void CloseUncompressedPackage();
 
 private:
 	Archiver();
