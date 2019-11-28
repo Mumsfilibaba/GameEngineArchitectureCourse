@@ -73,7 +73,7 @@ void GameAssign2::Init()
 	archiver.SaveUncompressedPackage("package");
 	archiver.CloseUncompressedPackage();
 
-	archiver.OpenCompressedPackage("package");
+	archiver.OpenCompressedPackage("package", Archiver::LOAD_AND_PREPARE);
 
 	size_t testStringHash = HashString("Test String");
 	size_t testStringSize = archiver.ReadRequiredSizeForPackageData(testStringHash);
