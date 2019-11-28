@@ -5,6 +5,7 @@
 #include "PoolAllocator.h"
 #include "StackAllocator.h"
 #include "Mesh.h"
+#include "Camera.h"
 
 class Game
 {
@@ -40,4 +41,5 @@ private:
 	sf::RenderWindow* m_pRenderWindow;
 	sf::Color m_ClearColor;
 	sf::Shader m_MeshShader;
+	Camera m_Camera;
 };

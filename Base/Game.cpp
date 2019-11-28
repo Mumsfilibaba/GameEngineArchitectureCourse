@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <imgui-SFML.h>
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 #include "Debugger.h"
 
 #ifdef VISUAL_STUDIO
@@ -49,6 +50,10 @@ void Game::InternalInit()
 	const char* pVersion = (const char*)glGetString(GL_VERSION);
 	ThreadSafePrintf("Renderer: %s\nVersion: %s\nMSAA: %dx\n", pRenderer, pVersion, settings.antialiasingLevel);
 
+	//Setup opengl to be CCW
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW);
+
 	//Init ImGui
 	ImGui::SFML::Init(*m_pRenderWindow);
 
@@ -61,6 +66,9 @@ void Game::InternalInit()
 			layout(location = 2) in vec3 a_Tangent;
 			layout(location = 3) in vec2 a_TexCoord;
 
+			uniform mat4 u_Projection;
+			uniform mat4 u_View;
+
 			out vec3 v_Position;
 			out vec3 v_Normal;
 			out vec3 v_Tangent;
@@ -72,7 +80,7 @@ void Game::InternalInit()
 				v_Normal	= a_Normal;
 				v_Tangent	= a_Tangent;
 				v_TexCoord	= a_TexCoord;
-				gl_Position = vec4(a_Position, 1.0);	
+				gl_Position = u_Projection * u_View * vec4(a_Position, 1.0);	
 			}
 		)";
 
@@ -93,6 +101,15 @@ void Game::InternalInit()
 		)";
 
 	m_MeshShader.loadFromMemory(vs, fs);
+
+	//Init camera
+	m_Camera.SetAspect(m_pRenderWindow->getSize().x, m_pRenderWindow->getSize().y);
+	m_Camera.SetPosition(glm::vec3(0.0f, 0.0f, -2.0f));
+	m_Camera.CreateProjection();
+	m_Camera.CreateView();
+
+	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetProjection())));
+	m_MeshShader.setUniform("u_View",		sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetView())));
 
 	//Init client
 	Init();
@@ -127,6 +144,10 @@ void Game::Run()
 			else if (event.type == sf::Event::Resized)
 			{
 				glViewport(0, 0, event.size.width, event.size.height);
+				
+				//Update camera
+				m_Camera.SetAspect(event.size.width, event.size.height);
+				m_Camera.CreateView();
 			}
 		}
 
@@ -135,6 +156,7 @@ void Game::Run()
 
 		//Clear explicit since window.clear may not clear depthbuffer?
 		glClearColor(m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a);
+		glClearDepth(1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//Draw customs stuff
@@ -155,13 +177,51 @@ void Game::Run()
 
 void Game::InternalUpdate(const sf::Time& deltatime)
 {
-	Update(deltatime);
 	ImGui::SFML::Update(*m_pRenderWindow, deltatime);
+	Update(deltatime);
+
+	//Move camera
+	constexpr float speed = 2.0f;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+		m_Camera.Translate(glm::vec3(0.0f, 0.0f, speed) * deltatime.asSeconds());
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+		m_Camera.Translate(glm::vec3(0.0f, 0.0f, -speed) * deltatime.asSeconds());
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		m_Camera.Translate(glm::vec3(speed, 0.0f, 0.0f) * deltatime.asSeconds());
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+		m_Camera.Translate(glm::vec3(-speed, 0.0f, 0.0f) * deltatime.asSeconds());
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+		m_Camera.Translate(glm::vec3(0.0f, speed, 0.0f) * deltatime.asSeconds());
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+		m_Camera.Translate(glm::vec3(0.0f, -speed, 0.0f) * deltatime.asSeconds());
+
+	//Rotate camera
+	constexpr float rotation = 30.0f;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+		m_Camera.Rotate(glm::vec3(-rotation, 0.0f, 0.0f) * deltatime.asSeconds());
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+		m_Camera.Rotate(glm::vec3(rotation, 0.0f, 0.0f) * deltatime.asSeconds());
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+		m_Camera.Rotate(glm::vec3(0.0f, -rotation, 0.0f) * deltatime.asSeconds());
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+		m_Camera.Rotate(glm::vec3(0.0f, rotation, 0.0f) * deltatime.asSeconds());
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+		m_Camera.Rotate(glm::vec3(0.0f, 0.0f, rotation) * deltatime.asSeconds());
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+		m_Camera.Rotate(glm::vec3(0.0f, 0.0f, -rotation) * deltatime.asSeconds());
+
+	m_Camera.CreateView();
 }
 
 void Game::InternalRender(const sf::Time& deltatime)
 {
 	sf::Shader::bind(&m_MeshShader);
+	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetProjection())));
+	m_MeshShader.setUniform("u_View", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetView())));
 
 	Render();
 
