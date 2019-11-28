@@ -2,9 +2,11 @@ project "ImGui"
     kind "StaticLib"
     language "C++"
 
+	-- Directories
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
     objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	-- All Files
     files
     {
         "imconfig.h",
@@ -21,7 +23,15 @@ project "ImGui"
         "imgui_demo.cpp"
     }
     
+	-- Windows specific
     filter "system:windows"
         systemversion "latest"
         cppdialect "C++17"
         staticruntime "Off"
+		
+	-- Windows specific
+    filter "system:macosx"
+        systemversion "latest"
+        cppdialect "C++17"
+		
+project "*"

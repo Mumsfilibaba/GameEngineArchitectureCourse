@@ -68,7 +68,7 @@ inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d, 
 #define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T(); }
 #define stack_reset				StackAllocator::GetInstance().Reset
 #else
-inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d)
+inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy)
 {
 	return StackAllocator::GetInstance().AllocateMemory(size, alignment);
 }

@@ -65,7 +65,7 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 	do
 	{
 		size_t offset = (size_t)pCurrentFree;
-		size_t padding = (-offset & (alignment - 1));
+		size_t padding = (-int64_t(offset) & (alignment - 1));
 		size_t aligned = offset + padding;
 
 		//Not Perfect Fit Free Block (Need to create a new FreeEntry after the allocation)

@@ -1,6 +1,6 @@
 workspace "Game Engine Architecture"
     architecture "x64"
-    startproject "Assign2_Allocator"
+    startproject "Assign2_ResourceManager"
     warnings "extra"
 
 	-- Setup output dirs
@@ -11,40 +11,29 @@ workspace "Game Engine Architecture"
     {
         "Debug",
         "Release"
-    }
+	}
 	defines 
 	{ 
 		"SFML_STATIC" 
 	}
-	files
-	{
-		"Base/**.cpp",
-		"Base/**.h"
-	}
 
-	-- Setup configurations for windows
-	filter "system:windows"
-		sysincludedirs
-		{
-			"Dependencies/SFML-2.5.1/include",
-			"ImGui"
+	-- Setup configurations for Debug for all projects
+	filter "configurations:Debug"
+        symbols "On"
+        runtime "Debug"
+        defines
+        {
+            "DEBUG"
 		}
-		libdirs
+
+	-- Setup configurations for Release for all projects
+	filter "configurations:Release" 
+		symbols "On"
+		runtime "Release"
+		optimize "Full"
+		defines
 		{
-			"Dependencies/SFML-2.5.1/lib"
-		}
-		links
-		{
-			"opengl32",
-			"freetype",
-			"winmm",
-			"gdi32",
-			"flac",
-			"vorbisenc",
-			"vorbisfile",
-			"vorbis",
-			"ogg",
-			"ws2_32"
+			"NDEBUG"
 		}
 
 	-- Setup configurations for macos
@@ -58,98 +47,17 @@ workspace "Game Engine Architecture"
 			"/usr/local/include",
 			"ImGui"
 		}
-		links 
+		
+	-- Setup configurations for windows
+	filter "system:windows"
+		sysincludedirs
 		{
-			"OpenGL.framework",
-			"sfml-window.2.5.1",
-			"sfml-system.2.5.1",
-			"sfml-audio.2.5.1",
-			"sfml-graphics.2.5.1",
-			"sfml-network.2.5.1"
-		} 
-
-	-- Setup configurations for Debug
-    filter "configurations:Debug"
-        symbols "On"
-        runtime "Debug"
-        defines
-        {
-            "DEBUG"
-        }
-
-	-- Setup configurations for Debug and Windows
-	filter { "configurations:Debug", "system:windows" }
-		links
-		{	
-			"sfml-graphics-s-d",
-			"sfml-window-s-d",
-			"sfml-system-s-d",
-			"sfml-audio-s-d",
-			"sfml-network-s-d"
+			"Dependencies/SFML-2.5.1/include",
+			"ImGui"
 		}
-
-	-- Setup configurations for Release
-    filter "configurations:Release or Stack_Test or Pool_Test or Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Pool_MT_Test or Stack_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk" 
-        symbols "On"
-        runtime "Release"
-        optimize "Full"
-        defines
-        {
-            "NDEBUG"
-        }
-		
-	filter "configurations:Stack_Test or Stack_Custom_Test or Stack_MT_Test or Stack_MT_Custom_Test"
-		defines
-        {
-			"TEST_STACK_ALLOCATOR"
-        }
-		
-	filter "configurations:Pool_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Pool_MT_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
-        defines
+		libdirs
 		{
-			"TEST_POOL_ALLOCATOR"
-        }
-		
-	filter "configurations:Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
-        defines
-        {
-			"USE_CUSTOM_ALLOCATOR"
-        }
-		
-	filter "configurations:Stack_MT_Test or Pool_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
-        defines
-        {
-			"MULTI_THREADED"
-        }
-			
-	filter "configurations:Pool_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_4096_Chunk"
-        defines
-        {
-			"CONFIG_CHUNK_SIZE_4096"
-        }
-		
-	filter "configurations:Pool_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_8192_Chunk"
-        defines
-        {
-			"CONFIG_CHUNK_SIZE_8192"
-        }
-		
-	filter "configurations:Pool_Custom_Test_16384_Chunk or Pool_MT_Custom_Test_16384_Chunk"
-        defines
-        {
-			"CONFIG_CHUNK_SIZE_16384"
-        }
-
-	-- Setup configurations for Release and windows
-	filter { "configurations:Release or Stack_Test or Pool_Test or Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Stack_MT_Test or Pool_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk" ,
-		"system:windows" }
-		links
-		{	
-			"sfml-graphics-s",
-			"sfml-window-s",
-			"sfml-system-s",
-			"sfml-audio-s",
-			"sfml-network-s"
+			"Dependencies/SFML-2.5.1/lib"
 		}
 
 	-- Setup Assignment 1
@@ -159,16 +67,23 @@ workspace "Game Engine Architecture"
         location "Assignment1"
         cppdialect "C++17"
         systemversion "latest"	
-        files
+		files
         {
             "Assignment1/**.cpp",
-            "Assignment1/**.h"
+			"Assignment1/**.h",
+			"Base/**.cpp",
+			"Base/**.h",
         }
 		links
 		{
 			"ImGui"
 		}
-		configurations
+		includedirs
+		{
+			"Base"
+		}
+		
+		--[[configurations
 		{
 			"Stack_Test",
 			"Pool_Test",
@@ -183,6 +98,62 @@ workspace "Game Engine Architecture"
 			"Pool_MT_Custom_Test_8192_Chunk",
 			"Pool_MT_Custom_Test_16384_Chunk",
 		}
+		--]]
+
+		-- Setup configurations for different tests
+		filter "configurations:Stack_Test or Pool_Test or Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Pool_MT_Test or Stack_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk" 
+			symbols "On"
+			runtime "Release"
+			optimize "Full"
+			defines
+			{
+				"NDEBUG"
+			}
+			
+		filter "configurations:Stack_Test or Stack_Custom_Test or Stack_MT_Test or Stack_MT_Custom_Test"
+			defines
+			{
+				"TEST_STACK_ALLOCATOR"
+			}
+			
+		filter "configurations:Pool_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Pool_MT_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
+			defines
+			{
+				"TEST_POOL_ALLOCATOR"
+			}
+			
+		filter "configurations:Stack_Custom_Test or Pool_Custom_Test_8192_Chunk or Pool_Custom_Test_4096_Chunk or Pool_Custom_Test_16384_Chunk or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
+			defines
+			{
+				"USE_CUSTOM_ALLOCATOR"
+			}
+			
+		filter "configurations:Stack_MT_Test or Pool_MT_Test or Stack_MT_Custom_Test or Pool_MT_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_16384_Chunk"
+			defines
+			{
+				"MULTI_THREADED"
+			}
+				
+		filter "configurations:Pool_Custom_Test_4096_Chunk or Pool_MT_Custom_Test_4096_Chunk"
+			defines
+			{
+				"CONFIG_CHUNK_SIZE_4096"
+			}
+			
+		filter "configurations:Pool_Custom_Test_8192_Chunk or Pool_MT_Custom_Test_8192_Chunk"
+			defines
+			{
+				"CONFIG_CHUNK_SIZE_8192"
+			}
+			
+		filter "configurations:Pool_Custom_Test_16384_Chunk or Pool_MT_Custom_Test_16384_Chunk"
+			defines
+			{
+				"CONFIG_CHUNK_SIZE_16384"
+			}
+
+		-- Run script to setup SFML (To avoid duplication of code)
+		dofile("premake5_setupSFML.lua")
 	project "*"
 
 	-- Setup Assignment 2
@@ -195,14 +166,24 @@ workspace "Game Engine Architecture"
 		files
         {
             "Assignment2/**.cpp",
-            "Assignment2/**.h"
+			"Assignment2/**.h",
+			"Base/**.cpp",
+			"Base/**.h",
         }
 		links
 		{
 			"ImGui"
 		}
+		includedirs
+		{
+			"Base"
+		}
+
+		-- Run script to setup SFML (To avoid duplication of code)
+		dofile("premake5_setupSFML.lua")
 	project "*"
 
+	-- Setup Dependency projects
 	group "Dependencies"
 		include "ImGui"
 	group ""
