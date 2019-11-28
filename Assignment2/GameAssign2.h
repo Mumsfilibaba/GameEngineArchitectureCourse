@@ -1,8 +1,11 @@
 #pragma once
 #include "Game.h"
+#include "TextureManager.h"
 
 class GameAssign2 final : public Game
 {
+public:
+	TextureManager txtrManager;
 public:
 	GameAssign2() = default;
 	~GameAssign2() = default;

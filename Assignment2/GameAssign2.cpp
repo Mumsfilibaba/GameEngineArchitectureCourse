@@ -6,6 +6,7 @@
 
 void GameAssign2::Init()
 {
+	txtrManager.LoadTGAFile("flag_b16.tga", txtrManager.m_tgaFile);
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
