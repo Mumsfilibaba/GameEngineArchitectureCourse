@@ -51,6 +51,7 @@ workspace "Game Engine Architecture"
 		{
 			"/usr/local/include",
 			"Dependencies/ImGui",
+			"Dependencies/glm",
 			"Dependencies/Glad/Include"
 		}
 		libdirs
@@ -65,6 +66,7 @@ workspace "Game Engine Architecture"
 			"Dependencies/SFML-2.5.1/include",
 			"Dependencies/zlib/include",
 			"Dependencies/ImGui",
+			"Dependencies/glm",
 			"Dependencies/Glad/Include"
 		}
 		libdirs
@@ -89,7 +91,8 @@ workspace "Game Engine Architecture"
         }
 		links
 		{
-			"ImGui"
+			"ImGui",
+			"Glad"
 		}
 		includedirs
 		{

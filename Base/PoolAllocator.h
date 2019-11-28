@@ -3,6 +3,7 @@
 #include <vector>
 #include <mutex>
 #include <type_traits>
+#include <algorithm>
 #include "SpinLock.h"
 #include "MemoryManager.h"
 #include "Helpers.h"
@@ -220,10 +221,14 @@ public:
 
 	inline void Free(T* pObject)
 	{
-		Block* block = (Block*)pObject;
-		Chunk* chunk = Chunk::FromBlock(block);
+		pObject->~T(); //Call destructor
+		FreeBlock(pObject);
+	}
 
-		pObject->~T();
+	inline void FreeBlock(void* ptr)
+	{
+		Block* block = (Block*)ptr;
+		Chunk* chunk = Chunk::FromBlock(block);
 
 #ifdef SHOW_ALLOCATIONS_DEBUG
 		MemoryManager::GetInstance().RemovePoolAllocation((size_t)block);
@@ -247,8 +252,8 @@ private:
 
 #ifdef SHOW_ALLOCATIONS_DEBUG
 #define pool_new(type, tag)		new(PoolAllocator<type>::Get().AllocateBlock(tag))
-#define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object);
 #else
 #define pool_new(type)			new(PoolAllocator<type>::Get().AllocateBlock())
-#define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object);
 #endif
+
+#define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object)
