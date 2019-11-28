@@ -2,13 +2,16 @@
 #include <iostream>
 #include <imgui.h>
 #include <imgui-SFML.h>
-#include <SFML/OpenGL.hpp>
+#include <glad/glad.h>
 #include "Debugger.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4002)		//Disable: "too many arguments for function-like macro invocation"-warning
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
+
+GLuint vao = 0;
+GLuint vbo = 0;
 
 void Game::InternalInit()
 {
@@ -24,7 +27,7 @@ void Game::InternalInit()
 #ifdef DEBUG
 	settings.attributeFlags		= sf::ContextSettings::Debug;
 #else
-	settings.attributeFlags		= 0
+	settings.attributeFlags		= 0;
 #endif
 	settings.antialiasingLevel	= 4;
 	settings.majorVersion		= 3;
@@ -34,10 +37,20 @@ void Game::InternalInit()
 	m_pRenderWindow->setVerticalSyncEnabled(false);
 	m_pRenderWindow->setFramerateLimit(0);
 
+	//Init glad
+	if (!gladLoadGL())
+	{
+		ThreadSafePrintf("Failed to load glad\n");
+	}
+	else
+	{
+		ThreadSafePrintf("Glad loaded successfully\n");
+	}
+
 	//Make sure opengl works
 	const char* pRenderer = (const char*)glGetString(GL_RENDERER);
 	const char* pVersion = (const char*)glGetString(GL_VERSION);
-	ThreadSafePrintf("Renderer: %s\nVersion: %s\n", pRenderer, pVersion);
+	ThreadSafePrintf("Renderer: %s\nVersion: %s\nMSAA: %dx\n", pRenderer, pVersion, settings.antialiasingLevel);
 
 	//Init ImGui
 	ImGui::SFML::Init(*m_pRenderWindow);
@@ -70,6 +83,27 @@ void Game::InternalInit()
 		)";
 
 	m_MeshShader.loadFromMemory(vs, fs);
+
+	// Create Vertex Array Object
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	// Create a Vertex Buffer Object and copy the vertex data to it
+	glGenBuffers(1, &vbo);
+
+	GLfloat vertices[] = {
+			0.0f,  0.5f, 0.0f,
+			0.5f, -0.5f, 0.0f,
+			-0.5f, -0.5f, 0.0f,
+	};
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	// Specify the layout of the vertex data
+	GLint posAttrib = glGetAttribLocation(m_MeshShader.getNativeHandle(), "a_Position");
+	glEnableVertexAttribArray(posAttrib);
+	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	//Init client
 	Init();
@@ -139,6 +173,12 @@ void Game::InternalUpdate(const sf::Time& deltatime)
 void Game::InternalRender(const sf::Time& deltatime)
 {
 	sf::Shader::bind(&m_MeshShader);
+
+	glBindVertexArray(vao); // this line is new
+	glBindBuffer(GL_ARRAY_BUFFER, vbo); // this one as well
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindBuffer(GL_ARRAY_BUFFER, 0); // !! this one as well
+	glBindVertexArray(0); // this one as well
 
 	Render();
 
