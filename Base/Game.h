@@ -7,9 +7,9 @@ public:
 	Game() = default;
 	~Game() = default;
 
-	void Init();
-	void Run();
-	void Update(sf::Time deltaTime);
-	void Render();
+	virtual void Init();
+	virtual void Run();
+	virtual void Update(sf::Time deltaTime);
+	virtual void Render();
 private:
 };
