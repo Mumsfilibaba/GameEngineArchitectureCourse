@@ -62,11 +62,13 @@ workspace "Game Engine Architecture"
 		sysincludedirs
 		{
 			"Dependencies/SFML-2.5.1/include",
+			"Dependencies/zlib/include",
 			"ImGui"
 		}
 		libdirs
 		{
-			"Dependencies/SFML-2.5.1/lib"
+			"Dependencies/SFML-2.5.1/lib",
+			"Dependencies/zlib/lib"
 		}
 
 	-- Setup Assignment 1
@@ -179,6 +181,17 @@ workspace "Game Engine Architecture"
 			"Base/**.cpp",
 			"Base/**.h",
         }
+		filter "configurations:Release"
+		links
+		{
+			"zlibstatic"
+		}
+		filter "configurations:Debug"
+		links
+		{
+			"zlibstaticd"
+		}
+		filter {}
 		links
 		{
 			"ImGui"
