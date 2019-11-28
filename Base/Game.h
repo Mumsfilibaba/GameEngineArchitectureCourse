@@ -4,6 +4,7 @@
 #include "MemoryManager.h"
 #include "PoolAllocator.h"
 #include "StackAllocator.h"
+#include "Mesh.h"
 
 class Game
 {

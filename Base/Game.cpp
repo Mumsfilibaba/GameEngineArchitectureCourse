@@ -10,15 +10,12 @@
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-GLuint vao = 0;
-GLuint vbo = 0;
-
 void Game::InternalInit()
 {
 	MEMLEAKCHECK;
 
 	//Init clearcolor
-	m_ClearColor = sf::Color::Magenta;
+	m_ClearColor = sf::Color::Black;
 
 	//Init window
 	sf::ContextSettings settings;
@@ -60,11 +57,21 @@ void Game::InternalInit()
 			#version 330 core
 			
 			layout(location = 0) in vec3 a_Position;
+			layout(location = 1) in vec3 a_Normal;
+			layout(location = 2) in vec3 a_Tangent;
+			layout(location = 3) in vec2 a_TexCoord;
+
 			out vec3 v_Position;
+			out vec3 v_Normal;
+			out vec3 v_Tangent;
+			out vec2 v_TexCoord;
 
 			void main()
 			{
-				v_Position = a_Position;
+				v_Position	= a_Position;
+				v_Normal	= a_Normal;
+				v_Tangent	= a_Tangent;
+				v_TexCoord	= a_TexCoord;
 				gl_Position = vec4(a_Position, 1.0);	
 			}
 		)";
@@ -75,6 +82,9 @@ void Game::InternalInit()
 			layout(location = 0) out vec4 color;
 
 			in vec3 v_Position;
+			in vec3 v_Normal;
+			in vec3 v_Tangent;
+			in vec2 v_TexCoord;
 
 			void main()
 			{
@@ -83,27 +93,6 @@ void Game::InternalInit()
 		)";
 
 	m_MeshShader.loadFromMemory(vs, fs);
-
-	// Create Vertex Array Object
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	// Create a Vertex Buffer Object and copy the vertex data to it
-	glGenBuffers(1, &vbo);
-
-	GLfloat vertices[] = {
-			0.0f,  0.5f, 0.0f,
-			0.5f, -0.5f, 0.0f,
-			-0.5f, -0.5f, 0.0f,
-	};
-
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	// Specify the layout of the vertex data
-	GLint posAttrib = glGetAttribLocation(m_MeshShader.getNativeHandle(), "a_Position");
-	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	//Init client
 	Init();
@@ -173,12 +162,6 @@ void Game::InternalUpdate(const sf::Time& deltatime)
 void Game::InternalRender(const sf::Time& deltatime)
 {
 	sf::Shader::bind(&m_MeshShader);
-
-	glBindVertexArray(vao); // this line is new
-	glBindBuffer(GL_ARRAY_BUFFER, vbo); // this one as well
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	glBindBuffer(GL_ARRAY_BUFFER, 0); // !! this one as well
-	glBindVertexArray(0); // this one as well
 
 	Render();
 

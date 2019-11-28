@@ -40,6 +40,7 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
+	//Archiver tests
 	DummyStruct object1(1, 3, 3, 7, 6, 9);
 	DummyStruct2D object2(23, 34, 45);
 
@@ -73,6 +74,10 @@ void GameAssign2::Init()
 	void* decompressedTestStringData = archiver.ReadPackageData(HashString("Test String"), testStringSize);
 	std::string decompressedTestString = reinterpret_cast<char*>(decompressedTestStringData);
 	std::cout << "Decompressed String: " << decompressedTestString << std::endl;
+
+	//Construct mesh
+	m_pCube = Mesh::CreateCube();
+	m_pCube->Construct();
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -81,6 +86,7 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
+	m_pCube->Draw();
 }
 
 void GameAssign2::RenderImGui()
@@ -89,4 +95,6 @@ void GameAssign2::RenderImGui()
 
 void GameAssign2::Release()
 {
+	delete m_pCube;
+	m_pCube = nullptr;
 }

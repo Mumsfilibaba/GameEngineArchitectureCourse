@@ -17,4 +17,6 @@ public:
 	virtual void Render() override final;
 	virtual void RenderImGui() override final;
 	virtual void Release() override final;
+private:
+	Mesh* m_pCube;
 };
