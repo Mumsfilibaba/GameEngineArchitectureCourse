@@ -26,7 +26,28 @@ void ImGuiDrawMemoryProgressBar(int used, int available)
 	float usedF = float(used) / float(std::max(available, 1));
 	ImGui::ProgressBar(usedF, ImVec2(0.0f, 0.0f));
 	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-	ImGui::Text("(%.2f/%.2f) mb", BTOMB(used), BTOMB(available));
+
+	//Print megabytes
+	float u = BTOMB(used);
+	if (u > 0.1f) 
+	{
+		float a = BTOMB(available);
+		ImGui::Text("(%.2f/%.2f) mb", u, a);
+		return;
+	}
+
+	//Print kilobytes
+	u = BTOKB(used);
+	if (u > 0.1f)
+	{
+		float a = BTOKB(available);
+		ImGui::Text("(%.2f/%.2f) kb", u, a);
+	}
+	else
+	{
+		//Print bytes
+		ImGui::Text("(%.2f/%.2f) bytes", float(used), float(available));
+	}
 }
 
 void ImGuiPrintMemoryManagerAllocations()
