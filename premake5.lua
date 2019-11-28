@@ -47,14 +47,15 @@ workspace "Game Engine Architecture"
 
 	-- Setup configurations for macos
 	filter "system:macosx"
-		libdirs
-		{
-			"/usr/local/Cellar/sfml/2.5.1/lib/"
-		}
 		sysincludedirs
 		{
 			"/usr/local/include",
-			"ImGui"
+			"Dependencies/ImGui",
+			"Dependencies/Glad/Include"
+		}
+		libdirs
+		{
+			"/usr/local/Cellar/sfml/2.5.1/lib/"
 		}
 		
 	-- Setup configurations for windows
@@ -63,7 +64,8 @@ workspace "Game Engine Architecture"
 		{
 			"Dependencies/SFML-2.5.1/include",
 			"Dependencies/zlib/include",
-			"ImGui"
+			"Dependencies/ImGui",
+			"Dependencies/Glad/Include"
 		}
 		libdirs
 		{
@@ -194,7 +196,8 @@ workspace "Game Engine Architecture"
 		filter {}
 		links
 		{
-			"ImGui"
+			"ImGui",
+			"Glad"
 		}
 		includedirs
 		{
@@ -207,5 +210,6 @@ workspace "Game Engine Architecture"
 
 	-- Setup Dependency projects
 	group "Dependencies"
-		include "ImGui"
+		include "Dependencies/ImGui"
+		include "Dependencies/Glad"
 	group ""

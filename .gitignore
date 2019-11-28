@@ -28,7 +28,7 @@ Assignment1/bin
 *.enc
 *.tmp
 
-Dependencies
+Dependencies/SFML-2.5.1
 ImGui/bin-int
 Assignment1/bin
 Assignment1/obj

@@ -16,6 +16,7 @@
 
 #define PI 3.14159265359f
 #define MB(mb) float(mb) * 1024.0f * 1024.0f
+#define BTOKB(mb) float(mb) / (1024.0f)
 #define BTOMB(mb) float(mb) / (1024.0f * 1024.0f)
 
 #if defined(_WIN32)

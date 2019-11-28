@@ -38,4 +38,5 @@ private:
 private:
 	sf::RenderWindow* m_pRenderWindow;
 	sf::Color m_ClearColor;
+	sf::Shader m_MeshShader;
 };

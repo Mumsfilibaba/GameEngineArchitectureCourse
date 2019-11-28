@@ -29,9 +29,7 @@ project "ImGui"
         cppdialect "C++17"
         staticruntime "Off"
 		
-	-- Windows specific
+	-- macOS specific
     filter "system:macosx"
         systemversion "latest"
         cppdialect "C++17"
-		
-project "*"
