@@ -14,8 +14,16 @@ workspace "Game Engine Architecture"
 	}
 	defines 
 	{ 
-		"SFML_STATIC" 
+		"SFML_STATIC",
+		"_CRT_SECURE_NO_WARNINGS"
 	}
+
+	-- Defines for when using visual studio
+	filter "action:vs*"
+		defines 
+		{ 
+			"VISUAL_STUDIO"
+		}
 
 	-- Setup configurations for Debug for all projects
 	filter "configurations:Debug"
@@ -23,7 +31,8 @@ workspace "Game Engine Architecture"
         runtime "Debug"
         defines
         {
-            "DEBUG"
+			"DEBUG",
+			"_CRTDBG_MAP_ALLOC"
 		}
 
 	-- Setup configurations for Release for all projects

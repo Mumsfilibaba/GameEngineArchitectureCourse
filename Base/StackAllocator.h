@@ -1,7 +1,6 @@
 #pragma once
 #include <atomic>
 #include "MemoryManager.h"
-#include "Defines.h"
 
 //Objects allocated through this allocator will never have their destruct called from it. Therefore it is up to the user to call upon the destructor before freeing the memory!
 class StackAllocator
@@ -59,7 +58,7 @@ namespace Helpers
 }
 
 #ifdef SHOW_ALLOCATIONS_DEBUG
-inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy d, const std::string& tag)
+inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy, const std::string& tag)
 {
 	return StackAllocator::GetInstance().AllocateMemory(tag, size, alignment);
 }

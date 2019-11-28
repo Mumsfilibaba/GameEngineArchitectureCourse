@@ -10,7 +10,7 @@
 #include <sstream>
 #include <unordered_map>
 #include "SpinLock.h"
-#include "Defines.h"
+#include "Helpers.h"
 
 //#define SIZE_IN_BYTES (64 * 1024)
 #define SIZE_IN_BYTES 1024 * 1024 * 64 // = 64mb
