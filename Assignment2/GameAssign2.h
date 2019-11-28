@@ -2,6 +2,11 @@
 #include "Game.h"
 #include "TextureManager.h"
 
+#include <iostream>
+
+#include "Archiver.h"
+#include "StringHash.h"
+
 class GameAssign2 final : public Game
 {
 public:
@@ -15,4 +20,6 @@ public:
 	virtual void Render() override final;
 	virtual void RenderImGui() override final;
 	virtual void Release() override final;
+private:
+	Mesh* m_pCube;
 };

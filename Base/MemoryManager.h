@@ -15,6 +15,7 @@
 //#define SIZE_IN_BYTES (64 * 1024)
 #define SIZE_IN_BYTES 1024 * 1024 * 64 // = 64mb
 #define allocate(...) MemoryManager::GetInstance().Allocate(__VA_ARGS__)
+#define release(...) MemoryManager::GetInstance().Free(__VA_ARGS__)
 
 struct Allocation
 {
