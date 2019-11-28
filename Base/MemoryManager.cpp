@@ -148,21 +148,23 @@ void MemoryManager::Free(void* allocationPtr)
 
 	size_t offsetAllocationAddress = allocationAddress - allocation.padding;
 
-	FreeEntry* pLastFree = nullptr;
-	FreeEntry* pCurrentFree = m_pFreeListStart;
+	FreeEntry* pLastFree = m_pFreeTail;
+	FreeEntry* pCurrentFree = m_pFreeHead;
 
 	do
 	{
 		//We encounter a block that ends in our start (Coalesce left)
 		if ((size_t)pCurrentFree + pCurrentFree->sizeInBytes == offsetAllocationAddress)
 		{
+			FreeEntry* pNewFreeEntry = nullptr;
+
 			//We have a block on our right that we can coalesce with as well
 			if (offsetAllocationAddress + allocation.sizeInBytes == (size_t)pCurrentFree->pNext)
 			{
 				size_t newFreeSize = pCurrentFree->sizeInBytes + allocation.sizeInBytes + pCurrentFree->pNext->sizeInBytes;
 
 				FreeEntry* pCurrentFreeNextNext = pCurrentFree->pNext->pNext;
-				FreeEntry* pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
+				pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
 				pLastFree->pNext = pNewFreeEntry;
 				pNewFreeEntry->pNext = pCurrentFreeNextNext;
 			}
@@ -171,10 +173,13 @@ void MemoryManager::Free(void* allocationPtr)
 				size_t newFreeSize = pCurrentFree->sizeInBytes + allocation.sizeInBytes;
 
 				FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
-				FreeEntry* pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
+				pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
 				pLastFree->pNext = pNewFreeEntry;
 				pNewFreeEntry->pNext = pCurrentFreeNext;
 			}
+
+			m_pFreeHead = pNewFreeEntry;
+			m_pFreeTail = pLastFree;
 
 			return;
 		}
@@ -188,13 +193,16 @@ void MemoryManager::Free(void* allocationPtr)
 			pLastFree->pNext = pNewFreeEntry;
 			pNewFreeEntry->pNext = pCurrentFreeNext;
 
+			m_pFreeHead = pNewFreeEntry;
+			m_pFreeTail = pLastFree;
+
 			return;
 		}
 
 		pLastFree = pCurrentFree;
 		pCurrentFree = pCurrentFree->pNext;
 
-	} while (pCurrentFree != m_pFreeListStart);
+	} while (pCurrentFree != m_pFreeHead);
 }
 
 #ifdef SHOW_ALLOCATIONS_DEBUG

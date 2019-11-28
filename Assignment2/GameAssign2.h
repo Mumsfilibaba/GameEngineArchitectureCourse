@@ -1,6 +1,11 @@
 #pragma once
 #include "Game.h"
 
+#include <iostream>
+
+#include "Archiver.h"
+#include "StringHash.h"
+
 class GameAssign2 final : public Game
 {
 public:

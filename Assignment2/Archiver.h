@@ -3,6 +3,7 @@
 
 #include <zlib.h>
 #include <fstream>
+#include <iostream>
 
 #include "MemoryManager.h"
 
@@ -63,7 +64,9 @@ class Archiver
 
 		PackageEntry(size_t uncompressedSize, size_t compressedSize, void* pData)
 		{
-			PackageEntry(0, uncompressedSize, compressedSize, pData);
+			this->uncompressedSize = uncompressedSize;
+			this->compressedSize = compressedSize;
+			this->pData = pData;
 		}
 
 		PackageEntry(size_t offset, size_t uncompressedSize, size_t compressedSize, void* pData)
@@ -99,7 +102,7 @@ public:
 	void CreateUncompressedPackage();
 	void AddToUncompressedPackage(size_t hash, size_t sizeInBytes, void* pData);
 	void RemoveFromUncompressedPackage(size_t hash);
-	void SaveUncompressedPackage(const std::string& filename);
+	void SaveUncompressedPackage(const std::string& filename, bool saveDebugCopy = false);
 
 private:
 	Archiver();
@@ -111,7 +114,7 @@ private:
 public:
 	static Archiver& GetInstance()
 	{
-		Archiver archiver;
+		static Archiver archiver;
 		return archiver;
 	}
 };
