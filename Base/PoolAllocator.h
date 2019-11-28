@@ -5,9 +5,7 @@
 #include <type_traits>
 #include "SpinLock.h"
 #include "MemoryManager.h"
-#include "Defines.h"
-
-#define MB(mb) mb * 1024 * 1024
+#include "Helpers.h"
 
 #ifdef CONFIG_CHUNK_SIZE_4096
 	#define CONFIG_CHUNK_SIZE 4096

@@ -11,21 +11,7 @@
 #include <algorithm>
 #include <fstream>
 #include "PoolAllocator.h"
-#include "Defines.h"
-#if defined(_WIN32)
-    #include <crtdbg.h>
-#endif
 #include "StackAllocator.h"
-
-#define PI 3.14159265359f
-#define MB(mb) (float)mb * 1024.0f * 1024.0f
-#define BTOMB(mb) (float)mb / (1024.0f * 1024.0f)
-
-#if defined(_WIN32)
-	#define MEMLEAKCHECK _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
-#else
-	#define MEMLEAKCHECK
-#endif
 
 #define NUMBER_OF_OBJECTS_IN_TEST 1024 * 16
 
@@ -59,18 +45,6 @@
 	std::map<size_t, size_t> g_ThreadFrameSums;
 	std::map<size_t, size_t*> g_ThreadFrameTimes;
 #endif
-
-std::string N2HexStr(size_t w)
-{
-	static const char* digits = "0123456789abcdef";
-	static const size_t hex_len = 16;
-	std::string rc(hex_len + 2, '0');
-	rc[0] = '0';
-	rc[1] = 'x';
-	for (size_t i = 2, j = (hex_len - 1) * 4; i < hex_len + 2; ++i, j -= 4)
-		rc[i] = digits[(w >> j) & 0x0f];
-	return rc;
-}
 
 #ifdef MULTI_THREADED
 	#define NUMBER_OF_THREADS_IN_MULTI_THREADED 4
@@ -155,7 +129,7 @@ std::string N2HexStr(size_t w)
 	{
 		ThreadPerformanceData()
 		{
-			this->frameTimeSum = 0.0f;
+			this->frameTimeSum = 0;
 			this->currentFrame = 0;
 		}
 
@@ -231,230 +205,6 @@ struct DummyStruct
 
 thread_local static std::array<DummyStruct*, NUMBER_OF_OBJECTS_IN_TEST_PER_THREAD> gContainerArr;
 
-float randf()
-{
-	return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-}
-
-float randf(float min, float max)
-{
-	return static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min) + min;
-}
-
-void ThreadSafePrintf(const char* pFormat, ...)
-{
-	static SpinLock printLock;
-	std::lock_guard<SpinLock> lock(printLock);
-
-	va_list args;
-	va_start(args, pFormat);
-	vprintf(pFormat, args);
-	va_end(args);
-}
-
-void ImGuiDrawMemoryProgressBar(int used, int available)
-{
-	float usedF = float(used) / float(std::max(available, 1));
-	ImGui::ProgressBar(usedF, ImVec2(0.0f, 0.0f));
-	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-	ImGui::Text("(%.2f/%.2f) mb", BTOMB(used), BTOMB(available));
-}
-
-#ifdef SHOW_ALLOCATIONS_DEBUG
-void ImGuiPrintMemoryManagerAllocations()
-{
-	static bool showMemoryManagerAllocations = true;
-	static bool showMemoryManagerFreeBlock = true;
-	static bool showPoolAllocations = true;
-	static bool showStackAllocations = true;
-
-	ImGui::Checkbox("Memory Manager Allocations", &showMemoryManagerAllocations);
-	ImGui::Checkbox("Memory Manager Free Block", &showMemoryManagerFreeBlock);
-	ImGui::Checkbox("Pool Allocations", &showPoolAllocations);
-	ImGui::Checkbox("Stack Allocations", &showStackAllocations);
-
-	if (ImGui::TreeNode("Allocations"))
-	{
-		auto& memoryManagerAllocationsRef = MemoryManager::GetInstance().GetAllocations();
-		auto& poolAllocationsRef = MemoryManager::GetInstance().GetPoolAllocations();
-		auto& stackAllocationsRef = MemoryManager::GetInstance().GetStackAllocations();
-
-		MemoryManager::GetInstance().GetMemoryLock().lock();
-		auto memoryManagerAllocations = std::map<size_t, Allocation>(memoryManagerAllocationsRef);
-		MemoryManager::GetInstance().GetMemoryLock().unlock();
-
-		MemoryManager::GetInstance().GetPoolAllocationLock().lock();
-		auto poolAllocations = std::map<size_t, SubAllocation>(poolAllocationsRef);
-		MemoryManager::GetInstance().GetPoolAllocationLock().unlock();
-
-		MemoryManager::GetInstance().GetStackAllocationLock().lock();
-		auto stackAllocations = std::map<size_t, SubAllocation>(stackAllocationsRef);
-		MemoryManager::GetInstance().GetStackAllocationLock().unlock();
-
-		auto& memoryManagerAllocationIt = memoryManagerAllocations.begin();
-		auto& poolAllocationIt = poolAllocations.begin();
-		auto& stackAllocationIt = stackAllocations.begin();
-		const void* pMemoryManagerStart = MemoryManager::GetInstance().GetMemoryStart();
-		const FreeEntry* pStartFreeEntry = MemoryManager::GetInstance().GetFreeList();
-		const FreeEntry* pCurrentFreeEntry = pStartFreeEntry;
-
-		size_t lastAddress = 0;
-		size_t currentAddress = (size_t)pMemoryManagerStart;
-
-		while (true)
-		{
-			size_t distanceToMemoryManagerAllocation = ULLONG_MAX;
-			if (memoryManagerAllocationIt != memoryManagerAllocations.end())
-				distanceToMemoryManagerAllocation = memoryManagerAllocationIt->first - currentAddress;
-
-			size_t distanceToPoolAllocation = ULLONG_MAX;
-			if (poolAllocationIt != poolAllocations.end())
-				distanceToPoolAllocation = poolAllocationIt->first - currentAddress;
-
-			size_t distanceToStackAllocation = ULLONG_MAX;
-			if (stackAllocationIt != stackAllocations.end())
-				distanceToStackAllocation = stackAllocationIt->first - currentAddress;
-
-			size_t distanceToFreeEntry = ULLONG_MAX;
-			if (pCurrentFreeEntry != pStartFreeEntry || lastAddress == 0)
-				distanceToFreeEntry = (size_t)pCurrentFreeEntry - currentAddress;
-
-			size_t minDistance = std::min(distanceToFreeEntry, std::min(distanceToStackAllocation, std::min(distanceToMemoryManagerAllocation, distanceToPoolAllocation)));
-
-			if (distanceToMemoryManagerAllocation == ULLONG_MAX &&
-				distanceToPoolAllocation == ULLONG_MAX &&
-				distanceToStackAllocation == ULLONG_MAX &&
-				distanceToFreeEntry == ULLONG_MAX)
-				break;
-
-			if (minDistance == distanceToMemoryManagerAllocation)
-			{
-				std::string allocationStr =
-					memoryManagerAllocationIt->second.tag + "\n"
-					"Address:   " + N2HexStr(memoryManagerAllocationIt->first) + "\n"
-					"Padding: " + std::to_string(memoryManagerAllocationIt->second.padding) + "\n"
-					"Size: " + std::to_string(memoryManagerAllocationIt->second.sizeInBytes) + "bytes\n\n";
-				if (showMemoryManagerAllocations) ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), allocationStr.c_str());
-
-				lastAddress = currentAddress;
-				currentAddress = memoryManagerAllocationIt->first;
-				memoryManagerAllocationIt++;
-			}
-			else if (minDistance == distanceToPoolAllocation)
-			{
-				std::string allocationStr =
-					poolAllocationIt->second.tag + "\n"
-					"Address:   " + N2HexStr(poolAllocationIt->first) + "\n"
-					"Size: " + std::to_string(poolAllocationIt->second.sizeInBytes) + "bytes\n\n";
-				if (showPoolAllocations) ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), allocationStr.c_str());
-
-				lastAddress = currentAddress;
-				currentAddress = poolAllocationIt->first;
-				poolAllocationIt++;
-			}
-			else if (minDistance == distanceToStackAllocation)
-			{
-				std::string allocationStr =
-					stackAllocationIt->second.tag + "\n"
-					"Address:   " + N2HexStr(stackAllocationIt->first) + "\n"
-					"Size: " + std::to_string(stackAllocationIt->second.sizeInBytes) + "bytes\n\n";
-				if (showStackAllocations) ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), allocationStr.c_str());
-
-				lastAddress = currentAddress;
-				currentAddress = stackAllocationIt->first;
-				stackAllocationIt++;
-			}
-			else if (minDistance == distanceToFreeEntry)
-			{
-				std::string freeEntryStr =
-					"Free Memory Block\n"
-					"Address:   " + N2HexStr((size_t)pCurrentFreeEntry) + "\n"
-					"Size: " + std::to_string(pCurrentFreeEntry->sizeInBytes) + "bytes\n"
-					"Next Free: " + N2HexStr((size_t)pCurrentFreeEntry->pNext) + "\n\n";
-				if (showMemoryManagerFreeBlock) ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), freeEntryStr.c_str());
-
-				lastAddress = currentAddress;
-				currentAddress = (size_t)pCurrentFreeEntry;
-				pCurrentFreeEntry = pCurrentFreeEntry->pNext;
-			}
-			else
-			{
-				assert(false);
-			}
-		}
-
-		ImGui::TreePop();
-	}
-}
-#endif
-
-#ifdef SHOW_GRAPHS
-void ImGuiDrawFrameTimeGraph(const sf::Time& dt)
-{
-	static int timer = dt.asMicroseconds();
-	timer += dt.asMicroseconds();
-
-	static int fps = 0;
-	static int currentFps = 0;
-	currentFps++;
-	if (timer >= 1000000)
-	{
-		fps			= currentFps;
-		currentFps	= 0;
-		timer		= 0;
-	}
-
-	ImGui::SetNextWindowBgAlpha(0.75f); // Transparent background
-	ImGui::Text("Frametime:");
-	{
-		constexpr int valueCount = 90;
-		static float cpuValues[valueCount] = { 0 };
-		static int   valuesOffset = 0;
-		static float average = 0.0f;
-		cpuValues[valuesOffset] = float(dt.asMicroseconds()) / 1000.0f;
-		valuesOffset = (valuesOffset + 1) % valueCount;
-
-		//Calc average
-		if (timer == 0 && fps > 0)
-		{
-			average = 0;
-			for (int i = 0; i < valueCount; i++)
-				average += cpuValues[valuesOffset];
-			average /= valueCount;
-		}
-
-		ImGui::Text("FPS: %d", fps);
-		ImGui::Text("CPU Frametime (ms):");
-
-		char overlay[32];
-		sprintf(overlay, "Avg %f", average);
-		ImGui::PlotLines("", cpuValues, valueCount, valuesOffset, overlay, 0.0f, 30.0f, ImVec2(0, 80));
-	}
-
-#ifdef MULTI_THREADED
-	{
-		constexpr int valueCount = 90;
-
-		std::lock_guard<SpinLock> lock(g_ThreadPerfDataLock);
-		for (auto dt : g_ThreadPerfData)
-		{
-			ThreadPerformanceData& data = dt.second;
-
-			ImGui::Text("Frametime [Tread %s]:", data.threadID.c_str());
-			{
-				ImGui::Text("FPS: %d", data.FPS);
-				ImGui::Text("CPU Frametime (ms):");
-
-				char overlay[32];
-				sprintf(overlay, "Avg %f", data.AverageDelta);
-
-				ImGui::PlotLines("", data.Deltas, 90, data.CurrentValue, overlay, 0.0f, 30.0f, ImVec2(0, 80));
-			}
-		}
-	}
-#endif
-}
-#endif
 #ifdef TEST_STACK_ALLOCATOR
 void RunTest(size_t threadID)
 {
@@ -783,7 +533,7 @@ void CircleStackTest(sf::RenderWindow& window)
 
 #endif
 
-int main(int argc, const char* argv[])
+int main()
 {    
 	MEMLEAKCHECK;
 
