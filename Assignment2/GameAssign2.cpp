@@ -40,7 +40,7 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
-	txtrManager.LoadTGAFile("flag_b16.tga", txtrManager.m_tgaFile);
+	txtrManager.LoadTGAFile("Phone.tga");
 	//Archiver tests
 	DummyStruct object1(1, 3, 3, 7, 6, 9);
 	DummyStruct2D object2(23, 34, 45);

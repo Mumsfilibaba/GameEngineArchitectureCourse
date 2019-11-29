@@ -3,40 +3,33 @@
 
 #include <fstream>
 #include <iostream>
+#include <vector>
 
+struct TGAFile
+{
+	unsigned char idLength;
+	unsigned char colorMapType;
+	unsigned char imageType;
+	short int imageWidth;
+	short int imageHeight;
+	unsigned char bitCount; //pixelDepth
+
+	//image color and map data
+	unsigned short startX;
+	unsigned short startY;
+	unsigned short firstPixel; //index of first entry;
+	unsigned short nrOfPixels; //number of entries of the color map
+	unsigned char bitsPerPixel; // number of bits/pixel
+	unsigned char imageDescr;
+
+	unsigned char nrOfBytes; // number of bytes the imageId field consists of
+
+	std::vector<unsigned char> imageDataBuffer; // colorInformation about every pixel
+
+};
 class TextureManager
 {
-	struct TGAFile
-	{
-		//// 0–255 The number of bytes that the image ID field consists of.
-		//unsigned char imageIDLength;
 
-		////color-map type
-		//unsigned char imageColorMapType;
-
-		////image type
-		//unsigned char imageType;
-
-		////Color-map Specs
-		//unsigned short imageColorMapStart;
-		//unsigned short imageColorMapLength;
-		//unsigned char imageColorMapSize;
-
-		////image specifications
-		//unsigned short imageX; //x-Origin
-		//unsigned short imageY; //y-Origin
-		//unsigned short imageWidth;//in pixels
-		//unsigned short imageHeight;//in pixels
-		//unsigned char pixelDepth;
-		//unsigned char imageDescriptor;
-
-		unsigned char imageType;
-		short int imageWidth;
-		short int imageHeight;
-		unsigned char pixelDepth;
-
-		unsigned char *imageDataBuffer;
-	};
 public:
 
 	TGAFile m_tgaFile;
@@ -46,7 +39,7 @@ private:
 
 public:
 	//maybe make it return the TGAFile-pointer
-	void LoadTGAFile(char* fileName, TGAFile file);
+	TGAFile* LoadTGAFile(char* fileName);
 
 	TextureManager() = default;
 	~TextureManager() = default;

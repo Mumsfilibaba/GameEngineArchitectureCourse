@@ -1,13 +1,15 @@
 #include "TextureManager.h"
 
-void TextureManager::LoadTGAFile(char* fileName, TGAFile file)
+TGAFile*  TextureManager::LoadTGAFile(char* fileName)
 {
-
+	TGAFile* pTGAfile = new TGAFile();
 	FILE* pFile = nullptr;
 	unsigned char byteCharEater;
 	unsigned short byteShortEater;
 	long imageSize;
 	int colorMode;
+	unsigned char colorSwap;
+
 
 	// reading file with binary mode.
 	pFile = fopen(fileName, "rb");
@@ -18,44 +20,47 @@ void TextureManager::LoadTGAFile(char* fileName, TGAFile file)
 	}
 
 
-	fread(&byteCharEater, sizeof(unsigned char), 1, pFile);
-	fread(&byteCharEater, sizeof(unsigned char), 1, pFile);
+	fread(&pTGAfile->idLength, sizeof(unsigned char), 1, pFile);
+	fread(&pTGAfile->colorMapType, sizeof(unsigned char), 1, pFile);
 
-	//image typ, only handle 2-11;
-	fread(&file.imageType, sizeof(unsigned char), 1, pFile);
-	if (file.imageType != 2 && file.imageType != 3)
+	//image type, only handle 2-11;
+	fread(&pTGAfile->imageType, sizeof(unsigned char), 1, pFile);
+	if (pTGAfile->imageType != 2 && pTGAfile->imageType != 3)
 	{
 		fclose(pFile);
 		std::printf("error, roor");
 	}
 
 	// Read 13 bytes of data we don't need.
-	fread(&byteShortEater, sizeof(short int), 1, pFile);
-	fread(&byteShortEater, sizeof(short int), 1, pFile);
-	fread(&byteCharEater, sizeof(unsigned char), 1, pFile);
-	fread(&byteShortEater, sizeof(short int), 1, pFile);
-	fread(&byteShortEater, sizeof(short int), 1, pFile);
+	fread(&pTGAfile->firstPixel, sizeof(short int), 1, pFile);
+	fread(&pTGAfile->nrOfPixels, sizeof(short int), 1, pFile);
+	fread(&pTGAfile->bitsPerPixel, sizeof(unsigned char), 1, pFile);
+	fread(&pTGAfile->startX, sizeof(short int), 1, pFile);
+	fread(&pTGAfile->startY, sizeof(short int), 1, pFile);
 
 	// Read the image's width and height.
-	fread(&file.imageWidth, sizeof(short int), 1, pFile);
-	fread(&file.imageHeight, sizeof(short int), 1, pFile);
+	fread(&pTGAfile->imageWidth, sizeof(short int), 1, pFile);
+	fread(&pTGAfile->imageHeight, sizeof(short int), 1, pFile);
 
-	fread(&file.pixelDepth, sizeof(unsigned char), 1, pFile);
-	//  For a Pixel Depth of 15 and 16 bit, 
+	fread(&pTGAfile->bitCount, sizeof(unsigned char), 1, pFile);
+
+	//For a Pixel Depth of 15 and 16 bit, 
 	//each pixel is stored with 5 bits per color. 
 	//If the pixel depth is 16 bits, the topmost bit is reserved for transparency. 
 	// Color mode -> 3 = BGR, 4 = BGRA. Need to perform a color swap
-	colorMode = 3;
-	imageSize = file.imageWidth * file.imageHeight * colorMode;
-
+	colorMode = pTGAfile->bitCount/ 8;
+	imageSize = pTGAfile->imageWidth * pTGAfile->imageHeight * colorMode;
+	int size = imageSize;
+	std::vector<unsigned char> data(imageSize,0);
+	pTGAfile->imageDataBuffer = data;
 	//reading another arbitrary byte
-	fread(&byteCharEater, sizeof(unsigned char), 1, pFile);
+	fread(&pTGAfile->imageDescr, sizeof(unsigned char), 1, pFile);
 
-
-	// Allocate memory for the image data.
-	file.imageDataBuffer = (unsigned char*)malloc(sizeof(unsigned char)*imageSize);
 	// Read the image data.
-	fread(file.imageDataBuffer, sizeof(unsigned char), imageSize, pFile);
+	fread(&pTGAfile->imageDataBuffer[0], sizeof(unsigned char), imageSize, pFile);
+
+
+	return pTGAfile;
 
 	fclose(pFile);
 }
