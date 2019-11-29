@@ -22,14 +22,13 @@ void Game::InternalInit()
 	sf::ContextSettings settings;
 	settings.depthBits			= 24;
 	settings.stencilBits		= 8;
+    settings.attributeFlags     = 0;
 #ifdef DEBUG
-	settings.attributeFlags		= sf::ContextSettings::Debug;
-#else
-	settings.attributeFlags		= 0;
+    settings.attributeFlags     |= sf::ContextSettings::Debug;
 #endif
 	settings.antialiasingLevel	= 4;
-	settings.majorVersion		= 3;
-	settings.minorVersion		= 3;
+	settings.majorVersion		= 2;
+	settings.minorVersion		= 1;
 
 	m_pRenderWindow = pool_new(sf::RenderWindow, "Main Window") sf::RenderWindow(sf::VideoMode(1280, 720), "Game Engine Architecture", sf::Style::Default, settings);
 	m_pRenderWindow->setVerticalSyncEnabled(false);
@@ -52,27 +51,27 @@ void Game::InternalInit()
 
 	//Setup opengl to be CCW
 	glCullFace(GL_BACK);
-	glFrontFace(GL_CW);
+	glFrontFace(GL_CCW);
 
 	//Init ImGui
 	ImGui::SFML::Init(*m_pRenderWindow);
 
 	//Init shaders
 	std::string vs = R"(
-			#version 330 core
+			#version 120
 			
-			layout(location = 0) in vec3 a_Position;
-			layout(location = 1) in vec3 a_Normal;
-			layout(location = 2) in vec3 a_Tangent;
-			layout(location = 3) in vec2 a_TexCoord;
+			attribute vec3 a_Position;
+			attribute vec3 a_Normal;
+			attribute vec3 a_Tangent;
+			attribute vec2 a_TexCoord;
 
 			uniform mat4 u_Projection;
 			uniform mat4 u_View;
 
-			out vec3 v_Position;
-			out vec3 v_Normal;
-			out vec3 v_Tangent;
-			out vec2 v_TexCoord;
+			varying vec3 v_Position;
+			varying vec3 v_Normal;
+			varying vec3 v_Tangent;
+			varying vec2 v_TexCoord;
 
 			void main()
 			{
@@ -85,18 +84,16 @@ void Game::InternalInit()
 		)";
 
 	std::string fs = R"(
-			#version 330 core
-			
-			layout(location = 0) out vec4 color;
-
-			in vec3 v_Position;
-			in vec3 v_Normal;
-			in vec3 v_Tangent;
-			in vec2 v_TexCoord;
+			#version 120
+    
+			varying vec3 v_Position;
+			varying vec3 v_Normal;
+			varying vec3 v_Tangent;
+			varying vec2 v_TexCoord;
 
 			void main()
 			{
-				color = vec4(v_Position * 0.5 + 0.5, 1.0);
+				gl_FragColor = vec4(v_Position * 0.5 + 0.5, 1.0);
 			}
 		)";
 
@@ -111,6 +108,8 @@ void Game::InternalInit()
 	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetProjection())));
 	m_MeshShader.setUniform("u_View",		sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetView())));
 
+    Debugger::SetDebugState(false);
+    
 	//Init client
 	Init();
 }
@@ -122,6 +121,10 @@ void Game::Run()
 	sf::Clock deltaClock;
 	while (m_pRenderWindow->isOpen())
 	{
+        //Get deltatime of lastframe since we need it in the eventloop
+        sf::Time deltaTime = deltaClock.restart();
+        
+        //Check all events
 		sf::Event event;
 		while (m_pRenderWindow->pollEvent(event))
 		{
@@ -132,13 +135,14 @@ void Game::Run()
 			}
 			else if (event.type == sf::Event::KeyPressed)
 			{
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+				if (event.key.code == sf::Keyboard::Escape)
 				{
 					m_pRenderWindow->close();
 				}
-				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::F1))
+				else if (event.key.code == sf::Keyboard::Num1)
 				{
 					Debugger::SetDebugState(!Debugger::GetDebugState());
+                    ThreadSafePrintf("Hello\n");
 				}
 			}
 			else if (event.type == sf::Event::Resized)
@@ -151,14 +155,13 @@ void Game::Run()
 			}
 		}
 
-		sf::Time deltaTime = deltaClock.restart();
 		InternalUpdate(deltaTime);
 
 		//Clear explicit since window.clear may not clear depthbuffer?
 		glClearColor(m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a);
 		glClearDepth(1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        
 		//Draw customs stuff
 		InternalRender(deltaTime);
 
@@ -179,42 +182,42 @@ void Game::InternalUpdate(const sf::Time& deltatime)
 {
 	ImGui::SFML::Update(*m_pRenderWindow, deltatime);
 	Update(deltatime);
+    
+    //Move camera
+    constexpr float speed = 10.0f;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+        m_Camera.Translate(glm::vec3(0.0f, 0.0f, speed) * deltatime.asSeconds());
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+        m_Camera.Translate(glm::vec3(0.0f, 0.0f, -speed) * deltatime.asSeconds());
 
-	//Move camera
-	constexpr float speed = 2.0f;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-		m_Camera.Translate(glm::vec3(0.0f, 0.0f, speed) * deltatime.asSeconds());
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-		m_Camera.Translate(glm::vec3(0.0f, 0.0f, -speed) * deltatime.asSeconds());
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        m_Camera.Translate(glm::vec3(speed, 0.0f, 0.0f) * deltatime.asSeconds());
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        m_Camera.Translate(glm::vec3(-speed, 0.0f, 0.0f) * deltatime.asSeconds());
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-		m_Camera.Translate(glm::vec3(speed, 0.0f, 0.0f) * deltatime.asSeconds());
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-		m_Camera.Translate(glm::vec3(-speed, 0.0f, 0.0f) * deltatime.asSeconds());
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        m_Camera.Translate(glm::vec3(0.0f, speed, 0.0f) * deltatime.asSeconds());
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+        m_Camera.Translate(glm::vec3(0.0f, -speed, 0.0f) * deltatime.asSeconds());
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-		m_Camera.Translate(glm::vec3(0.0f, speed, 0.0f) * deltatime.asSeconds());
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
-		m_Camera.Translate(glm::vec3(0.0f, -speed, 0.0f) * deltatime.asSeconds());
+    //Rotate camera
+    constexpr float rotation = 30.0f;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+        m_Camera.Rotate(glm::vec3(-rotation, 0.0f, 0.0f) * deltatime.asSeconds());
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+        m_Camera.Rotate(glm::vec3(rotation, 0.0f, 0.0f) * deltatime.asSeconds());
 
-	//Rotate camera
-	constexpr float rotation = 30.0f;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-		m_Camera.Rotate(glm::vec3(-rotation, 0.0f, 0.0f) * deltatime.asSeconds());
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-		m_Camera.Rotate(glm::vec3(rotation, 0.0f, 0.0f) * deltatime.asSeconds());
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        m_Camera.Rotate(glm::vec3(0.0f, -rotation, 0.0f) * deltatime.asSeconds());
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        m_Camera.Rotate(glm::vec3(0.0f, rotation, 0.0f) * deltatime.asSeconds());
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-		m_Camera.Rotate(glm::vec3(0.0f, -rotation, 0.0f) * deltatime.asSeconds());
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-		m_Camera.Rotate(glm::vec3(0.0f, rotation, 0.0f) * deltatime.asSeconds());
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+        m_Camera.Rotate(glm::vec3(0.0f, 0.0f, rotation) * deltatime.asSeconds());
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+        m_Camera.Rotate(glm::vec3(0.0f, 0.0f, -rotation) * deltatime.asSeconds());
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-		m_Camera.Rotate(glm::vec3(0.0f, 0.0f, rotation) * deltatime.asSeconds());
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-		m_Camera.Rotate(glm::vec3(0.0f, 0.0f, -rotation) * deltatime.asSeconds());
-
-	m_Camera.CreateView();
+    m_Camera.CreateView();
 }
 
 void Game::InternalRender(const sf::Time& deltatime)
@@ -223,8 +226,14 @@ void Game::InternalRender(const sf::Time& deltatime)
 	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetProjection())));
 	m_MeshShader.setUniform("u_View", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetView())));
 
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    
 	Render();
 
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    
 	sf::Shader::bind(nullptr);
 }
 

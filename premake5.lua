@@ -186,16 +186,21 @@ workspace "Game Engine Architecture"
 			"Base/**.cpp",
 			"Base/**.h",
         }
-		filter "configurations:Release"
-		links
-		{
-			"zlibstatic"
-		}
-		filter "configurations:Debug"
-		links
-		{
-			"zlibstaticd"
-		}
+		filter { "configurations:Release", "system:windows" }
+			links
+			{
+				"zlibstatic"
+			}
+		filter { "configurations:Debug", "system:windows" }
+			links
+			{
+				"zlibstaticd"
+			}
+		filter "system:macosx"
+			links
+			{
+				"z"
+			}
 		filter {}
 		links
 		{

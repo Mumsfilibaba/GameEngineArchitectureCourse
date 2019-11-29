@@ -41,12 +41,12 @@ public:
 	void Construct();
 	void Draw();
 
-	inline uint32_t Mesh::GetIndexCount() const noexcept
+	inline uint32_t GetIndexCount() const noexcept
 	{
 		return m_IndexCount;
 	}
 
-	inline uint32_t Mesh::GetVertexCount() const noexcept
+	inline uint32_t GetVertexCount() const noexcept
 	{
 		return m_VertexCount;
 	}

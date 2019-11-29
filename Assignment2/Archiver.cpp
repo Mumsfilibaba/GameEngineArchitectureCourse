@@ -92,8 +92,7 @@ void Archiver::OpenCompressedPackage(const std::string& filename, PackageMode pa
 
 size_t Archiver::ReadRequiredSizeForPackageData(size_t hash)
 {
-	auto& packageTableEntry = m_CompressedPackage.table.find(hash);
-
+	auto packageTableEntry = m_CompressedPackage.table.find(hash);
 	if (packageTableEntry == m_CompressedPackage.table.end())
 		return 0;
 
@@ -102,8 +101,7 @@ size_t Archiver::ReadRequiredSizeForPackageData(size_t hash)
 
 void Archiver::ReadPackageData(size_t hash, void* pBuf, size_t bufSize)
 {
-	auto& packageTableEntry = m_CompressedPackage.table.find(hash);
-
+	auto packageTableEntry = m_CompressedPackage.table.find(hash);
 	if(packageTableEntry == m_CompressedPackage.table.end())
 		return;
 

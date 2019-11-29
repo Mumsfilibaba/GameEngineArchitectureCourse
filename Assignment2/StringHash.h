@@ -9,9 +9,10 @@ class Hash
 {
 public:
 	template <size_t strLen>
-	constexpr  static unsigned int Generate(const char(&str)[strLen])
+	constexpr static unsigned int Generate(const char(&str)[strLen])
 	{
-		return static_cast<unsigned int>(static_cast<unsigned long long>(Hash< index - 1u>::Generate(str) ^ unsigned int(str[index - 1u])) * PRIME_MULTIPLE);
+        using THash = Hash<index - 1u>;
+		return static_cast<unsigned int>( static_cast<unsigned long long>(THash::Generate(str) ^ (unsigned int)(str[index - 1u])) * PRIME_MULTIPLE);
 	}
 };
 
@@ -20,7 +21,7 @@ class Hash<0u>
 {
 public:
 	template <size_t strLen>
-	constexpr  static unsigned int Generate(const char(&str)[strLen])
+	constexpr static unsigned int Generate(const char(&str)[strLen])
 	{
 		return INITIAL_HASH;
 	}

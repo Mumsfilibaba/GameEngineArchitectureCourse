@@ -1,6 +1,6 @@
 #include "TextureManager.h"
 
-TGAFile*  TextureManager::LoadTGAFile(char* fileName)
+TGAFile* TextureManager::LoadTGAFile(const char* fileName)
 {
 	TGAFile* pTGAfile = new TGAFile();
 	FILE* pFile = nullptr;

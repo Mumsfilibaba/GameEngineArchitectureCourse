@@ -39,7 +39,7 @@ private:
 
 public:
 	//maybe make it return the TGAFile-pointer
-	TGAFile* LoadTGAFile(char* fileName);
+	TGAFile* LoadTGAFile(const char* fileName);
 
 	TextureManager() = default;
 	~TextureManager() = default;

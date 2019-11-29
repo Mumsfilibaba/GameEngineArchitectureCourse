@@ -81,9 +81,9 @@ void ImGuiPrintMemoryManagerAllocations()
 		auto stackAllocations = std::map<size_t, SubAllocation>(stackAllocationsRef);
 		MemoryManager::GetInstance().GetStackAllocationLock().unlock();
 
-		auto& memoryManagerAllocationIt = memoryManagerAllocations.begin();
-		auto& poolAllocationIt = poolAllocations.begin();
-		auto& stackAllocationIt = stackAllocations.begin();
+		auto memoryManagerAllocationIt = memoryManagerAllocations.begin();
+		auto poolAllocationIt = poolAllocations.begin();
+		auto stackAllocationIt = stackAllocations.begin();
 		const void* pMemoryManagerStart = MemoryManager::GetInstance().GetMemoryStart();
 		const FreeEntry* pStartFreeEntry = MemoryManager::GetInstance().GetFreeList();
 		const FreeEntry* pCurrentFreeEntry = pStartFreeEntry;
