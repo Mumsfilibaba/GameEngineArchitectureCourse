@@ -45,6 +45,9 @@ void Mesh::Construct()
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_IndexCount * sizeof(uint32_t), m_pIndices, GL_STATIC_DRAW);
+
+	mm_free((void*)m_pVertices);
+	mm_free((void*)m_pIndices);
 }
 
 void Mesh::Draw()
