@@ -37,7 +37,7 @@ private:
 	void InternalRender(const sf::Time& deltatime);
 	void InternalRenderImGui(const sf::Time& deltatime);
 	void InternalRelease();
-private:
+protected:
 	sf::RenderWindow* m_pRenderWindow;
 	sf::Color m_ClearColor;
 	sf::Shader m_MeshShader;

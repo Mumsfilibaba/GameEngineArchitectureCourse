@@ -16,7 +16,7 @@ void Game::InternalInit()
 	MEMLEAKCHECK;
 
 	//Init clearcolor
-	m_ClearColor = sf::Color::Black;
+	m_ClearColor = sf::Color::Cyan;
 
 	//Init window
 	sf::ContextSettings settings;
@@ -73,6 +73,8 @@ void Game::InternalInit()
 			varying vec3 v_Tangent;
 			varying vec2 v_TexCoord;
 
+
+
 			void main()
 			{
 				v_Position	= a_Position;
@@ -91,9 +93,11 @@ void Game::InternalInit()
 			varying vec3 v_Tangent;
 			varying vec2 v_TexCoord;
 
+			uniform sampler2D our_Texture;
+
 			void main()
 			{
-				gl_FragColor = vec4(v_Position * 0.5 + 0.5, 1.0);
+				gl_FragColor = texture2D(our_Texture, v_TexCoord);
 			}
 		)";
 

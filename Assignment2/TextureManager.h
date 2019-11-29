@@ -25,21 +25,23 @@ struct TGAFile
 	unsigned char nrOfBytes; // number of bytes the imageId field consists of
 
 	std::vector<unsigned char> imageDataBuffer; // colorInformation about every pixel
+	unsigned char* imageDataBuffer2;
 
 };
+
 class TextureManager
 {
 
 public:
 
-	TGAFile m_tgaFile;
+	TGAFile* mp_tgaFile;
 
 private:
 
 
 public:
 	//maybe make it return the TGAFile-pointer
-	TGAFile* LoadTGAFile(const char* fileName);
+	void LoadTGAFile(const char* fileName);
 
 	TextureManager() = default;
 	~TextureManager() = default;

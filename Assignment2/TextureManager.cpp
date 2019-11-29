@@ -1,6 +1,6 @@
 #include "TextureManager.h"
 
-TGAFile* TextureManager::LoadTGAFile(const char* fileName)
+void TextureManager::LoadTGAFile(const char* fileName)
 {
 	TGAFile* pTGAfile = new TGAFile();
 	FILE* pFile = nullptr;
@@ -17,6 +17,7 @@ TGAFile* TextureManager::LoadTGAFile(const char* fileName)
 	{
 		//make an assert
 		std::printf("could not open TGA-File");
+		__debugbreak();
 	}
 
 
@@ -25,10 +26,11 @@ TGAFile* TextureManager::LoadTGAFile(const char* fileName)
 
 	//image type, only handle 2-11;
 	fread(&pTGAfile->imageType, sizeof(unsigned char), 1, pFile);
-	if (pTGAfile->imageType != 2 && pTGAfile->imageType != 3)
+	if (pTGAfile->imageType != 2 && pTGAfile->imageType != 10 && pTGAfile->imageType != 3)
 	{
 		fclose(pFile);
 		std::printf("error, roor");
+		__debugbreak();
 	}
 
 	// Read 13 bytes of data we don't need.
@@ -51,17 +53,21 @@ TGAFile* TextureManager::LoadTGAFile(const char* fileName)
 	colorMode = pTGAfile->bitCount/ 8;
 	imageSize = pTGAfile->imageWidth * pTGAfile->imageHeight * colorMode;
 	int size = imageSize;
-	std::vector<unsigned char> data(imageSize,0);
-	pTGAfile->imageDataBuffer = data;
+	pTGAfile->imageDataBuffer.resize(imageSize);
+
 	//reading another arbitrary byte
 	fread(&pTGAfile->imageDescr, sizeof(unsigned char), 1, pFile);
 
+	//allocating memory for the data
+	//pTGAfile->imageDataBuffer2 = (unsigned char*)malloc(sizeof(unsigned char)*imageSize);
+
 	// Read the image data.
 	fread(&pTGAfile->imageDataBuffer[0], sizeof(unsigned char), imageSize, pFile);
-
-
-	return pTGAfile;
-
+	mp_tgaFile = pTGAfile;
+	
+	//delete pTGAfile;
+	
 	fclose(pFile);
+
 }
 

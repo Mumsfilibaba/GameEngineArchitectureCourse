@@ -11,6 +11,7 @@ class GameAssign2 final : public Game
 {
 public:
 	TextureManager txtrManager;
+	sf::Texture texture;
 public:
 	GameAssign2() = default;
 	~GameAssign2() = default;
