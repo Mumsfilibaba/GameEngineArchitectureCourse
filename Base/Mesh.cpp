@@ -49,6 +49,7 @@ void Mesh::Construct()
 
 void Mesh::Draw()
 {
+	//Bind buffers
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
     
@@ -67,6 +68,13 @@ void Mesh::Draw()
     
 	glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_INT, nullptr);
     
+	//We must reset the GL-States that we use since it otherwise interfere with SFML
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+	glDisableVertexAttribArray(3);
+
+	//Unbind buffers
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }

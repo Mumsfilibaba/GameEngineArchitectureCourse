@@ -142,6 +142,7 @@ void Game::Run()
 				else if (event.key.code == sf::Keyboard::Num1)
 				{
 					Debugger::SetDebugState(!Debugger::GetDebugState());
+					ThreadSafePrintf(Debugger::GetDebugState() ? "Debugger Enabled\n" : "Debugger Disabled\n");
 				}
 			}
 			else if (event.type == sf::Event::Resized)
@@ -183,7 +184,7 @@ void Game::InternalUpdate(const sf::Time& deltatime)
 	Update(deltatime);
     
     //Move camera
-    constexpr float speed = 10.0f;
+    constexpr float speed = 2.0f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
         m_Camera.Translate(glm::vec3(0.0f, 0.0f, speed) * deltatime.asSeconds());
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
@@ -230,7 +231,7 @@ void Game::InternalRender(const sf::Time& deltatime)
     
 	Render();
 
-    glEnable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     
 	sf::Shader::bind(nullptr);
