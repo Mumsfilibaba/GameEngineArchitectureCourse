@@ -201,6 +201,10 @@ workspace "Game Engine Architecture"
 			{
 				"z"
 			}
+			defines
+			{
+				"MACOS"
+			}
 		filter {}
 		links
 		{

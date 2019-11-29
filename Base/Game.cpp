@@ -142,7 +142,6 @@ void Game::Run()
 				else if (event.key.code == sf::Keyboard::Num1)
 				{
 					Debugger::SetDebugState(!Debugger::GetDebugState());
-                    ThreadSafePrintf("Hello\n");
 				}
 			}
 			else if (event.type == sf::Event::Resized)
