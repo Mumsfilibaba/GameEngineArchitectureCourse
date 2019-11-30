@@ -44,7 +44,7 @@ void GameAssign2::Init()
 	txtrManager.LoadTGAFile("Phone.tga");
 	sf::Image image;
 	int imageSize = txtrManager.mp_tgaFile->imageWidth * txtrManager.mp_tgaFile->imageHeight * (txtrManager.mp_tgaFile->bitCount / 8);
-	image.create(txtrManager.mp_tgaFile->imageWidth, txtrManager.mp_tgaFile->imageHeight, txtrManager.mp_tgaFile->imageDataBuffer.data());
+	image.create(txtrManager.mp_tgaFile->imageWidth, txtrManager.mp_tgaFile->imageHeight, (unsigned char*)txtrManager.m_pixelData.data());
 	texture.loadFromImage(image, sf::IntRect());
 	//Archiver tests
 #ifndef MACOS

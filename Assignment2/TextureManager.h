@@ -29,12 +29,22 @@ struct TGAFile
 
 };
 
+struct PixelInfo
+{
+	unsigned char R;
+	unsigned char G;
+	unsigned char B;
+	unsigned char A;
+
+};
+
 class TextureManager
 {
 
 public:
 
 	TGAFile* mp_tgaFile;
+	std::vector<PixelInfo> m_pixelData;
 
 private:
 
