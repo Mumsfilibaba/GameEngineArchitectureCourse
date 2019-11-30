@@ -1,4 +1,5 @@
 #include "TextureManager.h"
+#include "Helpers.h"
 
 void TextureManager::LoadTGAFile(const char* fileName)
 {
@@ -17,7 +18,7 @@ void TextureManager::LoadTGAFile(const char* fileName)
 	{
 		//make an assert
 		std::printf("could not open TGA-File");
-		__debugbreak();
+		debugbreak();
 	}
 
 
@@ -30,7 +31,7 @@ void TextureManager::LoadTGAFile(const char* fileName)
 	{
 		fclose(pFile);
 		std::printf("error, roor");
-		__debugbreak();
+		debugbreak();
 	}
 
 	// Read 13 bytes of data we don't need.

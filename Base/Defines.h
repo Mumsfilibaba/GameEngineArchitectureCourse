@@ -20,8 +20,21 @@
 #define BTOMB(mb) float(mb) / (1024.0f * 1024.0f)
 
 #if defined(_WIN32)
-	#include <crtdbg.h>
-	#define MEMLEAKCHECK _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
+    #if defined(DEBUG)
+        #include <crtdbg.h>
+        #define MEMLEAKCHECK    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
+        #define debugbreak(...) __debugbreak()
+    #endif
 #else
-	#define MEMLEAKCHECK
+    #if defined(DEBUG)
+        #define debugbreak(...) assert(false)
+    #endif
+#endif
+
+#if !defined(debugbreak)
+    #define debugbreak(...)
+#endif
+
+#if !defined(MEMLEAKCHECK)
+    #define MEMLEAKCHECK
 #endif
