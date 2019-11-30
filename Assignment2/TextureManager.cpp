@@ -1,5 +1,7 @@
 #include "TextureManager.h"
 #define INVERTED_BIT            (1 << 5)
+#include "Helpers.h"
+
 void TextureManager::LoadTGAFile(const char* fileName)
 {
 	TGAFile* pTGAfile = new TGAFile();
@@ -17,7 +19,7 @@ void TextureManager::LoadTGAFile(const char* fileName)
 	{
 		//make an assert
 		std::printf("could not open TGA-File");
-		__debugbreak();
+		debugbreak();
 	}
 
 
@@ -30,7 +32,7 @@ void TextureManager::LoadTGAFile(const char* fileName)
 	{
 		fclose(pFile);
 		std::printf("error, roor");
-		__debugbreak();
+		debugbreak();
 	}
 
 	//field4 (5 bytes)
