@@ -40,12 +40,10 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
+	texture = txtrManager.LoadTGAFile("meme.tga");
     //Memory manager test
 	txtrManager.LoadTGAFile("Phone.tga");
-	sf::Image image;
-	int imageSize = txtrManager.mp_tgaFile->imageWidth * txtrManager.mp_tgaFile->imageHeight * (txtrManager.mp_tgaFile->bitCount / 8);
-	image.create(txtrManager.mp_tgaFile->imageWidth, txtrManager.mp_tgaFile->imageHeight, (unsigned char*)txtrManager.m_pixelData.data());
-	texture.loadFromImage(image, sf::IntRect());
+
 	//Archiver tests
 #ifndef MACOS
     DummyStruct object1(1, 3, 3, 7, 6, 9);
@@ -101,7 +99,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	m_MeshShader.setUniform("our_Texture", texture);
+
+	m_MeshShader.setUniform("our_Texture", *texture);
 	m_pCube->Draw();
 }
 

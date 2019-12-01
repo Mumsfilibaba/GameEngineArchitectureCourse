@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <SFML/Graphics.hpp>
 
 struct TGAFile
 {
@@ -51,7 +52,7 @@ private:
 
 public:
 	//maybe make it return the TGAFile-pointer
-	void LoadTGAFile(const char* fileName);
+	sf::Texture* LoadTGAFile(const char* fileName);
 
 	TextureManager() = default;
 	~TextureManager() = default;

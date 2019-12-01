@@ -1,8 +1,9 @@
 #include "TextureManager.h"
 #define INVERTED_BIT            (1 << 5)
+#define BYTE32 32
 #include "Helpers.h"
 
-void TextureManager::LoadTGAFile(const char* fileName)
+sf::Texture* TextureManager::LoadTGAFile(const char* fileName)
 {
 	TGAFile* pTGAfile = new TGAFile();
 	FILE* pFile = nullptr;
@@ -72,6 +73,7 @@ void TextureManager::LoadTGAFile(const char* fileName)
 	// Read the image data.
 	fread(&pTGAfile->imageDataBuffer[0], sizeof(unsigned char), imageSize, pFile);
 	
+	
 	for (int y = 0; y < pTGAfile->imageHeight; y++)
 	{
 		
@@ -79,6 +81,7 @@ void TextureManager::LoadTGAFile(const char* fileName)
 		{
 			int index = y * pTGAfile->imageWidth + x;
 
+			//color swap 
 			if (!(pTGAfile->imageDescr & INVERTED_BIT))
 			{
 				index = ((pTGAfile->imageHeight) - 1 - y) * (pTGAfile->imageWidth) + x;
@@ -87,7 +90,7 @@ void TextureManager::LoadTGAFile(const char* fileName)
 			m_pixelData[index].B = pTGAfile->imageDataBuffer[index * colorMode];
 			m_pixelData[index].G = pTGAfile->imageDataBuffer[index * colorMode + 1];
 			m_pixelData[index].R = pTGAfile->imageDataBuffer[index * colorMode + 2];
-			if (pTGAfile->bitCount == 32)
+			if (pTGAfile->bitCount == BYTE32)
 			{
 				m_pixelData[index].A = pTGAfile->imageDataBuffer[index * colorMode + 3];
 			}
@@ -95,9 +98,16 @@ void TextureManager::LoadTGAFile(const char* fileName)
 	}
 	mp_tgaFile = pTGAfile;
 	
-	//delete pTGAfile;
+	sf::Image image;
+	//make member variable later?
+	sf::Texture* texture = new sf::Texture();
 	
+	image.create(mp_tgaFile->imageWidth, mp_tgaFile->imageHeight, (unsigned char*)m_pixelData.data());
+	texture->loadFromImage(image, sf::IntRect());
+	//delete pTGAfile;
 	fclose(pFile);
+	
+	return texture;
 
 }
 
