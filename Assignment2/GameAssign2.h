@@ -10,9 +10,6 @@
 class GameAssign2 final : public Game
 {
 public:
-	TextureManager txtrManager;
-	sf::Texture* texture;
-public:
 	GameAssign2() = default;
 	~GameAssign2() = default;
 
@@ -22,5 +19,7 @@ public:
 	virtual void RenderImGui() override final;
 	virtual void Release() override final;
 private:
+	TextureManager txtrManager;
+	sf::Texture* texture;
 	Mesh* m_pCube;
 };
