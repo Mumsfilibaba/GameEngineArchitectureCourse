@@ -272,21 +272,18 @@ void Archiver::SaveUncompressedPackage(const std::string& filename)
 	file << compressedPackageEntries.size() << std::endl;
 	file << compressedDataSize << std::endl;
 
+	std::stringstream data;
+
 	for (auto& it : compressedPackageEntries)
 	{
 		file << it.first << std::endl;
 		file << it.second.packageEntryDesc.offset << std::endl;
 		file << it.second.packageEntryDesc.uncompressedSize << std::endl;
 		file << it.second.packageEntryDesc.compressedSize << std::endl;
+		data << it.second.pData;
 	}
 
-	for (auto& it : compressedPackageEntries)
-	{
-		if (it.second.packageEntryDesc.compressedSize > 0)
-			file.write(reinterpret_cast<char*>(it.second.pData), it.second.packageEntryDesc.compressedSize);
-		else
-			file.write(reinterpret_cast<char*>(it.second.pData), it.second.packageEntryDesc.uncompressedSize);
-	}
+	file << data.str();
 
 	file.close();
 

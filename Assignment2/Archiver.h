@@ -4,6 +4,7 @@
 #include <zlib.h>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "MemoryManager.h"
 #include "StringHash.h"
