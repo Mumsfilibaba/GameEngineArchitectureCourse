@@ -1,4 +1,6 @@
 #include "GameAssign2.h"
+#include "ResourceManager.h"
+
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
@@ -40,6 +42,11 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
+	ResourceManager& resourceManager = ResourceManager::get();
+
+
+
+
 	texture = txtrManager.LoadTGAFile("meme.tga");
     //Memory manager test
 	txtrManager.LoadTGAFile("Phone.tga");
