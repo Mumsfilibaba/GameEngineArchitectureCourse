@@ -56,6 +56,7 @@ void GameAssign2::Init()
 	//write to memory
 	fread(buffer, 1, lSize, pFile);
 	texture = txtrManager.LoadTGAFile(buffer);
+	
 	//Archiver tests
 	//txtrManager.LoadTGAFile("Phone.tga");
 
@@ -117,8 +118,8 @@ void GameAssign2::Init()
 #endif
 
 	//Construct mesh
-	//m_pCube = Mesh::CreateCube();
-	//m_pCube->Construct();
+	m_pCube = Mesh::CreateCube();
+	m_pCube->Construct();
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -127,8 +128,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	/*m_MeshShader.setUniform("our_Texture", *texture);
-	m_pCube->Draw();*/
+	m_MeshShader.setUniform("our_Texture", *texture);
+	m_pCube->Draw();
 }
 
 void GameAssign2::RenderImGui()
