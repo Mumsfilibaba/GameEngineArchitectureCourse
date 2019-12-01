@@ -1,11 +1,8 @@
 #pragma once
+#include <iostream>
 #include "Game.h"
 #include "TextureManager.h"
-
-#include <iostream>
-
 #include "Archiver.h"
-#include "StringHash.h"
 
 class GameAssign2 final : public Game
 {
@@ -22,4 +19,5 @@ private:
 	TextureManager txtrManager;
 	sf::Texture* texture;
 	Mesh* m_pCube;
+	Mesh* m_pMesh;
 };

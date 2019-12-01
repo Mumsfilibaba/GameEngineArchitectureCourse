@@ -21,7 +21,7 @@ std::string N2HexStr(size_t w)
 	return rc;
 }
 
-void ImGuiDrawMemoryProgressBar(int used, int available)
+void ImGuiDrawMemoryProgressBar(int32_t used, int32_t available)
 {
 	float usedF = float(used) / float(std::max(available, 1));
 	ImGui::ProgressBar(usedF, ImVec2(0.0f, 0.0f));
@@ -255,4 +255,89 @@ void ThreadSafePrintf(const char* pFormat, ...)
 	va_start(args, pFormat);
 	vprintf(pFormat, args);
 	va_end(args);
+}
+
+double FastAtof(const char* const str, int32_t& length)
+{
+	const char* iter = str;
+	bool negative = false;
+	double integer = 0.0;
+	double decimal = 0.0;
+
+	//Set length to zero
+	length = 0;
+
+	//Check sign
+	if ((*iter) == '-')
+	{
+		negative = true;
+		iter++;
+		length++;
+	}
+
+	//Get "Interger"-part
+	while ((*iter) > '/' && (*iter) < ':')
+	{
+		integer *= 10.0;
+		integer += (*iter) - '0';
+
+		length++;
+		iter++;
+	}
+
+	//Get part after '.'
+	if ((*iter) == '.')
+	{
+		iter++;
+		length++;
+
+		double base = 0.1;
+		while ((*iter) > '/' && (*iter) < ':')
+		{
+			decimal += ((*iter) - '0') * base;
+			base /= 10.0;
+
+			length++;
+			iter++;
+		}
+	}
+
+	//Set sign
+	if (negative)
+		return -(integer + decimal);
+
+	return integer + decimal;
+}
+
+int32_t FastAtoi(const char* const str, int32_t& length)
+{
+	const char* iter = str;
+	int32_t integer = 0;
+	bool negative = false;
+
+	//Set length to zero
+	length = 0;
+
+	//Get sign
+	if ((*iter) == '-')
+	{
+		length++;
+		iter++;
+		negative = true;
+	}
+
+	//Get Interger
+	while ((*iter) > '/' && (*iter) < ':')
+	{
+		integer *= 10;
+		integer += (*iter) - '0';
+
+		length++;
+		iter++;
+	}
+
+	if (negative)
+		return -integer;
+
+	return integer;
 }

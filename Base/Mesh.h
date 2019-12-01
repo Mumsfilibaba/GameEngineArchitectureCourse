@@ -6,24 +6,24 @@
 
 struct Vertex
 {
-	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec3 tangent;
-	glm::vec2 texCoords;
-
+public:
+	glm::vec3 Position;
+	glm::vec3 Normal;
+	glm::vec3 Tangent;
+	glm::vec2 TexCoords;
 public:
 	Vertex() {};
 	Vertex(const glm::vec3& p, const glm::vec3& n, const glm::vec3& t, const glm::vec2& tc)
 	{
-		position = p;
-		normal = n;
-		tangent = t;
-		texCoords = tc;
+		Position = p;
+		Normal = n;
+		Tangent = t;
+		TexCoords = tc;
 	};
 
 	inline bool operator==(const Vertex& rs) const
 	{
-		return (position == rs.position) && (normal == rs.normal) && (tangent == rs.tangent) && (texCoords == rs.texCoords);
+		return (Position == rs.Position) && (Normal == rs.Normal) && (Tangent == rs.Tangent) && (TexCoords == rs.TexCoords);
 	};
 };
 
@@ -52,18 +52,18 @@ public:
 		return m_VertexCount;
 	}
 
-	inline void* operator new(size_t, const char* tag)
+	inline void* operator new(size_t size, const char* tag)
 	{
 #ifdef SHOW_ALLOCATIONS_DEBUG
-		return PoolAllocator<Mesh>::Get().AllocateBlock(tag);
+		return allocate(size, 1, tag);
 #else
-		return PoolAllocator<Mesh>::Get().AllocateBlock();
+		return allocate(size, 1, tag);
 #endif
 	}
 
 	inline void operator delete(void* ptr)
 	{
-		PoolAllocator<Mesh>::Get().Free((Mesh*)ptr);
+		mm_free(ptr);
 	}
 private:
 	GLuint m_VAO;

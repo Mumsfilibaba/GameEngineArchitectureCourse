@@ -58,7 +58,6 @@ public:
 		inline Chunk()
 		{
 			constexpr size_t blockSize = std::max(sizeof(T), sizeof(Block));
-			//static_assert(CHUNK_SIZE % blockSize == 0);
 
 			//ThreadSafePrintf("Created %p\n", this);
 #ifndef COLLECT_PERFORMANCE_DATA
@@ -102,8 +101,9 @@ public:
 		char m_Memory[CHUNK_SIZE_BYTES];
 	};
 
-	struct Arena
+	class Arena
 	{
+	public:
 		inline Arena() :
 			m_pFreeListHead(nullptr),
 			m_pBlocksToBeFreedHead(nullptr)
@@ -113,7 +113,6 @@ public:
 
 		inline ~Arena()
 		{
-			m_Chunks.clear();
 		}
 
 		inline void Push(Block* block)
@@ -129,8 +128,7 @@ public:
 
 		inline bool AllocateChunkAndSetHead()
 		{
-			void* pMem = allocate(sizeof(Chunk), sizeof(Chunk), "Pool Allocation Chunk");			
-			Chunk* pChunk = new(pMem) Chunk();
+			Chunk* pChunk = new(allocate(sizeof(Chunk), sizeof(Chunk), "Pool Allocation Chunk")) Chunk();
 			pChunk->m_pArena = this;
 
 			m_Chunks.emplace_back(pChunk);
@@ -192,13 +190,11 @@ public:
 
 	inline Arena* GetArena()
 	{
-		Arena* arena = m_Current_thread.get();
-		if (!arena)
+		if (m_CurrentThread == nullptr)
 		{
-			arena = new Arena();
-			m_Current_thread.reset(arena);
+			m_CurrentThread = std::make_unique<Arena>();
 		}
-		return arena;
+		return m_CurrentThread.get();
 	}
 
 #ifdef SHOW_ALLOCATIONS_DEBUG
@@ -247,13 +243,13 @@ public:
 		return instance;
 	}
 private:
-	inline thread_local static std::unique_ptr<Arena> m_Current_thread;
+	inline static thread_local std::unique_ptr<Arena> m_CurrentThread;
 };
 
 #ifdef SHOW_ALLOCATIONS_DEBUG
-#define pool_new(type, tag)		new(PoolAllocator<type>::Get().AllocateBlock(tag))
+	#define pool_new(type, tag)		new(PoolAllocator<type>::Get().AllocateBlock(tag))
 #else
-#define pool_new(type)			new(PoolAllocator<type>::Get().AllocateBlock())
+	#define pool_new(type)			new(PoolAllocator<type>::Get().AllocateBlock())
 #endif
 
 #define pool_delete(object)		PoolAllocator< std::remove_pointer< std::remove_reference<decltype(object)>::type >::type >::Get().Free(object)

@@ -39,6 +39,8 @@ struct DummyStruct2D
 	float rotation;
 };
 
+#define MACOS
+
 void GameAssign2::Init()
 {
 	//
@@ -121,7 +123,8 @@ void GameAssign2::Init()
 	m_pCube = Mesh::CreateCube();
 	m_pCube->Construct();
 
-	MeshLoader::LoadMesh("teapot.obj");
+	m_pMesh = MeshLoader::LoadMesh("teapot.obj");
+	m_pMesh->Construct();
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -131,7 +134,7 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 void GameAssign2::Render()
 {
 	m_MeshShader.setUniform("our_Texture", *texture);
-	m_pCube->Draw();
+	m_pMesh->Draw();
 }
 
 void GameAssign2::RenderImGui()
@@ -145,5 +148,11 @@ void GameAssign2::Release()
 	{
 		delete m_pCube;
 		m_pCube = nullptr;
+	}
+
+	if (m_pMesh)
+	{
+		delete m_pMesh;
+		m_pMesh = nullptr;
 	}
 }

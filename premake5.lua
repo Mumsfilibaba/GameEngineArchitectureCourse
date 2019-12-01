@@ -2,6 +2,7 @@ workspace "Game Engine Architecture"
     architecture "x64"
     startproject "Assign2_ResourceManager"
     warnings "extra"
+	staticruntime "off"
 
 	-- Setup output dirs
     outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
@@ -81,7 +82,7 @@ workspace "Game Engine Architecture"
         language "C++"
         location "Assignment1"
         cppdialect "C++17"
-        systemversion "latest"	
+        systemversion "latest"
 		files
         {
             "Assignment1/**.cpp",

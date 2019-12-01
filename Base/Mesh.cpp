@@ -14,14 +14,26 @@ Mesh::Mesh(const Vertex* const vertices, const uint32_t* const indices, uint32_t
 	m_pVertices(nullptr),
 	m_pIndices(nullptr)
 {
-	m_VertexCount = numVertices;
-	m_IndexCount = numIndices;
-	m_pVertices = vertices;
-	m_pIndices = indices;
+	m_VertexCount	= numVertices;
+	m_IndexCount	= numIndices;
+	m_pVertices		= vertices;
+	m_pIndices		= indices;
 }
 
 Mesh::~Mesh()
 {
+	if (m_pVertices)
+	{
+		mm_free((void*)m_pVertices);
+		m_pVertices = nullptr;
+	}
+
+	if (m_pIndices)
+	{
+		mm_free((void*)m_pIndices);
+		m_pIndices = nullptr;
+	}
+
 	if (glIsBuffer(m_VBO))
 	{
 		glDeleteBuffers(1, &m_VBO);
@@ -46,8 +58,14 @@ void Mesh::Construct()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_IndexCount * sizeof(uint32_t), m_pIndices, GL_STATIC_DRAW);
 
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 	mm_free((void*)m_pVertices);
+	m_pVertices = nullptr;
+
 	mm_free((void*)m_pIndices);
+	m_pIndices = nullptr;
 }
 
 void Mesh::Draw()
@@ -151,7 +169,7 @@ Mesh* Mesh::CreateCube()
         22, 23, 20
     };
 
-	return new("Cube Mesh") Mesh(triangleVertices, triangleIndices, 24, 36);
+	return new("Cube Mesh") Mesh(nullptr, nullptr, 24, 36);
 }
 
 Mesh* Mesh::CreateCubeInvNormals()
@@ -227,7 +245,7 @@ Mesh* Mesh::CreateCubeInvNormals()
 
 Mesh* Mesh::CreateQuad()
 {
-	Vertex* triangleVertices = new(allocate(sizeof(Vertex) * 4, 1, "Quad Vertices")) Vertex[4]
+	Vertex* quadVertices = new(allocate(sizeof(Vertex) * 4, 1, "Quad Vertices")) Vertex[4]
 	{
 		Vertex(glm::vec3(-0.5F,  0.5F,  0.0F), glm::vec3(0.0F,  0.0F,  1.0F), glm::vec3(1.0F,  0.0F,  0.0F), glm::vec2(0.0F, 1.0F)),
 		Vertex(glm::vec3(0.5F,  0.5F,  0.0F),  glm::vec3(0.0F,  0.0F,  1.0F), glm::vec3(1.0F,  0.0F,  0.0F), glm::vec2(1.0F, 1.0F)),
@@ -235,12 +253,12 @@ Mesh* Mesh::CreateQuad()
 		Vertex(glm::vec3(-0.5F, -0.5F,  0.0F), glm::vec3(0.0F,  0.0F,  1.0F), glm::vec3(1.0F,  0.0F,  0.0F), glm::vec2(0.0F, 0.0F))
 	};
 
-	uint32_t* triangleIndices = new(allocate(sizeof(uint32_t) * 6, 1, "Quad Indices")) uint32_t[6]
+	uint32_t* quadIndices = new(allocate(sizeof(uint32_t) * 6, 1, "Quad Indices")) uint32_t[6]
 	{
 		// Front (Seen from front)
 		0, 2, 1,
 		2, 0, 3
 	};
 
-	return new("Tri Mesh")  Mesh(triangleVertices, triangleIndices, 4, 6);
+	return new("Quad Mesh") Mesh(quadVertices, quadIndices, 4, 6);
 }
