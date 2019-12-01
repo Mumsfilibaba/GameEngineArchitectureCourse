@@ -80,21 +80,36 @@ private:
 		Package()
 		{
 			this->filename = "None";
-			this->isOpen = false;
+			this->pFileStream = nullptr;
+			this->isPackageOpen = false;
 			this->packageMode = UNDEFINED;
 			this->pData = nullptr;
+		}
+
+		~Package()
+		{
+			Reset();
 		}
 
 		void Reset()
 		{
 			this->filename = "None";
-			this->isOpen = false;
+			if (this->pFileStream != nullptr)
+			{
+				if (this->pFileStream->is_open())
+					this->pFileStream->close();
+
+				delete this->pFileStream;
+			}
+			this->pFileStream = nullptr;
+			this->isPackageOpen = false;
 			this->packageMode = UNDEFINED;
 			this->table.clear();
 		}
 
 		std::string filename;
-		bool isOpen;
+		std::ifstream* pFileStream;
+		bool isPackageOpen;
 		PackageMode packageMode;
 		std::unordered_map<size_t, PackageEntryDescriptor> table;
 
@@ -109,9 +124,10 @@ public:
 	~Archiver();
 
 	void OpenCompressedPackage(const std::string& filename, PackageMode packageMode);
+	void CloseCompressedPackage();
+
 	size_t ReadRequiredSizeForPackageData(size_t hash);
 	void ReadPackageData(size_t hash, void* pBuf, size_t bufSize);
-	void CloseCompressedPackage();
 
 	void CreateUncompressedPackage();
 	void AddToUncompressedPackage(size_t hash, size_t sizeInBytes, void* pData);
@@ -121,6 +137,7 @@ public:
 
 private:
 	Archiver();
+	size_t ReadPackageHeader(std::ifstream& fileStream);
 
 private:
 	Package m_CompressedPackage;

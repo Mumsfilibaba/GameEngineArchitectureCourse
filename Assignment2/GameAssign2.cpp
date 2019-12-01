@@ -56,7 +56,10 @@ void GameAssign2::Init()
 	fread(buffer, 1, lSize, pFile);
 	texture = txtrManager.LoadTGAFile(buffer);
 	//Archiver tests
+	//txtrManager.LoadTGAFile("Phone.tga");
+
 #ifndef MACOS
+	//Archiver tests
     DummyStruct object1(1, 3, 3, 7, 6, 9);
     DummyStruct2D object2(23, 34, 45);
 
@@ -93,10 +96,12 @@ void GameAssign2::Init()
     archiver.OpenCompressedPackage("package", Archiver::LOAD_AND_PREPARE);
 
     size_t testStringHash = HashString("Test String");
+
     size_t testStringSize = archiver.ReadRequiredSizeForPackageData(testStringHash);
 
     void* decompressedTestStringData = MemoryManager::GetInstance().Allocate(testStringSize, 1, "Test String Decompressed");
     archiver.ReadPackageData(testStringHash, decompressedTestStringData, testStringSize);
+
     std::string decompressedTestString = reinterpret_cast<char*>(decompressedTestStringData);
 
 	//size_t testTextureHash = HashString("our texture");
@@ -111,8 +116,8 @@ void GameAssign2::Init()
 #endif
 
 	//Construct mesh
-	m_pCube = Mesh::CreateCube();
-	m_pCube->Construct();
+	//m_pCube = Mesh::CreateCube();
+	//m_pCube->Construct();
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -131,6 +136,6 @@ void GameAssign2::RenderImGui()
 
 void GameAssign2::Release()
 {
-	delete m_pCube;
-	m_pCube = nullptr;
+	//delete m_pCube;
+	//m_pCube = nullptr;
 }
