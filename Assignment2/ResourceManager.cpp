@@ -11,7 +11,10 @@ IResource* ResourceManager::GetResource(size_t guid)
 {
 	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_ResourceMap.find(guid);
 	if (iterator == m_ResourceMap.end())
+	{
+		std::cout << "Resource not found!" << std::endl;
 		return nullptr;
+	}
 
 	return iterator->second;
 }
@@ -109,7 +112,7 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 			std::cout << "Error! Tried to package a file without a type [" << file << "]" << std::endl;
 			continue;
 		}
-		int typeHash = HashString(filepath.substr(index).c_str());
+		size_t typeHash = HashString(filepath.substr(index).c_str());
 
 		int bytesWritten = resourceLoader.WriteResourceToBuffer(filepath, data);
 		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);

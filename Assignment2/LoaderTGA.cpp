@@ -14,24 +14,21 @@ IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 
 IResource* LoaderTGA::LoadFromMemory(void* data, size_t size)
 {
-	unsigned char* tempBufferData = (unsigned char*)data;
-	short int width = *tempBufferData;
-	short int height = *(tempBufferData + 2);
+	short int width = *(short int*)(data);
+	short int height = *(short int*)((size_t)data + 2);
 
-	return new Texture(width, height, (tempBufferData + 4));
+	return new Texture(width, height, (unsigned char*)((size_t)data + 4));
 }
 
 size_t LoaderTGA::WriteToBuffer(const std::string& file, void* buffer)
 {
-	unsigned char* tempBuffer = (unsigned char*)buffer;
 	TGAHeader pTGAfile;
-
 
 	ReadFromDisk(file, pTGAfile);
 
-	*tempBuffer = pTGAfile.imageWidth;
-	*(tempBuffer + 2) = pTGAfile.imageHeight;
-	memcpy((tempBuffer + 4), pTGAfile.imageDataBuffer, (pTGAfile.imageWidth *  pTGAfile.imageHeight * 4));
+	memcpy(buffer, &pTGAfile.imageWidth, sizeof(short int));
+	memcpy((void*)((size_t)buffer + 2), &pTGAfile.imageHeight, sizeof(short int));
+	memcpy((void*)((size_t)buffer + 4), pTGAfile.imageDataBuffer, (pTGAfile.imageWidth *  pTGAfile.imageHeight * 4));
 
 	size_t sizeInBytes = ((pTGAfile.imageWidth *  pTGAfile.imageHeight * 4) + 2 + 2);
 

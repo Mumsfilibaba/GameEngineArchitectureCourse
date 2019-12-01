@@ -46,7 +46,15 @@ IResource* ResourceLoader::LoadResourceFromMemory(void* data, size_t size, size_
 
 size_t ResourceLoader::WriteResourceToBuffer(const std::string& file, void* buffer)
 {
-	ILoader* loader = GetLoader(HashString(file.c_str()));
+	std::size_t index = file.find_last_of(".");
+	if (index == std::string::npos)
+	{
+		std::cout << "Error! Tried to load a file without a type [" << file << "]" << std::endl;
+		return -1;
+	}
+	std::string fileType = file.substr(index);
+
+	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
 		return -1;
 
