@@ -40,6 +40,7 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
+	//
 	//texture = txtrManager.LoadTGAFile("meme.tga");
     //Memory manager test
 	
@@ -126,8 +127,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	m_MeshShader.setUniform("our_Texture", *texture);
-	m_pCube->Draw();
+	/*m_MeshShader.setUniform("our_Texture", *texture);
+	m_pCube->Draw();*/
 }
 
 void GameAssign2::RenderImGui()
