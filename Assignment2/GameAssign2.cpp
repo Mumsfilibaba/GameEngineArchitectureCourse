@@ -39,8 +39,6 @@ struct DummyStruct2D
 	float rotation;
 };
 
-#define MACOS
-
 void GameAssign2::Init()
 {
 	//
