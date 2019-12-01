@@ -12,6 +12,7 @@
 class Archiver
 {	
 	static constexpr char PACKAGE_FILE_EXTENSION[] = ".txt";
+	static constexpr char COMPRESSION_LEVEL = Z_DEFAULT_COMPRESSION;
 
 public:
 	enum PackageMode : unsigned char
@@ -137,6 +138,9 @@ public:
 	void RemoveFromUncompressedPackage(size_t hash);
 	void SaveUncompressedPackage(const std::string& filename);
 	void CloseUncompressedPackage();
+
+	void* DecompressHeader(std::ifstream& fileStream);
+	size_t CompressHeader(void* pHeader, size_t headerSize, void* pBuf, size_t bufSize);
 
 private:
 	Archiver();

@@ -37,7 +37,10 @@ private:
 	static unsigned int Fnv1aHash(const char* str, unsigned int hash = INITIAL_HASH)
 	{
 		while (*str != 0)
+		{
 			hash = (*str ^ hash) * PRIME_MULTIPLE;
+			str++;
+		}
 
 		return hash;
 	}
