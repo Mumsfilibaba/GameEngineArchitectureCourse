@@ -22,7 +22,8 @@ ResourceBundle* ResourceManager::loadResources(std::initializer_list<size_t> gui
 			//Load data
 			size_t size = archiver.ReadRequiredSizeForPackageData(guid);
 			void* data = malloc(size);
-			archiver.ReadPackageData(guid, data, size);
+			size_t typeHash;
+			archiver.ReadPackageData(guid, typeHash, data, size);
 
 			//Create and register Resource from data
 			IResource* resource = ResourceLoader::get().loadResourceFromMemory(data, size);
@@ -30,8 +31,6 @@ ResourceBundle* ResourceManager::loadResources(std::initializer_list<size_t> gui
 		}
 		guidArray[index++] = guid;
 	}
-
-	archiver.CloseCompressedPackage();
 
 	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, guids.size());
 	m_ResourceBundles.push_back(resourceBundle);
@@ -62,8 +61,6 @@ ResourceBundle* ResourceManager::loadResources(std::initializer_list<char*> file
 		}
 		guidArray[index++] = guid;
 	}
-
-	archiver.CloseCompressedPackage();
 
 	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, files.size());
 	m_ResourceBundles.push_back(resourceBundle);

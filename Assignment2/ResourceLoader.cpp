@@ -34,7 +34,7 @@ IResource* ResourceLoader::loadResourceFromDisk(const std::string& file)
 	return loader->loadFromDisk(file);
 }
 
-IResource* ResourceLoader::loadResourceFromMemory(void* data, size_t size)
+IResource* ResourceLoader::loadResourceFromMemory(void* data, size_t size, size_t typeHash)
 {
 	return nullptr;
 }
