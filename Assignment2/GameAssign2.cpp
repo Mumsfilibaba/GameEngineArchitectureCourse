@@ -106,6 +106,10 @@ void GameAssign2::Init()
 
     std::string decompressedTestString = reinterpret_cast<char*>(decompressedTestStringData);
 
+	std::cout << "Decompressed String: " << decompressedTestString << std::endl;
+	std::cout << "Decompressed String Type Hash: " << testStringTypeHash << std::endl;
+	std::cout << "Original String Type Hash: " << HashString("String") << std::endl;
+
 	//size_t testTextureHash = HashString("our texture");
 	//size_t testTextureSize = archiver.ReadRequiredSizeForPackageData(testTextureHash);
 
@@ -114,9 +118,6 @@ void GameAssign2::Init()
 	//archiver.ReadPackageData(testTextureHash, decompressedTestTextureData, testTextureSize);
 	//texture = txtrManager.LoadTGAFile(decompressedTestStringData);
 
-    std::cout << "Decompressed String: " << decompressedTestString << std::endl;
-	std::cout << "Decompressed String Type Hash: " << testStringTypeHash << std::endl;
-	std::cout << "Original String Type Hash: " << HashString("String") << std::endl;
 #endif
 
 	//Construct mesh
