@@ -65,16 +65,16 @@ sf::Texture* TextureManager::LoadTGAFile(const char* fileName)
 	colorMode = pTGAfile->bitCount / 8;
 	imageSize = pTGAfile->imageWidth * pTGAfile->imageHeight * colorMode;
 	int size = imageSize;
-	pTGAfile->imageDataBuffer.resize(imageSize);
+	
 
 	//reading another arbitrary byte
 
 	//allocating memory for the data
-	pTGAfile->imageDataBuffer2 = (unsigned char*)malloc(sizeof(unsigned char)*imageSize);
+	pTGAfile->imageDataBuffer = (unsigned char*)malloc(sizeof(unsigned char)*imageSize);
 
 	// Read the image data.
 	//fread(&pTGAfile->imageDataBuffer[0], sizeof(unsigned char), imageSize, pFile);
-	fread(pTGAfile->imageDataBuffer2, sizeof(unsigned char), imageSize, pFile);
+	fread(pTGAfile->imageDataBuffer, sizeof(unsigned char), imageSize, pFile);
 	
 	
 	for (int y = 0; y < pTGAfile->imageHeight; y++)
@@ -92,9 +92,9 @@ sf::Texture* TextureManager::LoadTGAFile(const char* fileName)
 
 			unsigned char tempBlue;
 			//swap from BGR to RGB
-			tempBlue = pTGAfile->imageDataBuffer2[index * colorMode];
-			pTGAfile->imageDataBuffer2[index * colorMode] = pTGAfile->imageDataBuffer2[index * colorMode + 2];
-			pTGAfile->imageDataBuffer2[index * colorMode + 2] = tempBlue;
+			tempBlue = pTGAfile->imageDataBuffer[index * colorMode];
+			pTGAfile->imageDataBuffer[index * colorMode] = pTGAfile->imageDataBuffer[index * colorMode + 2];
+			pTGAfile->imageDataBuffer[index * colorMode + 2] = tempBlue;
 		}
 	}
 	
@@ -102,7 +102,7 @@ sf::Texture* TextureManager::LoadTGAFile(const char* fileName)
 	//make member variable later?
 	sf::Texture* texture = new sf::Texture();
 	
-	image.create(pTGAfile->imageWidth, pTGAfile->imageHeight, pTGAfile->imageDataBuffer2);
+	image.create(pTGAfile->imageWidth, pTGAfile->imageHeight, pTGAfile->imageDataBuffer);
 	texture->loadFromImage(image, sf::IntRect());
 	//delete pTGAfile;
 	fclose(pFile);
@@ -169,8 +169,8 @@ sf::Texture * TextureManager::LoadTGAFile(void* pData)
 
 	//better to copy the data?!
 	//allocating memory for the data
-	pTGAfile->imageDataBuffer2 = (unsigned char*)malloc(sizeof(unsigned char)*imageSize);
-	memcpy(pTGAfile->imageDataBuffer2, (void*)currentAddress, (size_t)imageSize);
+	pTGAfile->imageDataBuffer = (unsigned char*)malloc(sizeof(unsigned char)*imageSize);
+	memcpy(pTGAfile->imageDataBuffer, (void*)currentAddress, (size_t)imageSize);
 
 	for (short int y = 0; y < pTGAfile->imageHeight; y++)
 	{
@@ -193,16 +193,16 @@ sf::Texture * TextureManager::LoadTGAFile(void* pData)
 			}
 			unsigned char tempBlue;
 
-			tempBlue = pTGAfile->imageDataBuffer2[index * colorMode];
-			pTGAfile->imageDataBuffer2[index * colorMode] = pTGAfile->imageDataBuffer2[index * colorMode + 2];
-			pTGAfile->imageDataBuffer2[index * colorMode + 2] = tempBlue;
+			tempBlue = pTGAfile->imageDataBuffer[index * colorMode];
+			pTGAfile->imageDataBuffer[index * colorMode] = pTGAfile->imageDataBuffer[index * colorMode + 2];
+			pTGAfile->imageDataBuffer[index * colorMode + 2] = tempBlue;
 		}
 	}
 
 	sf::Image image;
 	sf::Texture* texture = new sf::Texture();
 
-	image.create(pTGAfile->imageWidth, pTGAfile->imageHeight, pTGAfile->imageDataBuffer2);
+	image.create(pTGAfile->imageWidth, pTGAfile->imageHeight, pTGAfile->imageDataBuffer);
 	texture->loadFromImage(image, sf::IntRect());
 	delete pTGAfile;
 	

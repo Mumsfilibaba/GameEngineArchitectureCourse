@@ -1,6 +1,7 @@
 #pragma once
 #include "Game.h"
 #include "TextureManager.h"
+#include "Texture.h"
 
 #include <iostream>
 
@@ -19,7 +20,6 @@ public:
 	virtual void RenderImGui() override final;
 	virtual void Release() override final;
 private:
-	TextureManager txtrManager;
-	sf::Texture* texture;
+	Texture* m_pTexture;
 	Mesh* m_pCube;
 };

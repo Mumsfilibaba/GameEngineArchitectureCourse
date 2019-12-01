@@ -1,11 +1,11 @@
-#ifndef TEXTUREMANAGER_H
-#define TEXTUREMANAGER_H
+#pragma once
 
-#include <fstream>
-#include <iostream>
+#include "ILoader.h"
+#include "Texture.h"
 #include <SFML/Graphics.hpp>
 
-struct TGAFile
+
+typedef struct
 {
 	unsigned char idLength;
 	unsigned char colorMapType;
@@ -26,28 +26,14 @@ struct TGAFile
 
 	unsigned char* imageDataBuffer;
 
-};
+} TGAHeader;
 
-
-class TextureManager
+class LoaderTGA: public ILoader
 {
-
-public:
+	virtual IResource* LoadFromDisk(const std::string& file);
+	virtual IResource* LoadFromMemory(void* data, size_t size);
+	virtual size_t WriteToBuffer(const std::string& file, void* buffer);
 
 private:
-
-
-public:
-	//maybe make it return the TGAFile-pointer
-	sf::Texture* LoadTGAFile(const char* fileName);
-	sf::Texture* LoadTGAFile(void* pData);
-
-
-	TextureManager() = default;
-	~TextureManager() = default;
-
-
+	void ReadFromDisk(const std::string& file, TGAHeader& pTGAfile);
 };
-
-
-#endif // !TEXTUREMANAGER_H
