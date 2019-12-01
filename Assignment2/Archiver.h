@@ -4,6 +4,7 @@
 #include <zlib.h>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "MemoryManager.h"
 #include "StringHash.h"
@@ -25,18 +26,21 @@ private:
 	{
 		PackageEntryDescriptor()
 		{
+			this->typeHash = 0;
 			this->offset = 0;
 			this->uncompressedSize = 0;
 			this->compressedSize = 0;
 		}
 
-		PackageEntryDescriptor(size_t offset, size_t uncompressedSize, size_t compressedSize)
+		PackageEntryDescriptor(size_t typeHash, size_t offset, size_t uncompressedSize, size_t compressedSize)
 		{
+			this->typeHash = typeHash;
 			this->offset = offset;
 			this->uncompressedSize = uncompressedSize;
 			this->compressedSize = compressedSize;
 		}
 
+		size_t typeHash;
 		size_t offset;
 		size_t uncompressedSize;
 		size_t compressedSize;
@@ -49,15 +53,15 @@ private:
 			this->pData = nullptr;
 		}
 
-		UncompressedPackageEntry(size_t uncompressedSize, size_t compressedSize, void* pData)
+		UncompressedPackageEntry(size_t typeHash, size_t uncompressedSize, size_t compressedSize, void* pData)
 		{
-			this->packageEntryDesc = PackageEntryDescriptor(0, uncompressedSize, compressedSize);
+			this->packageEntryDesc = PackageEntryDescriptor(typeHash, 0, uncompressedSize, compressedSize);
 			this->pData = pData;
 		}
 
-		UncompressedPackageEntry(size_t offset, size_t uncompressedSize, size_t compressedSize, void* pData)
+		UncompressedPackageEntry(size_t typeHash, size_t offset, size_t uncompressedSize, size_t compressedSize, void* pData)
 		{
-			this->packageEntryDesc = PackageEntryDescriptor(offset, uncompressedSize, compressedSize);
+			this->packageEntryDesc = PackageEntryDescriptor(typeHash, offset, uncompressedSize, compressedSize);
 			this->pData = pData;
 		}
 
@@ -79,21 +83,36 @@ private:
 		Package()
 		{
 			this->filename = "None";
-			this->isOpen = false;
+			this->pFileStream = nullptr;
+			this->isPackageOpen = false;
 			this->packageMode = UNDEFINED;
 			this->pData = nullptr;
+		}
+
+		~Package()
+		{
+			Reset();
 		}
 
 		void Reset()
 		{
 			this->filename = "None";
-			this->isOpen = false;
+			if (this->pFileStream != nullptr)
+			{
+				if (this->pFileStream->is_open())
+					this->pFileStream->close();
+
+				delete this->pFileStream;
+			}
+			this->pFileStream = nullptr;
+			this->isPackageOpen = false;
 			this->packageMode = UNDEFINED;
 			this->table.clear();
 		}
 
 		std::string filename;
-		bool isOpen;
+		std::ifstream* pFileStream;
+		bool isPackageOpen;
 		PackageMode packageMode;
 		std::unordered_map<size_t, PackageEntryDescriptor> table;
 
@@ -108,18 +127,20 @@ public:
 	~Archiver();
 
 	void OpenCompressedPackage(const std::string& filename, PackageMode packageMode);
-	size_t ReadRequiredSizeForPackageData(size_t hash);
-	void ReadPackageData(size_t hash, void* pBuf, size_t bufSize);
 	void CloseCompressedPackage();
 
+	size_t ReadRequiredSizeForPackageData(size_t hash);
+	void ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t bufSize);
+
 	void CreateUncompressedPackage();
-	void AddToUncompressedPackage(size_t hash, size_t sizeInBytes, void* pData);
+	void AddToUncompressedPackage(size_t hash, size_t typeHash, size_t sizeInBytes, void* pData);
 	void RemoveFromUncompressedPackage(size_t hash);
 	void SaveUncompressedPackage(const std::string& filename);
 	void CloseUncompressedPackage();
 
 private:
 	Archiver();
+	size_t ReadPackageHeader(std::ifstream& fileStream);
 
 private:
 	Package m_CompressedPackage;

@@ -28,66 +28,93 @@ Archiver::~Archiver()
 {
 }
 
+size_t Archiver::ReadPackageHeader(std::ifstream& fileStream)
+{
+	size_t tableEntries;
+	size_t dataSize;
+	fileStream >> tableEntries;
+	fileStream >> dataSize;
+
+	for (size_t i = 0; i < tableEntries; i++)
+	{
+		size_t hash;
+		size_t typeHash;
+		size_t offset;
+		size_t uncompressedSize;
+		size_t compressedSize;
+
+		fileStream >> hash;
+		fileStream >> typeHash;
+		fileStream >> offset;
+		fileStream >> uncompressedSize;
+		fileStream >> compressedSize;
+
+		m_CompressedPackage.table[hash] = PackageEntryDescriptor(typeHash, offset, uncompressedSize, compressedSize);
+	}
+
+	return dataSize;
+}
+
 void Archiver::OpenCompressedPackage(const std::string& filename, PackageMode packageMode)
 {
-	assert(!m_CompressedPackage.isOpen);
+	assert(!m_CompressedPackage.isPackageOpen);
 	assert(packageMode != UNDEFINED);
 
-	std::ifstream file;
-	file.open(filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
+	m_CompressedPackage.filename = filename + PACKAGE_FILE_EXTENSION;
+	m_CompressedPackage.isPackageOpen = true;
+	m_CompressedPackage.packageMode = packageMode;
 
-	if (file.is_open())
+	switch (packageMode)
 	{
-		m_CompressedPackage.filename = filename;
-		m_CompressedPackage.isOpen = true;
-		m_CompressedPackage.packageMode = packageMode;
-
-		size_t tableEntries;
-		size_t dataSize;
-		file >> tableEntries;
-		file >> dataSize;
-
-		for (size_t i = 0; i < tableEntries; i++)
+		case LOAD_AND_STORE:
 		{
-			size_t hash;
-			size_t offset;
-			size_t uncompressedSize;
-			size_t compressedSize;
+			std::ifstream fileStream;
+			fileStream.open(filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
 
-			file >> hash;
-			file >> offset;
-			file >> uncompressedSize;
-			file >> compressedSize;
-
-			m_CompressedPackage.table[hash] = PackageEntryDescriptor(offset, uncompressedSize, compressedSize);
-		}
-
-		switch (packageMode)
-		{
-			case LOAD_AND_STORE:
+			if (fileStream.is_open())
 			{
-				file.seekg(1, std::ios_base::cur);
+				size_t dataSize = ReadPackageHeader(fileStream);
+
+				fileStream.seekg(1, std::ios_base::cur);
 				m_CompressedPackage.pData = MemoryManager::GetInstance().Allocate(dataSize, 1, "Package Data");
-				file.read(reinterpret_cast<char*>(m_CompressedPackage.pData), dataSize);
+				fileStream.read(reinterpret_cast<char*>(m_CompressedPackage.pData), dataSize);
 				//std::cout << "Loaded Data: " << reinterpret_cast<char*>(m_CompressedPackage.pData) << std::endl;
-				break;
+				fileStream.close();
 			}
-			case LOAD_AND_PREPARE:
-			{
-				file.seekg(1, std::ios_base::cur);
-				m_CompressedPackage.fileDataStart = file.tellg();
-				break;
-			}
-			default:
-			{
-				assert(false);
-				break;
-			}
-		}
-		
 
-		file.close();
+			break;
+		}
+		case LOAD_AND_PREPARE:
+		{
+			m_CompressedPackage.pFileStream = new std::ifstream();
+			m_CompressedPackage.pFileStream->open(filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
+
+			std::ifstream& fileStream = *m_CompressedPackage.pFileStream;
+
+			if (fileStream.is_open())
+			{
+				ReadPackageHeader(fileStream);
+
+				fileStream.seekg(1, std::ios_base::cur);
+				m_CompressedPackage.fileDataStart = fileStream.tellg();
+				m_CompressedPackage.pFileStream = &fileStream;
+			}
+			break;
+		}
+		default:
+		{
+			assert(false);
+			break;
+		}
 	}
+}
+
+void Archiver::CloseCompressedPackage()
+{
+	assert(m_CompressedPackage.isPackageOpen);
+	assert(!m_CompressedPackage.pFileStream->is_open());
+
+	m_CompressedPackage.Reset();
 }
 
 size_t Archiver::ReadRequiredSizeForPackageData(size_t hash)
@@ -99,7 +126,7 @@ size_t Archiver::ReadRequiredSizeForPackageData(size_t hash)
 	return packageTableEntry->second.uncompressedSize;
 }
 
-void Archiver::ReadPackageData(size_t hash, void* pBuf, size_t bufSize)
+void Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t bufSize)
 {
 	auto packageTableEntry = m_CompressedPackage.table.find(hash);
 	if(packageTableEntry == m_CompressedPackage.table.end())
@@ -108,6 +135,7 @@ void Archiver::ReadPackageData(size_t hash, void* pBuf, size_t bufSize)
 	if (bufSize < packageTableEntry->second.uncompressedSize)
 		return;
 
+	typeHash = packageTableEntry->second.typeHash;
 	void* pCompressedStart = nullptr;
 
 	switch (m_CompressedPackage.packageMode)
@@ -119,23 +147,21 @@ void Archiver::ReadPackageData(size_t hash, void* pBuf, size_t bufSize)
 		}
 		case LOAD_AND_PREPARE:
 		{
-			std::ifstream file;
-			file.open(m_CompressedPackage.filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
+			assert(m_CompressedPackage.pFileStream != nullptr);
 
-			if (file.is_open())
+			std::ifstream& fileStream = *m_CompressedPackage.pFileStream;
+			if (m_CompressedPackage.pFileStream->is_open())
 			{
-				file.seekg(m_CompressedPackage.fileDataStart + packageTableEntry->second.offset, std::ios_base::cur);
+				fileStream.seekg(m_CompressedPackage.fileDataStart + packageTableEntry->second.offset, std::ios_base::beg);
 
 				if (packageTableEntry->second.compressedSize > 0)
 				{
 					pCompressedStart = MemoryManager::GetInstance().Allocate(packageTableEntry->second.compressedSize, 1, "Package Data");
-					file.read(reinterpret_cast<char*>(pCompressedStart), packageTableEntry->second.compressedSize);
-					file.close();
+					fileStream.read(reinterpret_cast<char*>(pCompressedStart), packageTableEntry->second.compressedSize);
 				}
 				else
 				{
-					file.read(reinterpret_cast<char*>(pBuf), packageTableEntry->second.uncompressedSize);
-					file.close();
+					fileStream.read(reinterpret_cast<char*>(pBuf), packageTableEntry->second.uncompressedSize);
 
 					return;
 				}
@@ -184,23 +210,16 @@ void Archiver::ReadPackageData(size_t hash, void* pBuf, size_t bufSize)
 		MemoryManager::GetInstance().Free(pCompressedStart);
 }
 
-void Archiver::CloseCompressedPackage()
-{
-	assert(m_CompressedPackage.isOpen);
-
-	m_CompressedPackage.Reset();
-}
-
 void Archiver::CreateUncompressedPackage()
 {
 	m_UncompressedPackageEntries.clear();
 }
 
-void Archiver::AddToUncompressedPackage(size_t hash, size_t sizeInBytes, void* pData)
+void Archiver::AddToUncompressedPackage(size_t hash, size_t typeHash, size_t sizeInBytes, void* pData)
 {
 	void* pDataCopy = MemoryManager::GetInstance().Allocate(sizeInBytes, 1, "Uncompressed Package Data");
 	memcpy(pDataCopy, pData, sizeInBytes);
-	m_UncompressedPackageEntries[hash] = UncompressedPackageEntry(sizeInBytes, 0, pDataCopy);
+	m_UncompressedPackageEntries[hash] = UncompressedPackageEntry(typeHash, sizeInBytes, 0, pDataCopy);
 }
 
 void Archiver::RemoveFromUncompressedPackage(size_t hash)
@@ -210,7 +229,7 @@ void Archiver::RemoveFromUncompressedPackage(size_t hash)
 
 void Archiver::SaveUncompressedPackage(const std::string& filename)
 {
-	std::unordered_map<size_t, UncompressedPackageEntry> compressedPackageEntries;
+	std::map<size_t, UncompressedPackageEntry> compressedPackageEntries;
 
 #ifdef _DEBUG
 	size_t uncompressedDataSize = 0;
@@ -245,7 +264,12 @@ void Archiver::SaveUncompressedPackage(const std::string& filename)
 			ARCHIVER_CHECK_ERR(err, "deflateEnd");
 
 			memcpy(pCompressed, it.second.pData, it.second.packageEntryDesc.uncompressedSize);
-			compressedPackageEntries[it.first] = UncompressedPackageEntry(compressedDataSize, it.second.packageEntryDesc.uncompressedSize, 0, pCompressed);
+			compressedPackageEntries[it.first] = UncompressedPackageEntry(
+				it.second.packageEntryDesc.typeHash, 
+				compressedDataSize, 
+				it.second.packageEntryDesc.uncompressedSize, 
+				0, 
+				pCompressed);
 			compressedDataSize += it.second.packageEntryDesc.uncompressedSize;
 		}
 		else if (err == Z_STREAM_END)
@@ -253,7 +277,12 @@ void Archiver::SaveUncompressedPackage(const std::string& filename)
 			err = deflateEnd(&compressionStream);
 			ARCHIVER_CHECK_ERR(err, "deflateEnd");
 
-			compressedPackageEntries[it.first] = UncompressedPackageEntry(compressedDataSize, 
+			//if (it.first == HashString("Test String"))
+				//std::cout << "Saved Data: " << reinterpret_cast<char*>(pCompressed) << std::endl;
+
+			compressedPackageEntries[it.first] = UncompressedPackageEntry(
+				it.second.packageEntryDesc.typeHash,
+				compressedDataSize, 
 				it.second.packageEntryDesc.uncompressedSize, 
 				compressionStream.total_out, pCompressed);
 			compressedDataSize += compressionStream.total_out;
@@ -272,21 +301,21 @@ void Archiver::SaveUncompressedPackage(const std::string& filename)
 	file << compressedPackageEntries.size() << std::endl;
 	file << compressedDataSize << std::endl;
 
-	for (auto& it : compressedPackageEntries)
-	{
-		file << it.first << std::endl;
-		file << it.second.packageEntryDesc.offset << std::endl;
-		file << it.second.packageEntryDesc.uncompressedSize << std::endl;
-		file << it.second.packageEntryDesc.compressedSize << std::endl;
-	}
+	std::stringstream dataStream;
 
 	for (auto& it : compressedPackageEntries)
 	{
-		if (it.second.packageEntryDesc.compressedSize > 0)
-			file.write(reinterpret_cast<char*>(it.second.pData), it.second.packageEntryDesc.compressedSize);
-		else
-			file.write(reinterpret_cast<char*>(it.second.pData), it.second.packageEntryDesc.uncompressedSize);
+		file << it.first << std::endl;
+		file << it.second.packageEntryDesc.typeHash << std::endl;
+		file << it.second.packageEntryDesc.offset << std::endl;
+		file << it.second.packageEntryDesc.uncompressedSize << std::endl;
+		file << it.second.packageEntryDesc.compressedSize << std::endl;
+
+		size_t sizeOfData = it.second.packageEntryDesc.compressedSize > 0 ? it.second.packageEntryDesc.compressedSize : it.second.packageEntryDesc.uncompressedSize;
+		dataStream.write(reinterpret_cast<char*>(it.second.pData), sizeOfData);
 	}
+
+	file << dataStream.str();
 
 	file.close();
 
@@ -303,19 +332,21 @@ void Archiver::SaveUncompressedPackage(const std::string& filename)
 		debugFile << "Table Enties: " << compressedPackageEntries.size() << std::endl;
 		debugFile << "Data Size: " << compressedDataSize << std::endl;
 
+		std::stringstream dataDebugStream;
+
 		for (auto& it : compressedPackageEntries)
 		{
 			debugFile << "Hash: " << it.first << std::endl;
+			debugFile << "Type Hash: " << it.second.packageEntryDesc.typeHash << std::endl;
 			debugFile << "Offset: " << it.second.packageEntryDesc.offset << std::endl;
 			debugFile << "UncompressedSize: " << it.second.packageEntryDesc.uncompressedSize << std::endl;
 			debugFile << "CompressedSize: " << it.second.packageEntryDesc.compressedSize << std::endl;
+
+			size_t sizeOfData = it.second.packageEntryDesc.compressedSize > 0 ? it.second.packageEntryDesc.compressedSize : it.second.packageEntryDesc.uncompressedSize;
+			dataDebugStream.write(reinterpret_cast<char*>(it.second.pData), sizeOfData);
 		}
 
-		debugFile << "Data: ";
-		for (auto& it : compressedPackageEntries)
-		{
-			debugFile.write(reinterpret_cast<char*>(it.second.pData), it.second.packageEntryDesc.compressedSize);
-		}
+		debugFile << "Data: " << dataDebugStream.str();
 
 		debugFile.close();
 	}

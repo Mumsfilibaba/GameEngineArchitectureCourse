@@ -11,8 +11,8 @@ struct TGAFile
 	unsigned char idLength;
 	unsigned char colorMapType;
 	unsigned char imageType;
-	short int imageWidth;
-	short int imageHeight;
+	unsigned short imageWidth;
+	unsigned short imageHeight;
 	unsigned char bitCount; //pixelDepth
 
 	//image color and map data
@@ -44,15 +44,14 @@ class TextureManager
 
 public:
 
-	TGAFile* mp_tgaFile;
-	std::vector<PixelInfo> m_pixelData;
-
 private:
 
 
 public:
 	//maybe make it return the TGAFile-pointer
 	sf::Texture* LoadTGAFile(const char* fileName);
+	sf::Texture* LoadTGAFile(void* pData);
+
 
 	TextureManager() = default;
 	~TextureManager() = default;
