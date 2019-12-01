@@ -7,9 +7,20 @@ ResourceManager::ResourceManager()
 
 }
 
-ResourceBundle* ResourceManager::loadResources(std::initializer_list<size_t> guids)
+IResource* ResourceManager::GetResource(size_t guid)
+{
+	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_ResourceMap.find(guid);
+	if (iterator == m_ResourceMap.end())
+		return nullptr;
+
+	return iterator->second;
+}
+
+ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> guids)
 {
 	Archiver& archiver = Archiver::GetInstance();
+	ResourceLoader& resourceLoader = ResourceLoader::Get();
+
 	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
 
 	size_t* guidArray = new size_t[guids.size()];
@@ -26,7 +37,7 @@ ResourceBundle* ResourceManager::loadResources(std::initializer_list<size_t> gui
 			archiver.ReadPackageData(guid, typeHash, data, size);
 
 			//Create and register Resource from data
-			IResource* resource = ResourceLoader::get().loadResourceFromMemory(data, size);
+			IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
 			m_ResourceMap.insert({ guid, resource });
 		}
 		guidArray[index++] = guid;
@@ -37,9 +48,11 @@ ResourceBundle* ResourceManager::loadResources(std::initializer_list<size_t> gui
 	return resourceBundle;
 }
 
-ResourceBundle* ResourceManager::loadResources(std::initializer_list<char*> files)
+ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> files)
 {
 	Archiver& archiver = Archiver::GetInstance();
+	ResourceLoader& resourceLoader = ResourceLoader::Get();
+
 	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
 
 	size_t* guidArray = new size_t[files.size()];
@@ -53,10 +66,11 @@ ResourceBundle* ResourceManager::loadResources(std::initializer_list<char*> file
 			//Load data
 			size_t size = archiver.ReadRequiredSizeForPackageData(guid);
 			void* data = malloc(size);
-			archiver.ReadPackageData(guid, data, size);
+			size_t typeHash;
+			archiver.ReadPackageData(guid, typeHash, data, size);
 
 			//Create and register Resource from data
-			IResource* resource = ResourceLoader::get().loadResourceFromMemory(data, size);
+			IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
 			m_ResourceMap.insert({ guid, resource });
 		}
 		guidArray[index++] = guid;
@@ -67,17 +81,46 @@ ResourceBundle* ResourceManager::loadResources(std::initializer_list<char*> file
 	return resourceBundle;
 }
 
-bool ResourceManager::isResourceLoaded(size_t guid)
+bool ResourceManager::IsResourceLoaded(size_t guid)
 {
 	return m_ResourceMap.find(guid) != m_ResourceMap.end();
 }
 
-bool ResourceManager::isResourceLoaded(const std::string& path)
+bool ResourceManager::IsResourceLoaded(const std::string& path)
 {
-	return isResourceLoaded(HashString(path.c_str()));
+	return IsResourceLoaded(HashString(path.c_str()));
 }
 
-ResourceManager& ResourceManager::get()
+void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
+{
+	Archiver& archiver = Archiver::GetInstance();
+	ResourceLoader& resourceLoader = ResourceLoader::Get();
+
+	archiver.CreateUncompressedPackage();
+
+	void* data = malloc(4096*4096);
+
+	for (const char* file : files)
+	{
+		std::string filepath = std::string(file);
+		std::size_t index = filepath.find_last_of(".");
+		if (index == std::string::npos)
+		{
+			std::cout << "Error! Tried to package a file without a type [" << file << "]" << std::endl;
+			continue;
+		}
+		int typeHash = HashString(filepath.substr(index).c_str());
+
+		int bytesWritten = resourceLoader.WriteResourceToBuffer(filepath, data);
+		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);
+	}
+	free(data);
+
+	archiver.SaveUncompressedPackage(PACKAGE_PATH);
+	archiver.CloseUncompressedPackage();
+}
+
+ResourceManager& ResourceManager::Get()
 {
 	static ResourceManager instance;
 	return instance;

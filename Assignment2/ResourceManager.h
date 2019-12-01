@@ -11,18 +11,24 @@
 
 class ResourceManager
 {
+	friend class ResourceBundle;
+
 public:
 
-	ResourceBundle* loadResources(std::initializer_list<size_t> guids);
-	ResourceBundle* loadResources(std::initializer_list<char*> files);
+	ResourceBundle* LoadResources(std::initializer_list<size_t> guids);
+	ResourceBundle* LoadResources(std::initializer_list<char*> files);
 
-	bool isResourceLoaded(size_t guid);
-	bool isResourceLoaded(const std::string& path);
+	bool IsResourceLoaded(size_t guid);
+	bool IsResourceLoaded(const std::string& path);
 
-	static ResourceManager& get();
+	void CreateResourcePackage(std::initializer_list<char*> files);
+
+	static ResourceManager& Get();
 
 private:
 	ResourceManager();
+
+	IResource* GetResource(size_t guid);
 
 	std::vector<ResourceBundle*> m_ResourceBundles;
 	std::unordered_map<size_t, IResource*> m_ResourceMap;

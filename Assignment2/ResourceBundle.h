@@ -8,8 +8,11 @@ class ResourceBundle
 public:
 	ResourceBundle(size_t* guids, size_t nrOfGuids);
 
-	Texture* getTexture(const std::string& file);
-	Sound* getSound(const std::string& file);
+	Texture* GetTexture(size_t guid);
+	Texture* GetTexture(const std::string& file);
+
+	Sound* GetSound(size_t guid);
+	Sound* GetSound(const std::string& file);
 
 private:
 	size_t* m_Guids;

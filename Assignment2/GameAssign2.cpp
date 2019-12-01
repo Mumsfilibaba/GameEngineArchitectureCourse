@@ -43,7 +43,7 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
-	ResourceManager& resourceManager = ResourceManager::get();
+	ResourceManager& resourceManager = ResourceManager::Get();
 
 
 

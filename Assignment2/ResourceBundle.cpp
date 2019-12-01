@@ -1,4 +1,5 @@
 #include "ResourceBundle.h"
+#include "ResourceManager.h"
 
 ResourceBundle::ResourceBundle(size_t* guids, size_t nrOfGuids) :
 	m_Guids(guids),
@@ -7,12 +8,22 @@ ResourceBundle::ResourceBundle(size_t* guids, size_t nrOfGuids) :
 
 }
 
-Texture* getTexture(const std::string& file)
+Texture* ResourceBundle::GetTexture(size_t guid)
 {
-	return NULL;
+	return (Texture*)ResourceManager::Get().GetResource(guid);
 }
 
-Sound* getSound(const std::string& file)
+Texture* ResourceBundle::GetTexture(const std::string& file)
 {
-	return NULL;
+	return GetTexture(HashString(file.c_str()));
+}
+
+Sound* ResourceBundle::GetSound(size_t guid)
+{
+	return (Sound*)ResourceManager::Get().GetResource(guid);
+}
+
+Sound* ResourceBundle::GetSound(const std::string& file)
+{
+	return GetSound(HashString(file.c_str()));
 }

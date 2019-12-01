@@ -11,18 +11,17 @@ class ResourceLoader
 	friend class ResourceManager;
 public:
 
-	void registerLoader(const std::string& fileType, ILoader* loader);
-	IResource* loadResourceFromDisk(const std::string& file);
-	void writeResourceToBuffer(IResource* resource, void* buffer, size_t bytesWritten);
+	void RegisterLoader(const std::string& fileType, ILoader* loader);
+	IResource* LoadResourceFromDisk(const std::string& file);
 
-	static ResourceLoader& get();
+	static ResourceLoader& Get();
 
 private:
 	ResourceLoader();
 
-	IResource* loadResourceFromMemory(void* data, size_t size);
-
-	ILoader* getLoader(size_t hash);
+	IResource* LoadResourceFromMemory(void* data, size_t size, size_t typeHash);
+	size_t WriteResourceToBuffer(const std::string& file, void* buffer);
+	ILoader* GetLoader(size_t hash);
 
 	std::unordered_map<size_t, ILoader*> m_LoaderMap;
 };

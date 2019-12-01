@@ -4,5 +4,6 @@
 
 class IResource
 {
-
+public:
+	virtual void Release() = 0;
 };
