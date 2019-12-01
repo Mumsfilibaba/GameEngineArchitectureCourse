@@ -204,8 +204,8 @@ sf::Texture * TextureManager::LoadTGAFile(void* pData)
 
 	image.create(pTGAfile->imageWidth, pTGAfile->imageHeight, pTGAfile->imageDataBuffer2);
 	texture->loadFromImage(image, sf::IntRect());
-	//delete pTGAfile;
-
+	delete pTGAfile;
+	
 	return texture;
 
 }
