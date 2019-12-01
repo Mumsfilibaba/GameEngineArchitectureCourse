@@ -64,6 +64,7 @@ void GameAssign2::Init()
 	//write to memory
 	fread(buffer, 1, lSize, pFile);
 	texture = txtrManager.LoadTGAFile(buffer);
+	
 	//Archiver tests
 	//txtrManager.LoadTGAFile("Phone.tga");
 

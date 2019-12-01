@@ -57,54 +57,54 @@ size_t Archiver::ReadPackageHeader(std::ifstream& fileStream)
 
 void Archiver::OpenCompressedPackage(const std::string& filename, PackageMode packageMode)
 {
-	assert(!m_CompressedPackage.isPackageOpen);
-	assert(packageMode != UNDEFINED);
-
-	m_CompressedPackage.filename = filename + PACKAGE_FILE_EXTENSION;
-	m_CompressedPackage.isPackageOpen = true;
-	m_CompressedPackage.packageMode = packageMode;
-
-	switch (packageMode)
+	if (!m_CompressedPackage.isPackageOpen)
 	{
-		case LOAD_AND_STORE:
-		{
-			std::ifstream fileStream;
-			fileStream.open(filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
+		m_CompressedPackage.filename = filename + PACKAGE_FILE_EXTENSION;
+		m_CompressedPackage.isPackageOpen = true;
+		m_CompressedPackage.packageMode = packageMode;
 
-			if (fileStream.is_open())
+		switch (packageMode)
+		{
+			case LOAD_AND_STORE:
 			{
-				size_t dataSize = ReadPackageHeader(fileStream);
+				std::ifstream fileStream;
+				fileStream.open(filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
 
-				fileStream.seekg(1, std::ios_base::cur);
-				m_CompressedPackage.pData = MemoryManager::GetInstance().Allocate(dataSize, 1, "Package Data");
-				fileStream.read(reinterpret_cast<char*>(m_CompressedPackage.pData), dataSize);
-				//std::cout << "Loaded Data: " << reinterpret_cast<char*>(m_CompressedPackage.pData) << std::endl;
-				fileStream.close();
+				if (fileStream.is_open())
+				{
+					size_t dataSize = ReadPackageHeader(fileStream);
+
+					fileStream.seekg(1, std::ios_base::cur);
+					m_CompressedPackage.pData = MemoryManager::GetInstance().Allocate(dataSize, 1, "Package Data");
+					fileStream.read(reinterpret_cast<char*>(m_CompressedPackage.pData), dataSize);
+					//std::cout << "Loaded Data: " << reinterpret_cast<char*>(m_CompressedPackage.pData) << std::endl;
+					fileStream.close();
+				}
+
+				break;
 			}
-
-			break;
-		}
-		case LOAD_AND_PREPARE:
-		{
-			m_CompressedPackage.pFileStream = new std::ifstream();
-			m_CompressedPackage.pFileStream->open(filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
-
-			std::ifstream& fileStream = *m_CompressedPackage.pFileStream;
-
-			if (fileStream.is_open())
+			case LOAD_AND_PREPARE:
 			{
-				ReadPackageHeader(fileStream);
+				m_CompressedPackage.pFileStream = new std::ifstream();
+				m_CompressedPackage.pFileStream->open(filename + PACKAGE_FILE_EXTENSION, std::ios::in | std::ios::binary);
 
-				fileStream.seekg(1, std::ios_base::cur);
-				m_CompressedPackage.fileDataStart = fileStream.tellg();
-				m_CompressedPackage.pFileStream = &fileStream;
+				std::ifstream& fileStream = *m_CompressedPackage.pFileStream;
+
+				if (fileStream.is_open())
+				{
+					ReadPackageHeader(fileStream);
+
+					fileStream.seekg(1, std::ios_base::cur);
+					m_CompressedPackage.fileDataStart = fileStream.tellg();
+					m_CompressedPackage.pFileStream = &fileStream;
+				}
+				break;
 			}
-			break;
-		}
-		default:
-		{
-			assert(false);
-			break;
+			default:
+			{
+				assert(false);
+				break;
+			}
 		}
 	}
 }
