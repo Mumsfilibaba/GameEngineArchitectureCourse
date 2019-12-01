@@ -1,4 +1,6 @@
 #include "GameAssign2.h"
+#include "ResourceManager.h"
+
 #include "MeshLoader.h"
 
 #ifdef VISUAL_STUDIO
@@ -41,8 +43,13 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
-	//
-	//texture = txtrManager.LoadTGAFile("meme.tga");
+	ResourceManager& resourceManager = ResourceManager::Get();
+
+
+
+
+	texture = txtrManager.LoadTGAFile("meme.tga");
+
     //Memory manager test
 	
 	FILE* pFile = fopen("meme.tga", "rb");
