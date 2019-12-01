@@ -73,8 +73,6 @@ void Game::InternalInit()
 			varying vec3 v_Tangent;
 			varying vec2 v_TexCoord;
 
-
-
 			void main()
 			{
 				v_Position	= a_Position;
