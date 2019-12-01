@@ -40,12 +40,12 @@ struct DummyStruct2D
 
 void GameAssign2::Init()
 {
-	texture = txtrManager.LoadTGAFile("meme.tga");
+	//texture = txtrManager.LoadTGAFile("meme.tga");
     //Memory manager test
-	txtrManager.LoadTGAFile("Phone.tga");
+	//txtrManager.LoadTGAFile("Phone.tga");
 
-	//Archiver tests
 #ifndef MACOS
+	//Archiver tests
     DummyStruct object1(1, 3, 3, 7, 6, 9);
     DummyStruct2D object2(23, 34, 45);
 
@@ -78,19 +78,23 @@ void GameAssign2::Init()
     archiver.SaveUncompressedPackage("package");
     archiver.CloseUncompressedPackage();
 
-    archiver.OpenCompressedPackage("package", Archiver::LOAD_AND_PREPARE);
+    archiver.OpenCompressedPackage("package", Archiver::LOAD_AND_STORE);
 
     size_t testStringHash = HashString("Test String");
+
     size_t testStringSize = archiver.ReadRequiredSizeForPackageData(testStringHash);
     void* decompressedTestStringData = MemoryManager::GetInstance().Allocate(testStringSize, 1, "Test String Decompressed");
+	archiver.OpenPackageForReading(); //This is only needed when using LOAD_AND_PREPARE
     archiver.ReadPackageData(testStringHash, decompressedTestStringData, testStringSize);
+	archiver.ClosePackageForReading(); //This is only needed when using LOAD_AND_PREPARE
+
     std::string decompressedTestString = reinterpret_cast<char*>(decompressedTestStringData);
     std::cout << "Decompressed String: " << decompressedTestString << std::endl;
 #endif
 
 	//Construct mesh
-	m_pCube = Mesh::CreateCube();
-	m_pCube->Construct();
+	//m_pCube = Mesh::CreateCube();
+	//m_pCube->Construct();
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -100,8 +104,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 void GameAssign2::Render()
 {
 
-	m_MeshShader.setUniform("our_Texture", *texture);
-	m_pCube->Draw();
+	//m_MeshShader.setUniform("our_Texture", *texture);
+	//m_pCube->Draw();
 }
 
 void GameAssign2::RenderImGui()
@@ -110,6 +114,6 @@ void GameAssign2::RenderImGui()
 
 void GameAssign2::Release()
 {
-	delete m_pCube;
-	m_pCube = nullptr;
+	//delete m_pCube;
+	//m_pCube = nullptr;
 }
