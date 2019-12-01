@@ -96,7 +96,6 @@ void Archiver::OpenCompressedPackage(const std::string& filename, PackageMode pa
 				fileStream.seekg(1, std::ios_base::cur);
 				m_CompressedPackage.fileDataStart = fileStream.tellg();
 				m_CompressedPackage.pFileStream = &fileStream;
-				fileStream.close();
 			}
 			break;
 		}
@@ -113,7 +112,6 @@ void Archiver::CloseCompressedPackage()
 	assert(m_CompressedPackage.isPackageOpen);
 	assert(!m_CompressedPackage.pFileStream->is_open());
 
-	ClosePackageForReading();
 	m_CompressedPackage.Reset();
 }
 
@@ -124,24 +122,6 @@ size_t Archiver::ReadRequiredSizeForPackageData(size_t hash)
 		return 0;
 
 	return packageTableEntry->second.uncompressedSize;
-}
-
-void Archiver::OpenPackageForReading()
-{
-	if (m_CompressedPackage.pFileStream != nullptr)
-	{
-		if (!m_CompressedPackage.pFileStream->is_open())
-			m_CompressedPackage.pFileStream->open(m_CompressedPackage.filename, std::ios::in | std::ios::binary);
-	}
-}
-
-void Archiver::ClosePackageForReading()
-{
-	if (m_CompressedPackage.pFileStream != nullptr)
-	{
-		if (m_CompressedPackage.pFileStream->is_open())
-			m_CompressedPackage.pFileStream->close();
-	}
 }
 
 void Archiver::ReadPackageData(size_t hash, void* pBuf, size_t bufSize)

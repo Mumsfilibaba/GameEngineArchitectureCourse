@@ -78,15 +78,13 @@ void GameAssign2::Init()
     archiver.SaveUncompressedPackage("package");
     archiver.CloseUncompressedPackage();
 
-    archiver.OpenCompressedPackage("package", Archiver::LOAD_AND_STORE);
+    archiver.OpenCompressedPackage("package", Archiver::LOAD_AND_PREPARE);
 
     size_t testStringHash = HashString("Test String");
 
     size_t testStringSize = archiver.ReadRequiredSizeForPackageData(testStringHash);
     void* decompressedTestStringData = MemoryManager::GetInstance().Allocate(testStringSize, 1, "Test String Decompressed");
-	archiver.OpenPackageForReading(); //This is only needed when using LOAD_AND_PREPARE
     archiver.ReadPackageData(testStringHash, decompressedTestStringData, testStringSize);
-	archiver.ClosePackageForReading(); //This is only needed when using LOAD_AND_PREPARE
 
     std::string decompressedTestString = reinterpret_cast<char*>(decompressedTestStringData);
     std::cout << "Decompressed String: " << decompressedTestString << std::endl;

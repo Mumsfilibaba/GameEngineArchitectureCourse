@@ -125,8 +125,6 @@ public:
 	void OpenCompressedPackage(const std::string& filename, PackageMode packageMode);
 	void CloseCompressedPackage();
 
-	void OpenPackageForReading();
-	void ClosePackageForReading();
 	size_t ReadRequiredSizeForPackageData(size_t hash);
 	void ReadPackageData(size_t hash, void* pBuf, size_t bufSize);
 
