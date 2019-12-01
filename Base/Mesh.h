@@ -1,3 +1,4 @@
+#pragma once
 #include "Helpers.h"
 #include "PoolAllocator.h"
 #include <glad/glad.h>

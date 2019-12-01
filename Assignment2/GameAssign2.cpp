@@ -1,4 +1,5 @@
 #include "GameAssign2.h"
+#include "MeshLoader.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
@@ -118,8 +119,10 @@ void GameAssign2::Init()
 #endif
 
 	//Construct mesh
-	//m_pCube = Mesh::CreateCube();
-	//m_pCube->Construct();
+	m_pCube = Mesh::CreateCube();
+	m_pCube->Construct();
+
+	MeshLoader::LoadMesh("teapot.obj");
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -128,8 +131,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	/*m_MeshShader.setUniform("our_Texture", *texture);
-	m_pCube->Draw();*/
+	m_MeshShader.setUniform("our_Texture", *texture);
+	m_pCube->Draw();
 }
 
 void GameAssign2::RenderImGui()
@@ -138,6 +141,10 @@ void GameAssign2::RenderImGui()
 
 void GameAssign2::Release()
 {
-	//delete m_pCube;
-	//m_pCube = nullptr;
+	//Note: We are using our own defined delete (Look in Mesh.h) - We are not using the OS defined
+	if (m_pCube)
+	{
+		delete m_pCube;
+		m_pCube = nullptr;
+	}
 }
