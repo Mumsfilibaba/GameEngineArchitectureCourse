@@ -1,4 +1,4 @@
-#include "MeshLoader.h"
+#include "LoaderOBJ.h"
 #include <iostream>
 #include <unordered_map>
 #include <glm/glm.hpp>
@@ -13,7 +13,7 @@
 #define OBJ_ERROR_CORRUPT_FILE	1
 #define OBJ_ERROR_EMPTY_FILE	2
 
-#define DEBUG_PRINTS			1
+//#define DEBUG_PRINTS			1
 
 struct OBJVertex
 {
@@ -59,19 +59,25 @@ void ParseVec3(glm::vec3& vector, const char** const iter);
 void AddUniqueOBJVertex(const OBJVertex& vertex, OBJMesh& mesh);
 
 
-Mesh* MeshLoader::LoadMesh(const std::string& filepath)
+IResource* LoaderOBJ::LoadFromDisk(const std::string& file)
 {
-	//Check if the string we passed in contains the .obj ending, otherwise unsupported
-	if (filepath.rfind(".obj") != std::string::npos)
-		return MeshLoader::LoadOBJ(filepath);
-
-	//No supported format
-	ThreadSafePrintf("%s is not in a supported format\n", filepath.c_str());
 	return nullptr;
 }
 
 
-Mesh* MeshLoader::LoadOBJ(const std::string& filepath)
+IResource* LoaderOBJ::LoadFromMemory(void* data, size_t size)
+{
+	return nullptr;
+}
+
+
+size_t LoaderOBJ::WriteToBuffer(const std::string& file, void* buffer)
+{
+	return size_t();
+}
+
+
+Mesh* LoaderOBJ::ReadFromDisk(const std::string& filepath)
 {
 	std::vector<GameMesh> meshes;
 	if (::LoadOBJ(meshes, filepath))

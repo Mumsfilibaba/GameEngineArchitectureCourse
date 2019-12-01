@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include "ILoader.h"
-#include "StringHash.h"
+#include "Helpers.h"
 
 class ResourceLoader
 {

@@ -47,6 +47,10 @@ Mesh::~Mesh()
 	}
 }
 
+void Mesh::Release()
+{
+}
+
 void Mesh::Construct()
 {
 	glGenBuffers(1, &m_VBO);

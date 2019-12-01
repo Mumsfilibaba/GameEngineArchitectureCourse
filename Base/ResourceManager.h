@@ -2,8 +2,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-
-#include "StringHash.h"
+#include "Helpers.h"
 #include "IResource.h"
 #include "ResourceBundle.h"
 

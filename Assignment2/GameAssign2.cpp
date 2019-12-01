@@ -1,7 +1,7 @@
 #include "GameAssign2.h"
 #include "ResourceManager.h"
 
-#include "MeshLoader.h"
+#include "LoaderOBJ.h"
 #include "ResourceLoader.h"
 #include "LoaderTGA.h"
 
@@ -17,14 +17,9 @@ void GameAssign2::Init()
 	//register loaders
 	resourceLoader.RegisterLoader(".tga", new LoaderTGA());
 
-
-void GameAssign2::Init()
-{
-	//texture = txtrManager.LoadTGAFile("meme.tga");
-    //Memory manager test
 	//create package
 	resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga" });
-	
+
 	//load resources
 	ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga" });
 
@@ -46,7 +41,7 @@ void GameAssign2::Init()
 	m_pCube = Mesh::CreateCube();
 	m_pCube->Construct();
 
-	m_pMesh = MeshLoader::LoadMesh("teapot.obj");
+	m_pMesh = LoaderOBJ::ReadFromDisk("teapot.obj");
 	m_pMesh->Construct();
 }
 
@@ -56,7 +51,7 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	m_MeshShader.setUniform("our_Texture", *texture);
+	m_MeshShader.setUniform("our_Texture", m_pTexture->GetSFTexture());
 	m_pMesh->Draw();
 }
 

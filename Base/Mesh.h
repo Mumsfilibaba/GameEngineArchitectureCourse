@@ -1,6 +1,7 @@
 #pragma once
 #include "Helpers.h"
-#include "PoolAllocator.h"
+#include "IResource.h"
+#include "MemoryManager.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
@@ -28,7 +29,7 @@ public:
 };
 
 
-class Mesh
+class Mesh : public IResource
 {
 public:
 	Mesh(Mesh&& other) = delete;
@@ -38,6 +39,8 @@ public:
 
 	Mesh(const Vertex* const vertices, const uint32_t* const indices, uint32_t numVertices, uint32_t numIndices);
 	~Mesh();
+
+	virtual void Release() override;
 
 	void Construct();
 	void Draw();

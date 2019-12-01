@@ -4,7 +4,6 @@
 #define INVERTED_BIT            (1 << 5)
 #define BYTE32 32
 
-
 IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 {
 	TGAHeader pTGAfile;
