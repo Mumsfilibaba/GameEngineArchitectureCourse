@@ -2,7 +2,7 @@
 #include <iostream>
 #include "Game.h"
 #include "TextureManager.h"
-#include "Archiver.h"
+#include "Texture.h"
 
 class GameAssign2 final : public Game
 {
@@ -16,8 +16,7 @@ public:
 	virtual void RenderImGui() override final;
 	virtual void Release() override final;
 private:
-	TextureManager txtrManager;
-	sf::Texture* texture;
+	Texture* m_pTexture;
 	Mesh* m_pCube;
 	Mesh* m_pMesh;
 };

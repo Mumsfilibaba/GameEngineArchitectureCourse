@@ -10,6 +10,7 @@
 class Archiver
 {	
 	static constexpr char PACKAGE_FILE_EXTENSION[] = ".txt";
+	static constexpr char COMPRESSION_LEVEL = Z_DEFAULT_COMPRESSION;
 
 public:
 	enum PackageMode : unsigned char
@@ -24,18 +25,21 @@ private:
 	{
 		PackageEntryDescriptor()
 		{
+			this->typeHash = 0;
 			this->offset = 0;
 			this->uncompressedSize = 0;
 			this->compressedSize = 0;
 		}
 
-		PackageEntryDescriptor(size_t offset, size_t uncompressedSize, size_t compressedSize)
+		PackageEntryDescriptor(size_t typeHash, size_t offset, size_t uncompressedSize, size_t compressedSize)
 		{
+			this->typeHash = typeHash;
 			this->offset = offset;
 			this->uncompressedSize = uncompressedSize;
 			this->compressedSize = compressedSize;
 		}
 
+		size_t typeHash;
 		size_t offset;
 		size_t uncompressedSize;
 		size_t compressedSize;
@@ -48,15 +52,15 @@ private:
 			this->pData = nullptr;
 		}
 
-		UncompressedPackageEntry(size_t uncompressedSize, size_t compressedSize, void* pData)
+		UncompressedPackageEntry(size_t typeHash, size_t uncompressedSize, size_t compressedSize, void* pData)
 		{
-			this->packageEntryDesc = PackageEntryDescriptor(0, uncompressedSize, compressedSize);
+			this->packageEntryDesc = PackageEntryDescriptor(typeHash, 0, uncompressedSize, compressedSize);
 			this->pData = pData;
 		}
 
-		UncompressedPackageEntry(size_t offset, size_t uncompressedSize, size_t compressedSize, void* pData)
+		UncompressedPackageEntry(size_t typeHash, size_t offset, size_t uncompressedSize, size_t compressedSize, void* pData)
 		{
-			this->packageEntryDesc = PackageEntryDescriptor(offset, uncompressedSize, compressedSize);
+			this->packageEntryDesc = PackageEntryDescriptor(typeHash, offset, uncompressedSize, compressedSize);
 			this->pData = pData;
 		}
 
@@ -125,13 +129,16 @@ public:
 	void CloseCompressedPackage();
 
 	size_t ReadRequiredSizeForPackageData(size_t hash);
-	void ReadPackageData(size_t hash, void* pBuf, size_t bufSize);
+	void ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t bufSize);
 
 	void CreateUncompressedPackage();
-	void AddToUncompressedPackage(size_t hash, size_t sizeInBytes, void* pData);
+	void AddToUncompressedPackage(size_t hash, size_t typeHash, size_t sizeInBytes, void* pData);
 	void RemoveFromUncompressedPackage(size_t hash);
 	void SaveUncompressedPackage(const std::string& filename);
 	void CloseUncompressedPackage();
+
+	void* DecompressHeader(std::ifstream& fileStream);
+	size_t CompressHeader(void* pHeader, size_t headerSize, void* pBuf, size_t bufSize);
 
 private:
 	Archiver();
