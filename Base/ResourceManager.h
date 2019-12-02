@@ -13,9 +13,14 @@ class ResourceManager
 	friend class ResourceBundle;
 
 public:
+	~ResourceManager();
 
 	ResourceBundle* LoadResources(std::initializer_list<size_t> guids);
 	ResourceBundle* LoadResources(std::initializer_list<char*> files);
+
+	void LoadResourcesInBackground(std::initializer_list<char*> files);
+
+	void Callback();
 
 	bool IsResourceLoaded(size_t guid);
 	bool IsResourceLoaded(const std::string& path);
