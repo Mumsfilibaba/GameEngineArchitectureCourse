@@ -50,18 +50,6 @@ void GameAssign2::Init()
 		//Background Loaded
 	});
 
-#ifndef MACOS
-
-    //size_t testTextureHash = HashString("our texture");
-    //size_t testTextureSize = archiver.ReadRequiredSizeForPackageData(testTextureHash);
-
-    ////test texture
-    //void* decompressedTestTextureData = MemoryManager::GetInstance().Allocate(testTextureHash, 1, "Test Texture Decompressed");
-    //archiver.ReadPackageData(testTextureHash, decompressedTestTextureData, testTextureSize);
-    //texture = txtrManager.LoadTGAFile(decompressedTestStringData);
-
-#endif
-
 	TaskManager& taskManager = TaskManager::Get();
 	taskManager.Execute(Func);
 	taskManager.Execute(Func);
