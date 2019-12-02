@@ -16,32 +16,35 @@ void GameAssign2::Init()
 
 	//register loaders
 	resourceLoader.RegisterLoader(".tga", new LoaderTGA());
+    resourceLoader.RegisterLoader(".obj", new LoaderOBJ());
 
-	//create package
-	resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga" });
+    //create package
+    resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj" });
 
-	//load resources
-	ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga" });
+    //load resources
+    ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga", "teapot.obj" });
 
-	m_pTexture = pBundle->GetTexture("Phone.tga");
+    m_pTexture = pBundle->GetTexture("Phone.tga");
 
 #ifndef MACOS
 
-	//size_t testTextureHash = HashString("our texture");
-	//size_t testTextureSize = archiver.ReadRequiredSizeForPackageData(testTextureHash);
+    //size_t testTextureHash = HashString("our texture");
+    //size_t testTextureSize = archiver.ReadRequiredSizeForPackageData(testTextureHash);
 
-	////test texture
-	//void* decompressedTestTextureData = MemoryManager::GetInstance().Allocate(testTextureHash, 1, "Test Texture Decompressed");
-	//archiver.ReadPackageData(testTextureHash, decompressedTestTextureData, testTextureSize);
-	//texture = txtrManager.LoadTGAFile(decompressedTestStringData);
+    ////test texture
+    //void* decompressedTestTextureData = MemoryManager::GetInstance().Allocate(testTextureHash, 1, "Test Texture Decompressed");
+    //archiver.ReadPackageData(testTextureHash, decompressedTestTextureData, testTextureSize);
+    //texture = txtrManager.LoadTGAFile(decompressedTestStringData);
 
 #endif
 
+    //register loaders
+    
 	//Construct mesh
 	m_pCube = Mesh::CreateCube();
 	m_pCube->Construct();
 
-	m_pMesh = LoaderOBJ::ReadFromDisk("teapot.obj");
+	m_pMesh = pBundle->GetMesh("teapot.obj");
 	m_pMesh->Construct();
 }
 

@@ -1,6 +1,5 @@
 #include "LoaderOBJ.h"
 #include <iostream>
-#include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include "StackAllocator.h"
@@ -38,16 +37,14 @@ struct OBJData
 	std::vector<glm::vec3> Normals;
 	std::vector<glm::vec2> TextureCoords;
 };
-
-template <typename VertexType>
-struct TMesh
+    
+struct BinaryMeshData
 {
-	std::vector<VertexType>	Vertices;
-	std::vector<uint32_t>	Indices;
+    uint32_t VertexCount    = 0;
+    uint32_t IndexCount     = 0;
 };
 
-using OBJMesh	= TMesh<OBJVertex>;
-using GameMesh	= TMesh<Vertex>;
+using OBJMesh = TMesh<OBJVertex>;
 
 bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath);
 uint32_t ReadTextfile(const std::string& filename, const char** const buffer);
@@ -61,42 +58,86 @@ void AddUniqueOBJVertex(const OBJVertex& vertex, OBJMesh& mesh);
 
 IResource* LoaderOBJ::LoadFromDisk(const std::string& file)
 {
-	return nullptr;
+    std::vector<GameMesh> meshes = std::move(ReadFromDisk(file));
+    if (!meshes.empty())
+    {
+        //Create mesh object
+        auto& vertices = meshes[0].Vertices;
+        auto& indices  = meshes[0].Indices;
+
+        //Create a new array for these (That can be stores inside the Mesh and destroyed when constructed later)
+        Vertex* pVertices = new(mm_allocate(sizeof(Vertex) * vertices.size(), 1, file + "Vertices")) Vertex[vertices.size()];
+        memcpy(pVertices, vertices.data(), sizeof(Vertex) * vertices.size());
+
+        uint32_t* pIndices = new(mm_allocate(sizeof(uint32_t) * indices.size(), 1, file + "Indices")) uint32_t[indices.size()];
+        memcpy(pIndices, indices.data(), sizeof(uint32_t) * indices.size());
+
+        return new(file.c_str()) Mesh(pVertices, pIndices, uint32_t(vertices.size()), uint32_t(indices.size()));
+    }
+
+    return nullptr;
 }
 
 
-IResource* LoaderOBJ::LoadFromMemory(void* data, size_t size)
+IResource* LoaderOBJ::LoadFromMemory(void* pData, size_t)
 {
-	return nullptr;
+    if (pData)
+    {
+        BinaryMeshData data = {};
+        memcpy(&data, pData, sizeof(BinaryMeshData));
+        
+        uint8_t* pByteBuffer = (uint8_t*)pData;
+        
+        //Create a new array for these (That can be stores inside the Mesh and destroyed when constructed later)
+        uint32_t vertexStride = sizeof(Vertex) * data.VertexCount;
+        Vertex* pVertices = new(mm_allocate(vertexStride, 1, "Vertices LoadFromMemory")) Vertex[data.VertexCount];
+        memcpy(pVertices, pByteBuffer + sizeof(BinaryMeshData), vertexStride);
+
+        uint32_t indexStride = sizeof(uint32_t) * data.IndexCount;
+        uint32_t* pIndices = new(mm_allocate(indexStride, 1, "Indices LoadFromMemory")) uint32_t[data.IndexCount];
+        memcpy(pIndices, pByteBuffer + sizeof(BinaryMeshData) + vertexStride, indexStride);
+        
+        return new("Mesh LoadedFromMemory") Mesh(pVertices, pIndices, data.VertexCount, data.IndexCount);
+    }
+    
+    return nullptr;
 }
 
 
 size_t LoaderOBJ::WriteToBuffer(const std::string& file, void* buffer)
 {
-	return size_t();
+    std::vector<GameMesh> meshes = std::move(ReadFromDisk(file));
+    if (!meshes.empty())
+    {
+        BinaryMeshData data = {};
+        data.VertexCount    = uint32_t(meshes[0].Vertices.size());
+        data.IndexCount     = uint32_t(meshes[0].Indices.size());
+        
+        memcpy(buffer, &data, sizeof(BinaryMeshData));
+        
+        uint8_t* pByteBuffer = (uint8_t*)buffer;
+        uint32_t vertexStride = sizeof(Vertex) * data.VertexCount;
+        memcpy(pByteBuffer + sizeof(BinaryMeshData), meshes[0].Vertices.data(), vertexStride);
+        
+        uint32_t indexStride = sizeof(uint32_t) * data.IndexCount;
+        memcpy(pByteBuffer + sizeof(BinaryMeshData)+ vertexStride, meshes[0].Indices.data(), indexStride);
+        
+        return sizeof(BinaryMeshData) + vertexStride + indexStride;
+    }
+    
+	return -1;
 }
 
 
-Mesh* LoaderOBJ::ReadFromDisk(const std::string& filepath)
+std::vector<GameMesh> LoaderOBJ::ReadFromDisk(const std::string& filepath)
 {
 	std::vector<GameMesh> meshes;
-	if (::LoadOBJ(meshes, filepath))
+	if (!::LoadOBJ(meshes, filepath))
 	{
-		//Create mesh object
-		auto& vertices	= meshes[0].Vertices;
-		auto& indices	= meshes[0].Indices;
-
-		//Create a new array for these (That can be stores inside the Mesh and destroyed when constructed later)
-		Vertex* pVertices = new(allocate(sizeof(Vertex) * vertices.size(), 1, filepath + "Vertices")) Vertex[vertices.size()];
-		memcpy(pVertices, vertices.data(), sizeof(Vertex) * vertices.size());
-
-		uint32_t* pIndices = new(allocate(sizeof(uint32_t) * indices.size(), 1, filepath + "Indices")) uint32_t[indices.size()];
-		memcpy(pIndices, indices.data(), sizeof(uint32_t) * indices.size());
-
-		return new(filepath.c_str()) Mesh(pVertices, pIndices, uint32_t(vertices.size()), uint32_t(indices.size()));
+        ThreadSafePrintf("Failed to load mesh '%s'\n", filepath.c_str());
 	}
 
-	return nullptr;
+	return meshes;
 }
 
 
@@ -158,17 +199,17 @@ inline void ParseVec3(glm::vec3& vector, const char** const iter)
 
 inline void AddUniqueOBJVertex(const OBJVertex& vertex, OBJMesh& mesh)
 {
-	for (int32_t i = 0; i < mesh.Vertices.size(); i++)
+	for (size_t i = 0; i < mesh.Vertices.size(); i++)
 	{
 		if (mesh.Vertices[i] == vertex)
 		{
-			mesh.Indices.emplace_back(i);
+			mesh.Indices.emplace_back(uint32_t(i));
 			return;
 		}
 	}
 
 	mesh.Vertices.emplace_back(vertex);
-	mesh.Indices.emplace_back((int32_t)mesh.Vertices.size() - 1);
+	mesh.Indices.emplace_back(uint32_t(mesh.Vertices.size() - 1));
 }
 
 
@@ -360,16 +401,16 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 
 			//Check if we have a polygon and convert it to triangles
 			{
-				uint32_t startVertex = (uint32)objMeshes[currentMesh].Vertices.size() - 3; //Get the first vertex in the base triangle
+                size_t numIndices   = objMeshes[currentMesh].Indices.size();
+				uint32_t startIndex = objMeshes[currentMesh].Indices[numIndices - 3]; //Get the first vertex in the base triangle
 				while ((*iter) != '\n' && (*iter) != '\0')
 				{
 					iter++;
 					ParseOBJVertex(vertex, &iter);
 
 					//Add a new triangle base on the last couple of ones
-					uint32_t index = (uint32)objMeshes[currentMesh].Vertices.size();
-					objMeshes[currentMesh].Indices.emplace_back(startVertex);
-					objMeshes[currentMesh].Indices.emplace_back(index - 1);
+					objMeshes[currentMesh].Indices.emplace_back(startIndex);
+					objMeshes[currentMesh].Indices.emplace_back(objMeshes[currentMesh].Indices[numIndices - 1]);
 
 					AddUniqueOBJVertex(vertex, objMeshes[currentMesh]);
 #if defined(DEBUG_PRINTS)

@@ -45,7 +45,7 @@ template<typename T>
 class PoolAllocator : public PoolAllocatorBase
 {
 public:
-	struct Arena;
+    class Arena;
 	
     struct Block
     {
@@ -128,7 +128,7 @@ public:
 
 		inline bool AllocateChunkAndSetHead()
 		{
-			Chunk* pChunk = new(allocate(sizeof(Chunk), sizeof(Chunk), "Pool Allocation Chunk")) Chunk();
+			Chunk* pChunk = new(mm_allocate(sizeof(Chunk), sizeof(Chunk), "Pool Allocation Chunk")) Chunk();
 			pChunk->m_pArena = this;
 
 			m_Chunks.emplace_back(pChunk);

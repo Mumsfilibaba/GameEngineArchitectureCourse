@@ -1,6 +1,5 @@
 *.sln
 *.exe
-*.obj
 *.ipch
 *.db
 *.opendb

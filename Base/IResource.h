@@ -5,5 +5,6 @@
 class IResource
 {
 public:
+    virtual ~IResource() = default;
 	virtual void Release() = 0;
 };

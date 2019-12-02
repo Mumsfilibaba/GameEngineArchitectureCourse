@@ -58,9 +58,9 @@ public:
 	inline void* operator new(size_t size, const char* tag)
 	{
 #ifdef SHOW_ALLOCATIONS_DEBUG
-		return allocate(size, 1, tag);
+		return mm_allocate(size, 1, tag);
 #else
-		return allocate(size, 1, tag);
+		return mm_allocate(size, 1, tag);
 #endif
 	}
 
