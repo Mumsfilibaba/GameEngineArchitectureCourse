@@ -7,6 +7,14 @@ ResourceLoader::ResourceLoader()
 
 }
 
+ResourceLoader::~ResourceLoader()
+{
+	for (auto loader : m_LoaderMap)
+	{
+		delete loader.second;
+	}
+}
+
 void ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader)
 {
 	size_t hash = HashString(fileType.c_str());
