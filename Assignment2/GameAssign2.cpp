@@ -1,9 +1,10 @@
 #include "GameAssign2.h"
 #include "ResourceManager.h"
 
-#include "LoaderOBJ.h"
 #include "ResourceLoader.h"
+#include "LoaderOBJ.h"
 #include "LoaderTGA.h"
+#include "LoaderBMP.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
@@ -16,14 +17,15 @@ void GameAssign2::Init()
 
 	//register loaders
 	resourceLoader.RegisterLoader(".tga", new LoaderTGA());
+	resourceLoader.RegisterLoader(".bmp", new LoaderBMP());
 
 	//create package
-	resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga" });
+	resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "BMPTest_24.bmp" });
 
 	//load resources
-	ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga" });
+	ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga", "BMPTest_24.bmp" });
 
-	m_pTexture = pBundle->GetTexture("Phone.tga");
+	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
 #ifndef MACOS
 
