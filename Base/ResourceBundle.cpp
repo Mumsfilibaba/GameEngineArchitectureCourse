@@ -27,3 +27,15 @@ Sound* ResourceBundle::GetSound(const std::string& file)
 {
 	return GetSound(HashString(file.c_str()));
 }
+
+Mesh* ResourceBundle::GetMesh(size_t guid)
+{
+    return (Mesh*)ResourceManager::Get().GetResource(guid);
+}
+
+Mesh* ResourceBundle::GetMesh(const std::string& file)
+{
+    return GetMesh(HashString(file.c_str()));
+}
+
+

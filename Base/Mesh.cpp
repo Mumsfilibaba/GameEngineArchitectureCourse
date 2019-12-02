@@ -107,7 +107,7 @@ void Mesh::Draw()
 
 Mesh* Mesh::CreateCube()
 {
-	Vertex* triangleVertices = new(allocate(sizeof(Vertex) * 24, 1, "Cube Vertices")) Vertex[24]
+	Vertex* triangleVertices = new(mm_allocate(sizeof(Vertex) * 24, 1, "Cube Vertices")) Vertex[24]
 	{
 		// Front (Seen from front)
 		Vertex(glm::vec3(-0.5F,  0.5F,  0.5F),	glm::vec3(0.0F,  0.0F,  1.0F),	 glm::vec3(1.0F,  0.0F,  0.0F),	 glm::vec2(0.0F, 1.0F)),
@@ -146,7 +146,7 @@ Mesh* Mesh::CreateCube()
 		Vertex(glm::vec3(0.5F, -0.5F, -0.5F),	glm::vec3(1.0F,  0.0F,  0.0F),	 glm::vec3(0.0F,  0.0F,  1.0F),	 glm::vec2(0.0F, 0.0F))
 	};
 
-    uint32_t* triangleIndices = new(allocate(sizeof(uint32_t) * 36, 1, "Cube Indices")) uint32_t[36]
+    uint32_t* triangleIndices = new(mm_allocate(sizeof(uint32_t) * 36, 1, "Cube Indices")) uint32_t[36]
     {
         // Front (Seen from front)
         0, 2, 1,
@@ -173,12 +173,12 @@ Mesh* Mesh::CreateCube()
         22, 23, 20
     };
 
-	return new("Cube Mesh") Mesh(nullptr, nullptr, 24, 36);
+	return new("Cube Mesh") Mesh(triangleVertices, triangleIndices, 24, 36);
 }
 
 Mesh* Mesh::CreateCubeInvNormals()
 {
-	Vertex* triangleVertices = new(allocate(sizeof(Vertex) * 24, 1, "Cube InvNorm Vertices")) Vertex[24]
+	Vertex* triangleVertices = new(mm_allocate(sizeof(Vertex) * 24, 1, "Cube InvNorm Vertices")) Vertex[24]
 	{
 		// Front (Seen from front)
 		Vertex(glm::vec3(-0.5F,  0.5F,  0.5F),	-glm::vec3(0.0F,  0.0F,  1.0F),	    glm::vec3(1.0F,  0.0F,  0.0F),	 glm::vec2(0.0F, 1.0F)),
@@ -217,7 +217,7 @@ Mesh* Mesh::CreateCubeInvNormals()
 		Vertex(glm::vec3(0.5F, -0.5F, -0.5F),	-glm::vec3(1.0F,  0.0F,  0.0F),	    glm::vec3(0.0F,  0.0F,  1.0F),	 glm::vec2(0.0F, 0.0F))
 	};
 
-	uint32_t* triangleIndices = new(allocate(sizeof(uint32_t) * 36, 1, "Cube InvNorm Indices")) uint32_t[36]
+	uint32_t* triangleIndices = new(mm_allocate(sizeof(uint32_t) * 36, 1, "Cube InvNorm Indices")) uint32_t[36]
 	{
 		// Front (Seen from front)
 		0, 2, 1,
@@ -249,7 +249,7 @@ Mesh* Mesh::CreateCubeInvNormals()
 
 Mesh* Mesh::CreateQuad()
 {
-	Vertex* quadVertices = new(allocate(sizeof(Vertex) * 4, 1, "Quad Vertices")) Vertex[4]
+	Vertex* quadVertices = new(mm_allocate(sizeof(Vertex) * 4, 1, "Quad Vertices")) Vertex[4]
 	{
 		Vertex(glm::vec3(-0.5F,  0.5F,  0.0F), glm::vec3(0.0F,  0.0F,  1.0F), glm::vec3(1.0F,  0.0F,  0.0F), glm::vec2(0.0F, 1.0F)),
 		Vertex(glm::vec3(0.5F,  0.5F,  0.0F),  glm::vec3(0.0F,  0.0F,  1.0F), glm::vec3(1.0F,  0.0F,  0.0F), glm::vec2(1.0F, 1.0F)),
@@ -257,7 +257,7 @@ Mesh* Mesh::CreateQuad()
 		Vertex(glm::vec3(-0.5F, -0.5F,  0.0F), glm::vec3(0.0F,  0.0F,  1.0F), glm::vec3(1.0F,  0.0F,  0.0F), glm::vec2(0.0F, 0.0F))
 	};
 
-	uint32_t* quadIndices = new(allocate(sizeof(uint32_t) * 6, 1, "Quad Indices")) uint32_t[6]
+	uint32_t* quadIndices = new(mm_allocate(sizeof(uint32_t) * 6, 1, "Quad Indices")) uint32_t[6]
 	{
 		// Front (Seen from front)
 		0, 2, 1,

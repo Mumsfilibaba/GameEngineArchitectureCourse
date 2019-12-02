@@ -8,7 +8,7 @@ StackAllocator::StackAllocator(size_t size)
 	: m_Size(size),
 	m_Used(0)
 {
-	m_pStart = allocate(size, 1, "Stack Allocation Chunk");
+	m_pStart = mm_allocate(size, 1, "Stack Allocation Chunk");
 	m_pEnd = (void*)((size_t)m_pStart + size);
 	m_pCurrent = m_pStart;
 
