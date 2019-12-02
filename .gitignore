@@ -28,7 +28,6 @@ Assignment1/bin
 *.tmp
 
 Dependencies/**/*.obj
-
 Dependencies/SFML-2.5.1
 ImGui/bin-int
 Assignment1/bin
