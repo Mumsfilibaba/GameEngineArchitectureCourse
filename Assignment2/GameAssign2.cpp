@@ -38,7 +38,13 @@ void GameAssign2::Init()
 	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
 
-	resourceManager.LoadResourcesInBackground({ "meme.tga", "Phone.tga" }, [](ResourceBundle* bundle)
+	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [](ResourceBundle* bundle)
+	{
+		std::cout << "Loaded meme.tga & Phone.tga in background!" << std::endl;
+		//Background Loaded
+	});
+
+	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [](ResourceBundle* bundle)
 	{
 		std::cout << "Loaded meme.tga & Phone.tga in background!" << std::endl;
 		//Background Loaded
