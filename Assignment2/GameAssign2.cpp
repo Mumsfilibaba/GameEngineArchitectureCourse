@@ -57,7 +57,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 void GameAssign2::Render()
 {
 	m_MeshShader.setUniform("our_Texture", m_pTexture->GetSFTexture());
-	m_pMesh->Draw();
+	//m_pMesh->Draw();
+	m_pCube->Draw();
 }
 
 void GameAssign2::RenderImGui()

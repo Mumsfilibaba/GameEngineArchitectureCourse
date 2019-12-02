@@ -40,33 +40,48 @@ IResource* LoaderBMP::LoadFromMemory(void* pData, size_t size)
 		break;
 	case OS21XBITMAPHEADER_12:
 		std::cout << "Unsupported BMP DIF Header: OS21XBITMAPHEADER_12" << std::endl;
+		return nullptr;
 		break;
 	case OS22XBITMAPHEADER_64:
 		std::cout << "Unsupported BMP DIF Header: OS22XBITMAPHEADER_64" << std::endl;
+		return nullptr;
 		break;
 	case OS22XBITMAPHEADER_16:
 		std::cout << "Unsupported BMP DIF Header: OS22XBITMAPHEADER_16" << std::endl;
+		return nullptr;
 		break;
 	case BITMAPV2INFOHEADER_52:
 		std::cout << "Unsupported BMP DIF Header: BITMAPV2INFOHEADER_52" << std::endl;
+		return nullptr;
 		break;
 	case BITMAPV3INFOHEADER_56:
 		std::cout << "Unsupported BMP DIF Header: BITMAPV3INFOHEADER_56" << std::endl;
+		return nullptr;
 		break;
 	case BITMAPV4HEADER_108:
 		std::cout << "Unsupported BMP DIF Header: BITMAPV4HEADER_108" << std::endl;
+		return nullptr;
 		break;
 	case BITMAPV5HEADER_124:
 		std::cout << "Unsupported BMP DIF Header: BITMAPV5HEADER_124" << std::endl;
+		return nullptr;
 		break;
 	default:
 		std::cout << "Undefined BMP Format Detected!" << std::endl;
+		return nullptr;
 		break;
 	}
 
 	if (dibHeader.compressionMethod != 0)
 	{
 		std::cout << "Unsupported Compression Method on BMP" << std::endl;
+		return nullptr;
+	}
+
+	if (dibHeader.numBitsPerPixel != 24)
+	{
+		std::cout << "Unsopported Number of Bits per Pixel on BMP" << std::endl;
+		return nullptr;
 	}
 
 	size_t totalPixelDataSize = dibHeader.height * (size_t)ceilf(dibHeader.numBitsPerPixel * dibHeader.width / 32.0f) * 4;
