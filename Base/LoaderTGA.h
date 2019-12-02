@@ -30,9 +30,13 @@ typedef struct
 
 class LoaderTGA: public ILoader
 {
-	virtual IResource* LoadFromDisk(const std::string& file);
-	virtual IResource* LoadFromMemory(void* data, size_t size);
-	virtual size_t WriteToBuffer(const std::string& file, void* buffer);
+public:
+
+	LoaderTGA();
+	~LoaderTGA();
+	IResource* LoadFromDisk(const std::string& file);
+	IResource* LoadFromMemory(void* data, size_t size);
+	size_t WriteToBuffer(const std::string& file, void* buffer);
 
 private:
 	void ReadFromDisk(const std::string& file, TGAHeader& pTGAfile);
