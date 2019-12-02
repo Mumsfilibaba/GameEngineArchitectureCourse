@@ -1,6 +1,7 @@
 #include "GameAssign2.h"
 #include "ResourceManager.h"
 #include "ResourceLoader.h"
+#include "ResourceBundle.h"
 #include "TaskManager.h"
 #include "LoaderOBJ.h"
 #include "LoaderTGA.h"
@@ -32,23 +33,22 @@ void GameAssign2::Init()
     resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "BMPTest_24.bmp" });
 
     //load resources
-    ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga", "teapot.obj", "BMPTest_24.bmp" });
+    ResourceBundle* pBundle = resourceManager.LoadResources({"teapot.obj", "BMPTest_24.bmp"  });
+
 	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
 
-	resourceManager.LoadResourcesInBackground({});
+	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [](ResourceBundle* bundle)
+	{
+		std::cout << "Loaded meme.tga & Phone.tga in background!" << std::endl;
+		//Background Loaded
+	});
 
-#ifndef MACOS
-
-    //size_t testTextureHash = HashString("our texture");
-    //size_t testTextureSize = archiver.ReadRequiredSizeForPackageData(testTextureHash);
-
-    ////test texture
-    //void* decompressedTestTextureData = MemoryManager::GetInstance().Allocate(testTextureHash, 1, "Test Texture Decompressed");
-    //archiver.ReadPackageData(testTextureHash, decompressedTestTextureData, testTextureSize);
-    //texture = txtrManager.LoadTGAFile(decompressedTestStringData);
-
-#endif
+	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [](ResourceBundle* bundle)
+	{
+		std::cout << "Loaded meme.tga & Phone.tga in background!" << std::endl;
+		//Background Loaded
+	});
 
 	TaskManager& taskManager = TaskManager::Get();
 	taskManager.Execute(Func);

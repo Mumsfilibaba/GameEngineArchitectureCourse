@@ -40,6 +40,7 @@ public:
 	Mesh(const Vertex* const vertices, const uint32_t* const indices, uint32_t numVertices, uint32_t numIndices);
 	~Mesh();
 
+	virtual void Init() override;
 	virtual void Release() override;
 
 	void Construct();

@@ -2,6 +2,7 @@
 #include "Archiver.h"
 #include "ResourceLoader.h"
 #include "TaskManager.h"
+#include "ResourceBundle.h"
 
 ResourceManager::ResourceManager()
 {
@@ -10,17 +11,38 @@ ResourceManager::ResourceManager()
 
 ResourceManager::~ResourceManager()
 {
-	for (auto resource : m_ResourceMap)
+	for (auto resource : m_LoadedResources)
 	{
 		resource.second->Release();
 		delete resource.second;
 	}
+
+	for (auto bundle : m_ResourceBundles)
+	{
+		delete bundle;
+	}
+}
+
+void ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid)
+{
+	size_t size = archiver.ReadRequiredSizeForPackageData(guid);
+	void* data = malloc(size);
+	size_t typeHash;
+	archiver.ReadPackageData(guid, typeHash, data, size);
+
+	IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
+	free(data);
+	m_LoadedResources.insert({ guid, resource });
+
+	m_LockInitiate.lock();
+	m_ResourcesToInitiate.push_back(guid);
+	m_LockInitiate.unlock();
 }
 
 IResource* ResourceManager::GetResource(size_t guid)
 {
-	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_ResourceMap.find(guid);
-	if (iterator == m_ResourceMap.end())
+	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
+	if (iterator == m_LoadedResources.end())
 	{
 		std::cout << "Resource not found!" << std::endl;
 		return nullptr;
@@ -40,20 +62,10 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> gui
 	int index = 0;
 	for (size_t guid : guids)
 	{
-		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_ResourceMap.find(guid);
-		if (iterator == m_ResourceMap.end())
-		{
-			//Load data
-			size_t size = archiver.ReadRequiredSizeForPackageData(guid);
-			void* data = malloc(size);
-			size_t typeHash;
-			archiver.ReadPackageData(guid, typeHash, data, size);
+		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
+		if (iterator == m_LoadedResources.end())
+			LoadResource(resourceLoader, archiver, guid);
 
-			//Create and register Resource from data
-			IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
-			free(data);
-			m_ResourceMap.insert({ guid, resource });
-		}
 		guidArray[index++] = guid;
 	}
 
@@ -74,20 +86,10 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> file
 	for (const char* file : files)
 	{
 		size_t guid = HashString(file);
-		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_ResourceMap.find(guid);
-		if (iterator == m_ResourceMap.end())
-		{
-			//Load data
-			size_t size = archiver.ReadRequiredSizeForPackageData(guid);
-			void* data = malloc(size);
-			size_t typeHash;
-			archiver.ReadPackageData(guid, typeHash, data, size);
+		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
+		if (iterator == m_LoadedResources.end())
+			LoadResource(resourceLoader, archiver, guid);
 
-			//Create and register Resource from data
-			IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
-			free(data);
-			m_ResourceMap.insert({ guid, resource });
-		}
 		guidArray[index++] = guid;
 	}
 
@@ -96,25 +98,91 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> file
 	return resourceBundle;
 }
 
-void ResourceManager::LoadResourcesInBackground(std::initializer_list<char*> files)
+void ResourceManager::LoadResourcesInBackground(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback)
 {
 	TaskManager& taskManager = TaskManager::Get();
-	taskManager.Execute(std::bind(&ResourceManager::Callback, this));
+	taskManager.Execute(std::bind(&ResourceManager::BackgroundLoading, this, files, callback));
 }
 
-void ResourceManager::Callback()
+void ResourceManager::BackgroundLoading(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback)
 {
-	std::cout << "Ja det funkata!" << std::endl;
+	Archiver& archiver = Archiver::GetInstance();
+	ResourceLoader& resourceLoader = ResourceLoader::Get();
+	std::vector<size_t> resourcesToLoad;
+	size_t* guidArray = new size_t[files.size()];
+	int index = 0;
+
+	//Find resources to load
+	for (const char* file : files)
+	{
+		size_t guid = HashString(file);
+		if (!IsResourceLoaded(guid))
+		{
+			m_LockLoading.lock();
+			if (!IsResourceBeingLoaded(guid))
+			{
+				m_ResourcesToBeLoaded.push_back(guid);
+				resourcesToLoad.push_back(guid);
+			}
+			m_LockLoading.unlock();
+		}
+		guidArray[index++] = guid;
+	}
+
+	//Load resources
+	for (size_t guid : resourcesToLoad)
+	{
+		LoadResource(resourceLoader, archiver, guid);
+		m_LockLoading.lock();
+		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), guid));
+		m_LockLoading.unlock();
+	}
+
+	//Wait to make sure all resources are loaded, incase the resource is loaded from another thread
+	for (int i = 0; i < files.size(); i++)
+	{
+		size_t guid = guidArray[i];
+		while (!IsResourceLoaded(guid)){}
+	}
+
+	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, files.size());
+	m_ResourceBundles.push_back(resourceBundle);
+	callback(resourceBundle);
+}
+
+void ResourceManager::Update()
+{
+	if (m_ResourcesToInitiate.size() > 0)
+	{
+		m_LockInitiate.lock();
+		for (size_t guid : m_ResourcesToInitiate)
+		{
+			IResource* resource = GetResource(guid);
+			resource->Init();
+		}
+		m_ResourcesToInitiate.clear();
+		m_LockInitiate.unlock();
+	}
 }
 
 bool ResourceManager::IsResourceLoaded(size_t guid)
 {
-	return m_ResourceMap.find(guid) != m_ResourceMap.end();
+	return m_LoadedResources.find(guid) != m_LoadedResources.end();
 }
 
 bool ResourceManager::IsResourceLoaded(const std::string& path)
 {
 	return IsResourceLoaded(HashString(path.c_str()));
+}
+
+bool ResourceManager::IsResourceBeingLoaded(size_t guid)
+{
+	return std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), guid) != m_ResourcesToBeLoaded.end();
+}
+
+bool ResourceManager::IsResourceBeingLoaded(const std::string& path)
+{
+	return IsResourceBeingLoaded(HashString(path.c_str()));
 }
 
 void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)

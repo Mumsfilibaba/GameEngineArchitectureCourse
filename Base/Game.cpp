@@ -6,6 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Debugger.h"
 #include "Renderer.h"
+#include "ResourceManager.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4002)		//Disable: "too many arguments for function-like macro invocation"-warning
@@ -112,6 +113,7 @@ void Game::Run()
 void Game::InternalUpdate(const sf::Time& deltatime)
 {
 	ImGui::SFML::Update(*m_pRenderWindow, deltatime);
+	ResourceManager::Get().Update();
 	Update(deltatime);
     
     //Move camera

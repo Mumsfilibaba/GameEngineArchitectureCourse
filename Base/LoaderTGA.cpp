@@ -4,6 +4,14 @@
 #define INVERTED_BIT            (1 << 5)
 #define BYTE32 32
 
+LoaderTGA::LoaderTGA()
+{
+}
+
+LoaderTGA::~LoaderTGA()
+{
+}
+
 IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 {
 	TGAHeader pTGAfile;
@@ -40,11 +48,8 @@ size_t LoaderTGA::WriteToBuffer(const std::string& file, void* buffer)
 void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 {
 	FILE* pFile = nullptr;
-	unsigned char byteCharEater;
-	unsigned short byteShortEater;
 	long imageSize;
 	int colorMode;
-	unsigned char colorSwap;
 
 
 	// reading file with binary mode.
@@ -66,7 +71,7 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 	if (pTGAfile.imageType != 2 && pTGAfile.imageType != 10 && pTGAfile.imageType != 3)
 	{
 		fclose(pFile);
-		std::printf("error, roor");
+		std::printf("Unsupported Compressed image type");
 		debugbreak();
 	}
 
@@ -83,6 +88,11 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 	fread(&pTGAfile.imageWidth, sizeof(short int), 1, pFile);
 	fread(&pTGAfile.imageHeight, sizeof(short int), 1, pFile);
 	fread(&pTGAfile.bitCount, sizeof(unsigned char), 1, pFile);
+	if (pTGAfile.bitCount != 24 && pTGAfile.bitCount != 32)
+	{
+		std::printf("Unsupported number of bits per Pixel");
+		debugbreak();
+	}
 	fread(&pTGAfile.imageDescr, sizeof(unsigned char), 1, pFile);
 
 	//field 6 (byte length depending on IDLengths, max 255)
@@ -94,9 +104,9 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 	//each pixel is stored with 5 bits per color. 
 	//If the pixel depth is 16 bits, the topmost bit is reserved for transparency. 
 	// Color mode -> 3 = BGR, 4 = BGRA. Need to perform a color swap
+	//color mode has to be 4, sf::Texture doesnt support 24 birt
 	colorMode = pTGAfile.bitCount / 8;
 	imageSize = pTGAfile.imageWidth * pTGAfile.imageHeight * colorMode;
-	int size = imageSize;
 
 
 	//reading another arbitrary byte
@@ -127,9 +137,9 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 			tempBlue = pTGAfile.imageDataBuffer[index * colorMode];
 			pTGAfile.imageDataBuffer[index * colorMode] = pTGAfile.imageDataBuffer[index * colorMode + 2];
 			pTGAfile.imageDataBuffer[index * colorMode + 2] = tempBlue;
+
 		}
 	}
 
-	//delete pTGAfile;
 	fclose(pFile);
 }

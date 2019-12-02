@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include "MemoryManager.h"
+#include "SpinLock.h"
 
 class Archiver
 {	
@@ -147,6 +148,9 @@ private:
 private:
 	Package m_CompressedPackage;
 	std::map<size_t, UncompressedPackageEntry> m_UncompressedPackageEntries;
+
+	SpinLock m_OpenPackageLock;
+	SpinLock m_FileStreamLock;
 
 public:
 	static Archiver& GetInstance()

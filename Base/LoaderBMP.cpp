@@ -89,6 +89,7 @@ IResource* LoaderBMP::LoadFromMemory(void* pData, size_t size)
 	void* pPixelData = MemoryManager::GetInstance().Allocate(totalPixelDataSize, 1, "BMP Pixel Data");
 	size_t pixelDataStartAddress = (size_t)pPixelData;
 	memcpy(pPixelData, (void*)(startAddress + bmpHeader.pixelDataOffset), totalPixelDataSize);
+	MemoryManager::GetInstance().Free(pPixelData);
 
 	size_t pixelDataLength = dibHeader.width * dibHeader.height;
 	BMPPixel* pBMPConvertedPixels = (BMPPixel*)MemoryManager::GetInstance().Allocate(pixelDataLength * 4, 1, "BMP Converted Pixel Data");

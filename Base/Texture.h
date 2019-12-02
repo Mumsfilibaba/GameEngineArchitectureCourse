@@ -20,5 +20,6 @@ public:
 
 	const sf::Texture& GetSFTexture();
 
-	virtual void Release();
+	virtual void Init() override;
+	virtual void Release() override;
 };

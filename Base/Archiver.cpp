@@ -62,6 +62,8 @@ size_t Archiver::ReadPackageHeader(std::ifstream& fileStream)
 
 void Archiver::OpenCompressedPackage(const std::string& filename, PackageMode packageMode)
 {
+	std::scoped_lock<SpinLock> lock(m_OpenPackageLock);
+
 	if (!m_CompressedPackage.isPackageOpen)
 	{
 		m_CompressedPackage.filename = filename + PACKAGE_FILE_EXTENSION;
@@ -152,23 +154,26 @@ void Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t
 		{
 			assert(m_CompressedPackage.pFileStream != nullptr);
 
-			std::ifstream& fileStream = *m_CompressedPackage.pFileStream;
-			if (m_CompressedPackage.pFileStream->is_open())
 			{
-				fileStream.seekg(m_CompressedPackage.fileDataStart + packageTableEntry->second.offset, std::ios_base::beg);
+				std::scoped_lock<SpinLock> lock(m_FileStreamLock);
 
-				if (packageTableEntry->second.compressedSize > 0)
+				std::ifstream& fileStream = *m_CompressedPackage.pFileStream;
+				if (m_CompressedPackage.pFileStream->is_open())
 				{
-					pCompressedStart = MemoryManager::GetInstance().Allocate(packageTableEntry->second.compressedSize, 1, "Package Data");
-					fileStream.read(reinterpret_cast<char*>(pCompressedStart), packageTableEntry->second.compressedSize);
-				}
-				else
-				{
-					fileStream.read(reinterpret_cast<char*>(pBuf), packageTableEntry->second.uncompressedSize);
+					fileStream.seekg(m_CompressedPackage.fileDataStart + packageTableEntry->second.offset, std::ios_base::beg);
 
-					return;
+					if (packageTableEntry->second.compressedSize > 0)
+					{
+						pCompressedStart = MemoryManager::GetInstance().Allocate(packageTableEntry->second.compressedSize, 1, "Package Data");
+						fileStream.read(reinterpret_cast<char*>(pCompressedStart), packageTableEntry->second.compressedSize);
+					}
+					else
+					{
+						fileStream.read(reinterpret_cast<char*>(pBuf), packageTableEntry->second.uncompressedSize);
+						return;
+					}
+
 				}
-				
 			}
 
 			break;
