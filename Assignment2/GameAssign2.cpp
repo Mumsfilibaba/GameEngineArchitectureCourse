@@ -32,8 +32,7 @@ void GameAssign2::Init()
     resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "BMPTest_24.bmp" });
 
     //load resources
-    ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga", "teapot.obj", "BMPTest_24.bmp"  });
-
+    ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga", "teapot.obj", "BMPTest_24.bmp" });
 	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
 
@@ -73,8 +72,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	Renderer::Get().Submit(m_pCube, sf::Color::Blue, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
-	Renderer::Get().Submit(m_pMesh, sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
+	//Renderer::Get().Submit(m_pCube, sf::Color::Blue, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+	//Renderer::Get().Submit(m_pMesh, sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
 	Renderer::Get().Submit(m_pCube, m_pTexture, glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
 }
 

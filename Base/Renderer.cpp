@@ -102,6 +102,8 @@ void Renderer::Begin(const sf::Color& color, const Camera& camera)
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
 }
 
 
@@ -128,7 +130,9 @@ void Renderer::Submit(Mesh* pMesh, const sf::Texture& texture, const sf::Color& 
 	//Bind texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture.getNativeHandle());
-	glUniform1i(glGetUniformLocation(m_MeshShader.getNativeHandle(), "u_Texture"), 0);
+    
+    auto uniformLocation = glGetUniformLocation(m_MeshShader.getNativeHandle(), "u_Texture");
+	glUniform1i(uniformLocation, 0);
 
 	//Bind color and transform
 	m_MeshShader.setUniform("u_Color", sf::Glsl::Vec4(color));
@@ -143,6 +147,7 @@ void Renderer::End()
 {
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
 
 	sf::Shader::bind(nullptr);
 }
