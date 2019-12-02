@@ -19,4 +19,5 @@ private:
 	Texture* m_pTexture;
 	Mesh* m_pCube;
 	Mesh* m_pMesh;
+	Mesh* m_pBunny;
 };

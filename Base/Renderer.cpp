@@ -54,11 +54,12 @@ void Renderer::Init()
 
 			void main()
 			{
-				v_Position	= a_Position;
+				vec4 position = u_Transform * vec4(a_Position, 1.0);
+				v_Position	= position.xyz;
 				v_Normal	= a_Normal;
 				v_Tangent	= a_Tangent;
 				v_TexCoord	= a_TexCoord;
-				gl_Position = u_Projection * u_View * u_Transform * vec4(a_Position, 1.0);	
+				gl_Position = u_Projection * u_View * position;
 			}
 		)";
 
@@ -70,12 +71,35 @@ void Renderer::Init()
 			varying vec3 v_Tangent;
 			varying vec2 v_TexCoord;
 
+			uniform vec3 u_CameraPos;
 			uniform vec4 u_Color;
 			uniform sampler2D u_Texture;
 
 			void main()
 			{
-				gl_FragColor = texture2D(u_Texture, v_TexCoord) * u_Color;
+				vec4 lightColor		= vec4(1.0, 1.0, 1.0, 1.0);
+				vec3 lightPosition	= vec3(0.0, 2.0, 0.0);
+
+				vec3 normal		= normalize(v_Normal);
+				vec3 lightDir	= lightPosition - v_Position;  
+				float distance	= length(lightDir);
+				lightDir = (lightDir / distance);
+
+				float diff			= max(dot(normal, lightDir), 0.0);
+				float attenuation	= 1.0 / (distance);
+				vec4 diffuse = diff * lightColor * attenuation;
+
+				float specularStrength = 0.5;
+				vec3 viewDir	= normalize(u_CameraPos - v_Position);
+				vec3 reflectDir = reflect(-lightDir, normal);  
+
+				float spec		= pow(max(dot(viewDir, reflectDir), 0.0), 32);
+				vec4 specular	= specularStrength * spec * lightColor;  
+
+				float ambientStrength = 0.1;
+				vec4 ambient = ambientStrength * lightColor;
+
+				gl_FragColor = (ambient + diffuse + specular) * (texture2D(u_Texture, v_TexCoord) * u_Color);
 			}
 		)";
 
@@ -99,6 +123,9 @@ void Renderer::Begin(const sf::Color& color, const Camera& camera)
 	sf::Shader::bind(&m_MeshShader);
 	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(camera.GetProjection())));
 	m_MeshShader.setUniform("u_View", sf::Glsl::Mat4(glm::value_ptr(camera.GetView())));
+	
+	auto pos = camera.GetPosition();
+	m_MeshShader.setUniform("u_CameraPos", sf::Glsl::Vec3(pos.x, pos.y, pos.z));
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
