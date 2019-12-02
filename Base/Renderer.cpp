@@ -125,9 +125,16 @@ void Renderer::Submit(Mesh* pMesh, const sf::Color& color, const glm::mat4& tran
 
 void Renderer::Submit(Mesh* pMesh, const sf::Texture& texture, const sf::Color& color, const glm::mat4& transform)
 {
-	m_MeshShader.setUniform("u_Texture", texture);
+	//Bind texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture.getNativeHandle());
+	glUniform1i(glGetUniformLocation(m_MeshShader.getNativeHandle(), "u_Texture"), 0);
+
+	//Bind color and transform
 	m_MeshShader.setUniform("u_Color", sf::Glsl::Vec4(color));
 	m_MeshShader.setUniform("u_Transform", sf::Glsl::Mat4(glm::value_ptr(transform)));
+	
+	//Draw
 	pMesh->Draw();
 }
 
