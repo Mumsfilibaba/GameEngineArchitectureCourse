@@ -1,10 +1,20 @@
 #include "ResourceManager.h"
 #include "Archiver.h"
 #include "ResourceLoader.h"
+#include "TaskManager.h"
 
 ResourceManager::ResourceManager()
 {
 
+}
+
+ResourceManager::~ResourceManager()
+{
+	for (auto resource : m_ResourceMap)
+	{
+		resource.second->Release();
+		delete resource.second;
+	}
 }
 
 IResource* ResourceManager::GetResource(size_t guid)
@@ -41,6 +51,7 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> gui
 
 			//Create and register Resource from data
 			IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
+			free(data);
 			m_ResourceMap.insert({ guid, resource });
 		}
 		guidArray[index++] = guid;
@@ -74,6 +85,7 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> file
 
 			//Create and register Resource from data
 			IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
+			free(data);
 			m_ResourceMap.insert({ guid, resource });
 		}
 		guidArray[index++] = guid;
@@ -82,6 +94,17 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> file
 	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, files.size());
 	m_ResourceBundles.push_back(resourceBundle);
 	return resourceBundle;
+}
+
+void ResourceManager::LoadResourcesInBackground(std::initializer_list<char*> files)
+{
+	TaskManager& taskManager = TaskManager::Get();
+	taskManager.Execute(std::bind(&ResourceManager::Callback, this));
+}
+
+void ResourceManager::Callback()
+{
+	std::cout << "Ja det funkata!" << std::endl;
 }
 
 bool ResourceManager::IsResourceLoaded(size_t guid)

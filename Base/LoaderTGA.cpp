@@ -8,7 +8,9 @@ IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 {
 	TGAHeader pTGAfile;
 	ReadFromDisk(file, pTGAfile);
-	return new Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
+	Texture* pTexture = new Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
+	free(pTGAfile.imageDataBuffer);
+	return pTexture;
 }
 
 IResource* LoaderTGA::LoadFromMemory(void* data, size_t size)
@@ -30,6 +32,7 @@ size_t LoaderTGA::WriteToBuffer(const std::string& file, void* buffer)
 	memcpy((void*)((size_t)buffer + 4), pTGAfile.imageDataBuffer, (pTGAfile.imageWidth *  pTGAfile.imageHeight * 4));
 
 	size_t sizeInBytes = ((pTGAfile.imageWidth *  pTGAfile.imageHeight * 4) + 2 + 2);
+	free(pTGAfile.imageDataBuffer);
 
 	return sizeInBytes;
 }

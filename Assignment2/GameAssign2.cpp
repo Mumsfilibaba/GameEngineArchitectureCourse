@@ -36,6 +36,9 @@ void GameAssign2::Init()
 
 	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
+
+	resourceManager.LoadResourcesInBackground({});
+
 #ifndef MACOS
 
     //size_t testTextureHash = HashString("our texture");

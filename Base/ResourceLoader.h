@@ -10,15 +10,16 @@ class ResourceLoader
 {
 	friend class ResourceManager;
 public:
+	~ResourceLoader();
 
 	void RegisterLoader(const std::string& fileType, ILoader* loader);
-	IResource* LoadResourceFromDisk(const std::string& file);
 
 	static ResourceLoader& Get();
 
 private:
 	ResourceLoader();
 
+	IResource* LoadResourceFromDisk(const std::string& file);
 	IResource* LoadResourceFromMemory(void* data, size_t size, size_t typeHash);
 	size_t WriteResourceToBuffer(const std::string& file, void* buffer);
 	ILoader* GetLoader(size_t hash);
