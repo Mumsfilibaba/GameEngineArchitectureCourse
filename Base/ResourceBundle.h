@@ -9,6 +9,7 @@ class ResourceBundle
 {
 public:
 	ResourceBundle(size_t* guids, size_t nrOfGuids);
+	~ResourceBundle();
 
 	Texture* GetTexture(size_t guid);
 	Texture* GetTexture(const std::string& file);

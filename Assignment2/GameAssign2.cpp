@@ -1,6 +1,7 @@
 #include "GameAssign2.h"
 #include "ResourceManager.h"
 #include "ResourceLoader.h"
+#include "ResourceBundle.h"
 #include "TaskManager.h"
 #include "LoaderOBJ.h"
 #include "LoaderTGA.h"
@@ -32,12 +33,16 @@ void GameAssign2::Init()
     resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "BMPTest_24.bmp" });
 
     //load resources
-    ResourceBundle* pBundle = resourceManager.LoadResources({ "meme.tga", "Phone.tga", "teapot.obj", "BMPTest_24.bmp"  });
+    ResourceBundle* pBundle = resourceManager.LoadResources({"teapot.obj", "BMPTest_24.bmp"  });
 
 	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
 
-	resourceManager.LoadResourcesInBackground({});
+	resourceManager.LoadResourcesInBackground({ "meme.tga", "Phone.tga" }, [](ResourceBundle* bundle)
+	{
+		std::cout << "Loaded meme.tga & Phone.tga in background!" << std::endl;
+		//Background Loaded
+	});
 
 #ifndef MACOS
 
