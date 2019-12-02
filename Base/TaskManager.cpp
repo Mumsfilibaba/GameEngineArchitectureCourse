@@ -7,12 +7,12 @@ void TaskManager::TaskThread()
 {
 	while (true)
 	{
-		Task task = {};
-		if (TaskManager::Get().Poptask(&task))
+		std::function<void()> task;
+		if (TaskManager::Get().Poptask(task))
 		{
 			//ThreadSafePrint("Took Task");
 
-			task.TaskFunc();
+			task();
 			TaskManager::Get().m_FinishedFence.fetch_add(1);
 		}
 		else
@@ -27,9 +27,15 @@ void TaskManager::TaskThread()
 
 
 TaskManager::TaskManager()
+	: m_CurrentFence(0),
+	m_FinishedFence(0),
+	m_Mutex(),
+	m_QueueLock(),
+	m_Tasks(),
+	m_WakeCondition()
 {
-	unsigned int numThreads = std::max(1U, std::thread::hardware_concurrency());
-	std::cout << "Starting up " << numThreads << "threads" << std::endl;
+	uint32_t numThreads = std::max(1U, std::thread::hardware_concurrency());
+	ThreadSafePrintf("TaskManager: Starting up %u threads\n", numThreads);
 
 	//Startup all the threads
 	for (int i = 0; i < numThreads; i++)
@@ -40,7 +46,14 @@ TaskManager::TaskManager()
 }
 
 
-void TaskManager::Execute(const Task& pTask)
+TaskManager::~TaskManager()
+{
+	ThreadSafePrintf("TaskManager: Waiting for tasks to finish\n");
+	Wait();
+}
+
+
+void TaskManager::Execute(const std::function<void()>& pTask)
 {
 	m_CurrentFence++;
 
@@ -67,12 +80,12 @@ void TaskManager::Poll()
 }
 
 
-const bool TaskManager::Poptask(Task* pTask)
+const bool TaskManager::Poptask(std::function<void()>& task)
 {
 	std::lock_guard<SpinLock> lock(m_QueueLock);
 	if (!m_Tasks.empty())
 	{
-		*pTask = m_Tasks.front();
+		task = m_Tasks.front();
 		m_Tasks.pop();
 		return true;
 	}

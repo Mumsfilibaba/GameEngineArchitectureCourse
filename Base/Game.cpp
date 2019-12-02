@@ -5,6 +5,7 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include "Debugger.h"
+#include "Renderer.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4002)		//Disable: "too many arguments for function-like macro invocation"-warning
@@ -14,9 +15,6 @@
 void Game::InternalInit()
 {
 	MEMLEAKCHECK;
-
-	//Init clearcolor
-	m_ClearColor = sf::Color::Cyan;
 
 	//Init window
 	sf::ContextSettings settings;
@@ -34,81 +32,17 @@ void Game::InternalInit()
 	m_pRenderWindow->setVerticalSyncEnabled(false);
 	m_pRenderWindow->setFramerateLimit(0);
 
-	//Init glad
-	if (!gladLoadGL())
-	{
-		ThreadSafePrintf("Failed to load glad\n");
-	}
-	else
-	{
-		ThreadSafePrintf("Glad loaded successfully\n");
-	}
-
-	//Make sure opengl works
-	const char* pRenderer = (const char*)glGetString(GL_RENDERER);
-	const char* pVersion = (const char*)glGetString(GL_VERSION);
-	ThreadSafePrintf("Renderer: %s\nVersion: %s\nMSAA: %dx\n", pRenderer, pVersion, settings.antialiasingLevel);
-
-	//Setup opengl to be CCW
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CCW);
+	//Init renderer
+	Renderer::Get().Init();
 
 	//Init ImGui
 	ImGui::SFML::Init(*m_pRenderWindow);
-
-	//Init shaders
-	std::string vs = R"(
-			#version 120
-			
-			attribute vec3 a_Position;
-			attribute vec3 a_Normal;
-			attribute vec3 a_Tangent;
-			attribute vec2 a_TexCoord;
-
-			uniform mat4 u_Projection;
-			uniform mat4 u_View;
-
-			varying vec3 v_Position;
-			varying vec3 v_Normal;
-			varying vec3 v_Tangent;
-			varying vec2 v_TexCoord;
-
-			void main()
-			{
-				v_Position	= a_Position;
-				v_Normal	= a_Normal;
-				v_Tangent	= a_Tangent;
-				v_TexCoord	= a_TexCoord;
-				gl_Position = u_Projection * u_View * vec4(a_Position, 1.0);	
-			}
-		)";
-
-	std::string fs = R"(
-			#version 120
-    
-			varying vec3 v_Position;
-			varying vec3 v_Normal;
-			varying vec3 v_Tangent;
-			varying vec2 v_TexCoord;
-
-			uniform sampler2D our_Texture;
-
-			void main()
-			{
-				gl_FragColor = texture2D(our_Texture, v_TexCoord);
-			}
-		)";
-
-	m_MeshShader.loadFromMemory(vs, fs);
 
 	//Init camera
 	m_Camera.SetAspect(m_pRenderWindow->getSize().x, m_pRenderWindow->getSize().y);
 	m_Camera.SetPosition(glm::vec3(0.0f, 0.0f, -2.0f));
 	m_Camera.CreateProjection();
 	m_Camera.CreateView();
-
-	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetProjection())));
-	m_MeshShader.setUniform("u_View",		sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetView())));
 
     Debugger::SetDebugState(false);
     
@@ -158,12 +92,7 @@ void Game::Run()
 		}
 
 		InternalUpdate(deltaTime);
-
-		//Clear explicit since window.clear may not clear depthbuffer?
-		glClearColor(m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a);
-		glClearDepth(1.0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+       
 		//Draw customs stuff
 		InternalRender(deltaTime);
 
@@ -224,19 +153,9 @@ void Game::InternalUpdate(const sf::Time& deltatime)
 
 void Game::InternalRender(const sf::Time& deltatime)
 {
-	sf::Shader::bind(&m_MeshShader);
-	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetProjection())));
-	m_MeshShader.setUniform("u_View", sf::Glsl::Mat4(glm::value_ptr(m_Camera.GetView())));
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    
+	Renderer::Get().Begin(sf::Color::Magenta, m_Camera);
 	Render();
-
-	glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    
-	sf::Shader::bind(nullptr);
+	Renderer::Get().End();
 }
 
 void Game::InternalRenderImGui(const sf::Time& deltatime)

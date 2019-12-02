@@ -1,14 +1,22 @@
 #include "GameAssign2.h"
 #include "ResourceManager.h"
-
 #include "ResourceLoader.h"
+#include "TaskManager.h"
 #include "LoaderOBJ.h"
 #include "LoaderTGA.h"
 #include "LoaderBMP.h"
+#include "Renderer.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
+
+void Func()
+{
+	for (uint32_t i = 0; i < 200000000; i++)
+		i++;
+}
 
 void GameAssign2::Init()
 {
@@ -40,8 +48,14 @@ void GameAssign2::Init()
 
 #endif
 
-    //register loaders
-    
+	TaskManager& taskManager = TaskManager::Get();
+	taskManager.Execute(Func);
+	taskManager.Execute(Func);
+	taskManager.Execute(Func);
+	taskManager.Execute(Func);
+	taskManager.Execute(Func);
+	taskManager.Execute(Func);
+
 	//Construct mesh
 	m_pCube = Mesh::CreateCube();
 	m_pCube->Construct();
@@ -56,9 +70,9 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	m_MeshShader.setUniform("our_Texture", m_pTexture->GetSFTexture());
-	//m_pMesh->Draw();
-	m_pCube->Draw();
+	Renderer::Get().Submit(m_pCube, m_pTexture, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+	Renderer::Get().Submit(m_pMesh, sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
+	Renderer::Get().Submit(m_pCube, m_pTexture, glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
 }
 
 void GameAssign2::RenderImGui()

@@ -4,16 +4,10 @@
 #include <mutex>
 #include <thread>
 #include <cassert>
+#include <functional>
 #include <condition_variable>
 #include "SpinLock.h"
 #include "Helpers.h"
-
-struct Task
-{
-public:
-	void (*TaskFunc)(void) = nullptr;
-};
-
 
 class TaskManager
 {
@@ -24,9 +18,9 @@ public:
 	TaskManager& operator=(TaskManager&& other) = delete;
 
 	TaskManager();
-	~TaskManager() = default;
+	~TaskManager();
 
-	void Execute(const Task& pTask);
+	void Execute(const std::function<void()>& task);
 	void Wait();
 
 	inline bool IsFinished()
@@ -35,9 +29,9 @@ public:
 	}
 private:
 	void Poll();
-	const bool Poptask(Task* pTask);
+	const bool Poptask(std::function<void()>& task);
 private:
-	std::queue<Task> m_Tasks;
+	std::queue<std::function<void()>> m_Tasks;
 	std::mutex m_Mutex;
 	std::condition_variable m_WakeCondition;
 	std::atomic<uint64_t> m_FinishedFence;

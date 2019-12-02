@@ -1,3 +1,4 @@
+#pragma once
 #include "Helpers.h"
 #include <glm/glm.hpp>
 
