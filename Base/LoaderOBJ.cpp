@@ -400,10 +400,16 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 			//Read in three vertices
 			for (i = 0; i < 3; i++)
 			{
+				const char* pTemp = iter;
 				iter++;
 
 				//Get vertex
 				ParseOBJVertex(objVertex, &iter);
+				if ((*iter) == '\0')
+					break;
+
+				assert((*iter) != '\0');
+				assert((objVertex.Position > 0) && (objVertex.Normal > 0) && (objVertex.TexCoord > 0));
 				
 				//Construct and insert new vertex
 				vertex.Position		= filedata.Positions[objVertex.Position - 1];
