@@ -336,10 +336,7 @@ int32_t FastAtoi(const char* const str, int32_t& length)
 		iter++;
 	}
 
-	if (negative)
-		return -integer;
-
-	return integer;
+	return negative ? -integer : integer;
 }
 
 
