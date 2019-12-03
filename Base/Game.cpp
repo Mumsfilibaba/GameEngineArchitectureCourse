@@ -7,6 +7,10 @@
 #include "Debugger.h"
 #include "Renderer.h"
 #include "ResourceManager.h"
+#include "ResourceLoader.h"
+#include "LoaderTGA.h"
+#include "LoaderBMP.h"
+#include "LoaderOBJ.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4002)		//Disable: "too many arguments for function-like macro invocation"-warning
@@ -47,6 +51,11 @@ void Game::InternalInit()
 
     Debugger::SetDebugState(false);
     
+	ResourceLoader& resourceLoader = ResourceLoader::Get();
+	resourceLoader.RegisterLoader(".tga", new LoaderTGA());
+	resourceLoader.RegisterLoader(".bmp", new LoaderBMP());
+	resourceLoader.RegisterLoader(".obj", new LoaderOBJ());
+
 	//Init client
 	Init();
 }

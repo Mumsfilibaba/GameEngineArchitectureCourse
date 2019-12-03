@@ -1,6 +1,5 @@
 #include "GameAssign2.h"
 #include "ResourceManager.h"
-#include "ResourceLoader.h"
 #include "ResourceBundle.h"
 #include "TaskManager.h"
 #include "LoaderOBJ.h"
@@ -21,19 +20,13 @@ void Func()
 
 void GameAssign2::Init()
 {
-	ResourceLoader& resourceLoader = ResourceLoader::Get();
 	ResourceManager& resourceManager = ResourceManager::Get();
-
-	//register loaders
-	resourceLoader.RegisterLoader(".tga", new LoaderTGA());
-	resourceLoader.RegisterLoader(".bmp", new LoaderBMP());
-    resourceLoader.RegisterLoader(".obj", new LoaderOBJ());
 
     //create package
     resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "BMPTest_24.bmp" });
 
     //load resources
-    ResourceBundle* pBundle = resourceManager.LoadResources({"teapot.obj", "bunny.obj", "BMPTest_24.bmp"  });
+    ResourceBundle* pBundle = resourceManager.LoadResources({"meme.tga", "BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
 
 	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
@@ -47,7 +40,7 @@ void GameAssign2::Init()
 	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [](ResourceBundle* bundle)
 	{
 		std::cout << "Loaded Phone.tga in background!" << std::endl;
-		//Background Loaded
+		//Backgroun Loaded
 	});
 
 	//Construct mesh
