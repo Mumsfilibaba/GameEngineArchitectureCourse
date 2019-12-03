@@ -70,6 +70,9 @@ public:
 	IResource* LoadFromDisk(const std::string& file);
 	IResource* LoadFromMemory(void* pData, size_t size);
 	size_t WriteToBuffer(const std::string& file, void* pBuffer);
+
+private:
+	size_t LoadAndConvert(void* pBMPFileData, size_t size, void* pBuffer);
 };
 
 #endif
