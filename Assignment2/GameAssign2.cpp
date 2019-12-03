@@ -6,6 +6,7 @@
 #include "LoaderOBJ.h"
 #include "LoaderTGA.h"
 #include "LoaderBMP.h"
+#include "LoaderCOLLADA.h"
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -59,6 +60,8 @@ void GameAssign2::Init()
 
 	m_pBunny = pBundle->GetMesh("bunny.obj");
 	m_pBunny->Construct();
+
+	LoaderCOLLADA::ReadFromDisk("bunny.dae");
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)

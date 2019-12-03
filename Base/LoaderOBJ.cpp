@@ -1,7 +1,10 @@
 #include "LoaderOBJ.h"
 #include <iostream>
+#include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 #include "StackAllocator.h"
 
 #ifdef VISUAL_STUDIO
@@ -45,6 +48,20 @@ struct BinaryMeshData
 };
 
 using OBJMesh = TMesh<OBJVertex>;
+
+//Create hashfunction for a vertex
+namespace std
+{
+	template<>
+	struct hash<Vertex>
+	{
+		size_t operator()(const Vertex& vertex) const
+		{
+			return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Normal) << 1)) >> 1) ^
+				(((hash<glm::vec3>()(vertex.Tangent) << 1) ^ (hash<glm::vec2>()(vertex.TexCoords) << 1)) >> 1);
+		}
+	};
+}
 
 bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath);
 uint32_t ReadTextfile(const std::string& filename, const char** const buffer);
@@ -174,32 +191,28 @@ inline void ParseVec3(glm::vec3& vector, const char** const iter)
 }
 
 
-inline void AddUniqueOBJVertex(const OBJVertex& vertex, OBJMesh& mesh)
+inline void AddUniqueOBJVertex(const Vertex& vertex, std::unordered_map<Vertex, uint32_t>& uniqueVertices, GameMesh& mesh)
 {
-	for (size_t i = 0; i < mesh.Vertices.size(); i++)
+	if (uniqueVertices.count(vertex) == 0)
 	{
-		if (mesh.Vertices[i] == vertex)
-		{
-			mesh.Indices.emplace_back(uint32_t(i));
-			return;
-		}
+		uniqueVertices[vertex] = (uint32_t)mesh.Vertices.size();
+		mesh.Vertices.push_back(vertex);
 	}
 
-	mesh.Vertices.emplace_back(vertex);
-	mesh.Indices.emplace_back(uint32_t(mesh.Vertices.size() - 1));
+	mesh.Indices.emplace_back(uniqueVertices[vertex]);
 }
 
 
-inline void ParseOBJVertex(OBJVertex& vertex, const char** const iter)
+inline void ParseOBJVertex(OBJVertex& objVertex, const char** const iter)
 {
 	int32_t length = 0;
-	vertex.Position = FastAtoi((*iter), length);
+	objVertex.Position = FastAtoi((*iter), length);
 	(*iter) += (length + 1);
 
-	vertex.TexCoord = FastAtoi((*iter), length);
+	objVertex.TexCoord = FastAtoi((*iter), length);
 	(*iter) += (length + 1);
 
-	vertex.Normal = FastAtoi((*iter), length);
+	objVertex.Normal = FastAtoi((*iter), length);
 	(*iter) += length;
 }
 
@@ -234,18 +247,17 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 		return false;
 	}
 
-	//OBJ-data
-	OBJData fileData;
-	std::vector<OBJMesh> objMeshes;
+	//Vertexdata
+	Vertex vertex;
+	OBJVertex objVertex;
+	OBJData filedata;
+	std::unordered_map<Vertex, uint32_t> uniqueVertices;
+	meshes.resize(1);
 
 	//Declare variables here to save on allocations
 	vec3 vec3;
 	vec2 vec2;
-	OBJVertex vertex;
 	int32_t i = 0;
-
-	//Init mesh
-	objMeshes.resize(1);
 
 	//Start parsing
 	uint32_t currentMesh = 0;
@@ -287,7 +299,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 					return false;
 				}
 
-				fileData.TextureCoords.emplace_back(vec2);
+				filedata.TextureCoords.emplace_back(vec2);
 #if defined(DEBUG_PRINTS)
 				ThreadSafePrintf("Found TexCoord: %s\n", to_string(vec2).c_str());
 #endif
@@ -316,7 +328,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 					return false;
 				}
 
-				fileData.Normals.emplace_back(vec3);
+				filedata.Normals.emplace_back(vec3);
 #if defined(DEBUG_PRINTS)
 				ThreadSafePrintf("Found Normal: %s\n", to_string(vec3).c_str());
 #endif
@@ -335,7 +347,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 					return false;
 				}
 
-				fileData.Positions.emplace_back(vec3);
+				filedata.Positions.emplace_back(vec3);
 #if defined(DEBUG_PRINTS)
 				ThreadSafePrintf("Found Position: %s\n", glm::to_string(vec3).c_str());
 #endif
@@ -369,29 +381,47 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 			for (i = 0; i < 3; i++)
 			{
 				iter++;
-				ParseOBJVertex(vertex, &iter);
-				AddUniqueOBJVertex(vertex, objMeshes[currentMesh]);
+
+				//Get vertex
+				ParseOBJVertex(objVertex, &iter);
+				
+				//Construct and insert new vertex
+				vertex.Position		= filedata.Positions[objVertex.Position - 1];
+				vertex.Normal		= filedata.Normals[objVertex.Normal - 1];
+				vertex.TexCoords	= filedata.TextureCoords[objVertex.TexCoord- 1];
+				AddUniqueOBJVertex(vertex, uniqueVertices, meshes[currentMesh]);
 #if defined(DEBUG_PRINTS)
-				ThreadSafePrintf("%d/%d/%d ", vertex.Position, vertex.TexCoord, vertex.Normal);
+				ThreadSafePrintf("%d/%d/%d ", objVertex.Position, objVertex.TexCoord, objVertex.Normal);
 #endif
 			}
 
 			//Check if we have a polygon and convert it to triangles
 			{
-                size_t numIndices   = objMeshes[currentMesh].Indices.size();
-				uint32_t startIndex = objMeshes[currentMesh].Indices[numIndices - 3]; //Get the first vertex in the base triangle
+                size_t numIndices   = meshes[currentMesh].Indices.size();
+				uint32_t startIndex = meshes[currentMesh].Indices[numIndices - 3]; //Get the first vertex in the base triangle
 				while ((*iter) != '\n' && (*iter) != '\0')
 				{
+					if ((*iter) == '\r')
+						break;
+
+					const char* pTemp = iter;
 					iter++;
-					ParseOBJVertex(vertex, &iter);
+					//Get vertex
+					ParseOBJVertex(objVertex, &iter);
+
+					assert((objVertex.Position > 0) || (objVertex.Normal > 0) || (objVertex.TexCoord > 0));
 
 					//Add a new triangle base on the last couple of ones
-					objMeshes[currentMesh].Indices.emplace_back(startIndex);
-					objMeshes[currentMesh].Indices.emplace_back(objMeshes[currentMesh].Indices[numIndices - 1]);
+					meshes[currentMesh].Indices.emplace_back(startIndex);
+					meshes[currentMesh].Indices.emplace_back(meshes[currentMesh].Indices[numIndices - 1]);
 
-					AddUniqueOBJVertex(vertex, objMeshes[currentMesh]);
+					//TODO: Debug why this is possible in the first place
+					vertex.Position		= (objVertex.Position > 0) ? filedata.Positions[objVertex.Position - 1] : glm::vec3();
+					vertex.Normal		= (objVertex.Normal	  > 0) ? filedata.Normals[objVertex.Normal - 1] : glm::vec3();
+					vertex.TexCoords	= (objVertex.TexCoord > 0) ? filedata.TextureCoords[objVertex.TexCoord - 1] : glm::vec2();
+					AddUniqueOBJVertex(vertex, uniqueVertices, meshes[currentMesh]);
 #if defined(DEBUG_PRINTS)
-					ThreadSafePrintf("%d/%d/%d ", vertex.Position, vertex.TexCoord, vertex.Normal);
+					ThreadSafePrintf("%d/%d/%d ", objVertex.Position, objVertex.TexCoord, objVertex.Normal);
 #endif
 				}
 #if defined(DEBUG_PRINTS)
@@ -411,24 +441,25 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 
 		iter++;
 	}
-
+/*
 #if defined(DEBUG_PRINTS)
 	//Print all the vertices and indicess
 	ThreadSafePrintf("Vertices:\n");
-	for (int i = 0; i < objMeshes[0].Vertices.size(); i++)
+	for (int i = 0; i < meshes[0].Vertices.size(); i++)
 	{
-		ThreadSafePrintf("%d/%d/%d\n", objMeshes[0].Vertices[i].Position, objMeshes[0].Vertices[i].TexCoord, objMeshes[0].Vertices[i].Normal);
+		ThreadSafePrintf("%d/%d/%d\n", meshes[0].Vertices[i].Position, meshes[0].Vertices[i].TexCoords, meshes[0].Vertices[i].Normal);
 	}
 
 	ThreadSafePrintf("Indices:\n");
-	for (int i = 0; i < objMeshes[0].Indices.size(); i++)
+	for (int i = 0; i < meshes[0].Indices.size(); i++)
 	{
-		ThreadSafePrintf("%d\n", objMeshes[0].Indices[i]);
+		ThreadSafePrintf("%d\n", meshes[0].Indices[i]);
 	}
 #endif
+*/
 
 	//Convert all the OBJVertices to vertioces that the game can use
-	for (auto& mesh : objMeshes)
+	/*for (auto& mesh : objMeshes)
 	{
 		//Create a new gamemesh
 		meshes.emplace_back();
@@ -444,7 +475,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 		}
 
 		meshes.back().Indices.swap(mesh.Indices);
-	}
+	}*/
 
 	free((void*)buffer);
 	return true;

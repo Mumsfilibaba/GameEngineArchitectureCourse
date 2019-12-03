@@ -155,7 +155,7 @@ void Game::InternalUpdate(const sf::Time& deltatime)
 
 void Game::InternalRender(const sf::Time& deltatime)
 {
-	Renderer::Get().Begin(sf::Color::Black, m_Camera);
+	Renderer::Get().Begin(sf::Color::Red, m_Camera);
 	Render();
 	Renderer::Get().End();
 }

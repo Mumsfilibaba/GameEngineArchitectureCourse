@@ -111,3 +111,11 @@ constexpr unsigned int HashString(const Type& str)
 {
 	return HashHelper<Type>::Generate(str);
 }
+
+
+template<typename T>
+inline void HashCombine(size_t& hash, const T& value)
+{
+	std::hash<T> hasher;
+	hash ^= hasher(value) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+}
