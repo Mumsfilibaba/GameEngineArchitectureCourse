@@ -9,6 +9,9 @@
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Ref.h"
+#include "IRefCountable.h"
+
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
@@ -21,6 +24,10 @@ void Func()
 
 void GameAssign2::Init()
 {
+
+	//Ref<Sound> test = Ref<Sound>(new Sound());
+
+
 	ResourceManager& resourceManager = ResourceManager::Get();
 
     //create package
