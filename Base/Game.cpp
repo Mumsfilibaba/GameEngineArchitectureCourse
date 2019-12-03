@@ -40,7 +40,7 @@ void Game::InternalInit()
 	ImGui::SFML::Init(*m_pRenderWindow);
 
 	//Init camera
-	m_Camera.SetAspect(m_pRenderWindow->getSize().x, m_pRenderWindow->getSize().y);
+	m_Camera.SetAspect(float(m_pRenderWindow->getSize().x), float(m_pRenderWindow->getSize().y));
 	m_Camera.SetPosition(glm::vec3(0.0f, 0.0f, -2.0f));
 	m_Camera.CreateProjection();
 	m_Camera.CreateView();
@@ -87,7 +87,7 @@ void Game::Run()
 				glViewport(0, 0, event.size.width, event.size.height);
 				
 				//Update camera
-				m_Camera.SetAspect(event.size.width, event.size.height);
+				m_Camera.SetAspect(float(event.size.width), float(event.size.height));
 				m_Camera.CreateView();
 			}
 		}

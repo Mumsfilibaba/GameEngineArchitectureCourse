@@ -7,12 +7,12 @@
     } \
 }
 
-void* ArchiverAlloc(void* pData, unsigned num, unsigned size)
+void* ArchiverAlloc(void*, unsigned num, unsigned size)
 {
 	return MemoryManager::GetInstance().Allocate(num * size, 1, "Archiver");
 }
 
-void ArchiverFree(void* pData, void* pAddress)
+void ArchiverFree(void*, void* pAddress)
 {
 	MemoryManager::GetInstance().Free(pAddress);
 }
@@ -200,8 +200,8 @@ void Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t
 
 		decompressionStream.next_in = reinterpret_cast<Byte*>(pCompressedStart);
 		decompressionStream.next_out = reinterpret_cast<Byte*>(pBuf);
-		decompressionStream.avail_in = packageTableEntry->second.compressedSize;
-		decompressionStream.avail_out = packageTableEntry->second.uncompressedSize;
+		decompressionStream.avail_in = (uInt)packageTableEntry->second.compressedSize;
+		decompressionStream.avail_out = (uInt)packageTableEntry->second.uncompressedSize;
 
 		err = inflate(&decompressionStream, Z_FINISH);
 		assert(err > Z_OK);
@@ -259,8 +259,8 @@ void Archiver::SaveUncompressedPackage(const std::string& filename)
 		void* pCompressed = MemoryManager::GetInstance().Allocate(it.second.packageEntryDesc.uncompressedSize, 1, "Archiver Compressed Buffer");
 		compressionStream.next_in = reinterpret_cast<Byte*>(it.second.pData);
 		compressionStream.next_out = reinterpret_cast<Byte*>(pCompressed);
-		compressionStream.avail_in = it.second.packageEntryDesc.uncompressedSize;
-		compressionStream.avail_out = it.second.packageEntryDesc.uncompressedSize;
+		compressionStream.avail_in = (uInt)it.second.packageEntryDesc.uncompressedSize;
+		compressionStream.avail_out = (uInt)it.second.packageEntryDesc.uncompressedSize;
 
 		err = deflate(&compressionStream, Z_FINISH);
 
@@ -374,8 +374,8 @@ void* Archiver::DecompressHeader(std::ifstream& fileStream)
 
 	decompressionStream.next_in = reinterpret_cast<Byte*>(pCompressedHeader);
 	decompressionStream.next_out = reinterpret_cast<Byte*>(pUncompressedHeader);
-	decompressionStream.avail_in = headerCompressedSize;
-	decompressionStream.avail_out = headerUncompressedSize;
+	decompressionStream.avail_in = (uInt)headerCompressedSize;
+	decompressionStream.avail_out = (uInt)headerUncompressedSize;
 
 	err = inflate(&decompressionStream, Z_FINISH);
 	assert(err > Z_OK);
@@ -400,8 +400,8 @@ size_t Archiver::CompressHeader(void* pHeader, size_t headerSize, void* pBuf, si
 
 	compressionStream.next_in = reinterpret_cast<Byte*>(pHeader);
 	compressionStream.next_out = reinterpret_cast<Byte*>(pBuf);
-	compressionStream.avail_in = headerSize;
-	compressionStream.avail_out = bufSize;
+	compressionStream.avail_in = (uInt)headerSize;
+	compressionStream.avail_out = (uInt)bufSize;
 
 	err = deflate(&compressionStream, Z_FINISH);
 

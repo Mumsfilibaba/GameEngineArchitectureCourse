@@ -205,7 +205,7 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 		}
 		size_t typeHash = HashString(filepath.substr(index).c_str());
 
-		int bytesWritten = resourceLoader.WriteResourceToBuffer(filepath, data);
+		size_t bytesWritten = resourceLoader.WriteResourceToBuffer(filepath, data);
 		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);
 	}
 	free(data);

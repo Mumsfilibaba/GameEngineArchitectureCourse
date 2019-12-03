@@ -21,9 +21,9 @@ std::string N2HexStr(size_t w)
 	return rc;
 }
 
-void ImGuiDrawMemoryProgressBar(int32_t used, int32_t available)
+void ImGuiDrawMemoryProgressBar(size_t used, size_t available)
 {
-	float usedF = float(used) / float(std::max(available, 1));
+	float usedF = float(used) / float(std::max(available, size_t(1)));
 	ImGui::ProgressBar(usedF, ImVec2(0.0f, 0.0f));
 	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
 
@@ -340,4 +340,28 @@ int32_t FastAtoi(const char* const str, int32_t& length)
 		return -integer;
 
 	return integer;
+}
+
+
+
+uint32_t ReadTextfile(const std::string& filename, const char** const ppBuffer)
+{
+	FILE* file = nullptr;
+	file = fopen(filename.c_str(), "rt");
+	if (file == nullptr)
+	{
+		return 0;
+	}
+
+	fseek(file, 0, SEEK_END);
+	int64_t filesize = ftell(file);
+	fseek(file, 0, SEEK_SET);
+
+	//Store in a tempptr to avoid casting -> more readable code
+	void* pTempPtr = calloc(filesize, sizeof(char));
+	uint32_t bytesRead = (uint32_t)fread(pTempPtr, sizeof(uint8_t), filesize, file);
+
+	(*ppBuffer) = (const char*)pTempPtr;
+	fclose(file);
+	return bytesRead;
 }

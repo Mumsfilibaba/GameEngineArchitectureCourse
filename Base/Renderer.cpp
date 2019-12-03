@@ -89,11 +89,11 @@ void Renderer::Init()
 				float attenuation	= 1.0 / (distance);
 				vec4 diffuse = diff * lightColor * attenuation;
 
-				float specularStrength = 0.5;
+				float specularStrength = 0.6;
 				vec3 viewDir	= normalize(u_CameraPos - v_Position);
 				vec3 reflectDir = reflect(-lightDir, normal);  
 
-				float spec		= pow(max(dot(viewDir, reflectDir), 0.0), 32);
+				float spec		= pow(max(dot(viewDir, reflectDir), 0.0), 128);
 				vec4 specular	= specularStrength * spec * lightColor;  
 
 				float ambientStrength = 0.1;

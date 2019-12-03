@@ -24,7 +24,7 @@ IResource* LoaderBMP::LoadFromDisk(const std::string& file)
 	return LoadFromMemory(pBuf, sizeInBytes);
 }
 
-IResource* LoaderBMP::LoadFromMemory(void* pData, size_t size)
+IResource* LoaderBMP::LoadFromMemory(void* pData, size_t)
 {
 	size_t startAddress = (size_t)pData;
 	BMPHeader bmpHeader;

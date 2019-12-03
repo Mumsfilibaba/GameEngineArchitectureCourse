@@ -125,7 +125,7 @@ size_t LoaderOBJ::WriteToBuffer(const std::string& file, void* buffer)
         return sizeof(BinaryMeshData) + vertexStride + indexStride;
     }
     
-	return -1;
+	return size_t(-1);
 }
 
 
@@ -138,29 +138,6 @@ std::vector<GameMesh> LoaderOBJ::ReadFromDisk(const std::string& filepath)
 	}
 
 	return meshes;
-}
-
-
-inline uint32_t ReadTextfile(const std::string& filename, const char** const ppBuffer)
-{
-	FILE* file = nullptr;
-	file = fopen(filename.c_str(), "rt");
-	if (file == nullptr)
-	{
-		return 0;
-	}
-
-	fseek(file, 0, SEEK_END);
-	int64_t filesize = ftell(file);
-	fseek(file, 0, SEEK_SET);
-
-	//Store in a tempptr to avoid casting -> more readable code
-	void* pTempPtr = calloc(filesize, sizeof(char));
-	uint32_t bytesRead = (uint32_t)fread(pTempPtr, sizeof(uint8_t), filesize, file);
-
-	(*ppBuffer) = (const char*)pTempPtr;
-	fclose(file);
-	return bytesRead;
 }
 
 

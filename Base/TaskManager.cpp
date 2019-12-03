@@ -38,7 +38,7 @@ TaskManager::TaskManager()
 	ThreadSafePrintf("TaskManager: Starting up %u threads\n", numThreads);
 
 	//Startup all the threads
-	for (int i = 0; i < numThreads; i++)
+	for (uint32_t i = 0; i < numThreads; i++)
 	{
 		std::thread worker(TaskManager::TaskThread);
 		worker.detach();

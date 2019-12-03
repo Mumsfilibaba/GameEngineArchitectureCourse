@@ -38,18 +38,18 @@ public:
 		return instance;
 	}
 
-	static int GetTotalAvailableMemory()
+	static size_t GetTotalAvailableMemory()
 	{
 		return s_TotalAllocated;
 	}
 
-	static int GetTotalUsedMemory()
+	static size_t GetTotalUsedMemory()
 	{
 		return s_TotalUsed;
 	}
 private:
-	static std::atomic_int32_t s_TotalAllocated;
-	static std::atomic_int32_t s_TotalUsed;
+	static std::atomic_size_t s_TotalAllocated;
+	static std::atomic_size_t s_TotalUsed;
 };
 
 namespace Helpers

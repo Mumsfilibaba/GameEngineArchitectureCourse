@@ -27,18 +27,18 @@
 class PoolAllocatorBase
 {
 public:
-	static int GetTotalAvailableMemory()
+	static size_t GetTotalAvailableMemory()
 	{
 		return s_TotalAllocated;
 	}
 
-	static int GetTotalUsedMemory()
+	static size_t GetTotalUsedMemory()
 	{
 		return s_TotalUsed;
 	}
 protected:
-	static std::atomic_int32_t s_TotalAllocated;
-	static std::atomic_int32_t s_TotalUsed;
+	static std::atomic_size_t s_TotalAllocated;
+	static std::atomic_size_t s_TotalUsed;
 };
 
 template<typename T>

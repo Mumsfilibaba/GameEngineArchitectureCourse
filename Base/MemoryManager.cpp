@@ -1,8 +1,8 @@
 #include "MemoryManager.h"
 #include <thread>
 
-std::atomic_int32_t MemoryManager::s_TotalAllocated = 0;
-std::atomic_int32_t MemoryManager::s_TotalUsed = 0;
+std::atomic_size_t MemoryManager::s_TotalAllocated = 0;
+std::atomic_size_t MemoryManager::s_TotalUsed = 0;
 
 MemoryManager::MemoryManager()
 	: m_pMemory(malloc(SIZE_IN_BYTES))

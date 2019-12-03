@@ -2,14 +2,6 @@
 #include "Helpers.h"
 #include "Mesh.h"
 #include "ILoader.h"
-#include <vector>
-
-template <typename VertexType>
-struct TMesh
-{
-    std::vector<VertexType>  Vertices;
-    std::vector<uint32_t>    Indices;
-};
 
 using GameMesh = TMesh<Vertex>;
 

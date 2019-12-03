@@ -58,13 +58,13 @@ size_t ResourceLoader::WriteResourceToBuffer(const std::string& file, void* buff
 	if (index == std::string::npos)
 	{
 		std::cout << "Error! Tried to load a file without a type [" << file << "]" << std::endl;
-		return -1;
+		return size_t(-1);
 	}
 	std::string fileType = file.substr(index);
 
 	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
-		return -1;
+		return size_t(-1);
 
 	return loader->WriteToBuffer(file, buffer);
 }
