@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Helpers.h"
+#include "IRefCountable.h"
 // I need ref counting
 
-class IResource
+class IResource : public IRefCountable
 {
 	friend class ResourceManager;
 
