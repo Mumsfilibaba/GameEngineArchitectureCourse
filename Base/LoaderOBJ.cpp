@@ -235,6 +235,25 @@ inline void PrintError(int32_t error)
 }
 
 
+inline bool IsNewLine(const char** const iter)
+{
+	if ((*(*iter) == '\n'))
+	{
+		return true;
+	}
+	else if (*(*iter) == '\r')
+	{
+		(*iter)++;
+		if ((*(*iter) == '\n'))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 {
 	using namespace glm;
@@ -290,7 +309,8 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 				iter++;
 				ParseVec2(vec2, &iter);
 
-				if ((*iter) != '\n')
+
+				if (!IsNewLine(&iter))
 				{
 					//After two floats there should be a new line otherwise a corrupt file
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
@@ -320,7 +340,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 				iter++;
 				ParseVec3(vec3, &iter);
 
-				if ((*iter) != '\n')
+				if (!IsNewLine(&iter))
 				{
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
@@ -339,7 +359,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 				iter++;
 				ParseVec3(vec3, &iter);
 
-				if ((*iter) != '\n')
+				if (!IsNewLine(&iter))
 				{
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
@@ -399,26 +419,26 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 			{
                 size_t numIndices   = meshes[currentMesh].Indices.size();
 				uint32_t startIndex = meshes[currentMesh].Indices[numIndices - 3]; //Get the first vertex in the base triangle
-				while ((*iter) != '\n' && (*iter) != '\0')
+				while (!IsNewLine(&iter))
 				{
-					if ((*iter) == '\r')
-						break;
-
 					const char* pTemp = iter;
 					iter++;
 					//Get vertex
 					ParseOBJVertex(objVertex, &iter);
-
-					assert((objVertex.Position > 0) || (objVertex.Normal > 0) || (objVertex.TexCoord > 0));
+					if ((*iter) == '\0')
+						break;
+					
+					assert((*iter) != '\0');
+					assert((objVertex.Position > 0) && (objVertex.Normal > 0) && (objVertex.TexCoord > 0));
 
 					//Add a new triangle base on the last couple of ones
 					meshes[currentMesh].Indices.emplace_back(startIndex);
 					meshes[currentMesh].Indices.emplace_back(meshes[currentMesh].Indices[numIndices - 1]);
 
 					//TODO: Debug why this is possible in the first place
-					vertex.Position		= (objVertex.Position > 0) ? filedata.Positions[objVertex.Position - 1] : glm::vec3();
-					vertex.Normal		= (objVertex.Normal	  > 0) ? filedata.Normals[objVertex.Normal - 1] : glm::vec3();
-					vertex.TexCoords	= (objVertex.TexCoord > 0) ? filedata.TextureCoords[objVertex.TexCoord - 1] : glm::vec2();
+					vertex.Position		= filedata.Positions[objVertex.Position - 1];
+					vertex.Normal		= filedata.Normals[objVertex.Normal - 1];
+					vertex.TexCoords	= filedata.TextureCoords[objVertex.TexCoord - 1];
 					AddUniqueOBJVertex(vertex, uniqueVertices, meshes[currentMesh]);
 #if defined(DEBUG_PRINTS)
 					ThreadSafePrintf("%d/%d/%d ", objVertex.Position, objVertex.TexCoord, objVertex.Normal);
