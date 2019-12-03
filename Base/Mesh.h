@@ -29,6 +29,14 @@ public:
 };
 
 
+//HELPER FOR MESHLOADING
+struct MeshData
+{
+	std::vector<Vertex>  Vertices;
+	std::vector<uint32_t>    Indices;
+};
+
+
 class Mesh : public IResource
 {
 public:

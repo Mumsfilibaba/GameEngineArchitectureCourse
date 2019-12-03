@@ -11,9 +11,10 @@
 	#pragma warning(disable : 4201)		//Disable: "nonstandard extension used: nameless struct/union"-warning
 #endif
 
-#define OBJ_ERROR_SUCCESS		0
-#define OBJ_ERROR_CORRUPT_FILE	1
-#define OBJ_ERROR_EMPTY_FILE	2
+#define OBJ_ERROR_SUCCESS				0
+#define OBJ_ERROR_CORRUPT_FILE			1
+#define OBJ_ERROR_EMPTY_FILE			2
+#define OBJ_ERROR_INDICES_OUT_OF_BOUNDS 3
 
 //#define DEBUG_PRINTS			1
 
@@ -47,8 +48,6 @@ struct BinaryMeshData
     uint32_t IndexCount     = 0;
 };
 
-using OBJMesh = TMesh<OBJVertex>;
-
 //Create hashfunction for a vertex
 namespace std
 {
@@ -63,19 +62,19 @@ namespace std
 	};
 }
 
-bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath);
+bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath);
 uint32_t ReadTextfile(const std::string& filename, const char** const buffer);
 void PrintError(int32_t error);
 void SkipLine(const char** const iter);
 void ParseOBJVertex(OBJVertex& vertex, const char** const buffer);
 void ParseVec2(glm::vec2& vector, const char** const iter);
 void ParseVec3(glm::vec3& vector, const char** const iter);
-void AddUniqueOBJVertex(const OBJVertex& vertex, OBJMesh& mesh);
+void AddUniqueOBJVertex(const Vertex& vertex, std::unordered_map<Vertex, uint32_t>& uniqueVertices, MeshData& mesh);
 
 
 IResource* LoaderOBJ::LoadFromDisk(const std::string& file)
 {
-    std::vector<GameMesh> meshes = std::move(ReadFromDisk(file));
+    std::vector<MeshData> meshes = std::move(ReadFromDisk(file));
     if (!meshes.empty())
     {
         //Create mesh object
@@ -123,7 +122,7 @@ IResource* LoaderOBJ::LoadFromMemory(void* pData, size_t)
 
 size_t LoaderOBJ::WriteToBuffer(const std::string& file, void* buffer)
 {
-    std::vector<GameMesh> meshes = std::move(ReadFromDisk(file));
+    std::vector<MeshData> meshes = std::move(ReadFromDisk(file));
     if (!meshes.empty())
     {
         BinaryMeshData data = {};
@@ -146,9 +145,9 @@ size_t LoaderOBJ::WriteToBuffer(const std::string& file, void* buffer)
 }
 
 
-std::vector<GameMesh> LoaderOBJ::ReadFromDisk(const std::string& filepath)
+std::vector<MeshData> LoaderOBJ::ReadFromDisk(const std::string& filepath)
 {
-	std::vector<GameMesh> meshes;
+	std::vector<MeshData> meshes;
 	if (!::LoadOBJ(meshes, filepath))
 	{
         ThreadSafePrintf("Failed to load mesh '%s'\n", filepath.c_str());
@@ -191,7 +190,7 @@ inline void ParseVec3(glm::vec3& vector, const char** const iter)
 }
 
 
-inline void AddUniqueOBJVertex(const Vertex& vertex, std::unordered_map<Vertex, uint32_t>& uniqueVertices, GameMesh& mesh)
+inline void AddUniqueOBJVertex(const Vertex& vertex, std::unordered_map<Vertex, uint32_t>& uniqueVertices, MeshData& mesh)
 {
 	if (uniqueVertices.count(vertex) == 0)
 	{
@@ -227,6 +226,9 @@ inline void PrintError(int32_t error)
 	case OBJ_ERROR_CORRUPT_FILE:
 		ThreadSafePrintf("ERROR LOADING OBJ: Corrupt file\n");
 		break;
+	case OBJ_ERROR_INDICES_OUT_OF_BOUNDS:
+		ThreadSafePrintf("ERROR LOADING OBJ: Indices out of bounds\n");
+		break;
 	case OBJ_ERROR_SUCCESS:
 	default:
 		ThreadSafePrintf("LOADED OBJ SUCCESSFULLY\n");
@@ -254,7 +256,7 @@ inline bool IsNewLine(const char** const iter)
 }
 
 
-inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
+inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 {
 	using namespace glm;
 
@@ -263,6 +265,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 	uint32_t bytes = ReadTextfile(filepath, &buffer);
 	if (bytes == 0)
 	{
+		ThreadSafePrintf("ERROR LOADING OBJ: Failed to load file\n");
 		return false;
 	}
 
@@ -290,15 +293,16 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 			SkipLine(&iter);
 			break;
 		case 'v':
-			//Some vertex attribute
+			//Parse vertex attribute
 			iter++;
 
+			//TextureCoords
 			if (*iter == 't')
 			{
-				//TextureCoords
 				iter++;
 				if ((*iter) != ' ')
 				{
+					//There should be an empty space after the attribute
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
 					free((void*)buffer);
@@ -308,7 +312,6 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 				//Parse TextureCoords
 				iter++;
 				ParseVec2(vec2, &iter);
-
 
 				if (!IsNewLine(&iter))
 				{
@@ -383,10 +386,12 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 
 			break;
 		case 'f':
+			//Parse a face
+			iter++;
+
 #if defined(DEBUG_PRINTS)
 			ThreadSafePrintf("Found face: ");
 #endif
-			iter++;
 
 			//If there is not a blank space here the file is not valid and we return
 			if ((*iter) != ' ')
@@ -400,7 +405,6 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 			//Read in three vertices
 			for (i = 0; i < 3; i++)
 			{
-				const char* pTemp = iter;
 				iter++;
 
 				//Get vertex
@@ -408,14 +412,21 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 				if ((*iter) == '\0')
 					break;
 
-				assert((*iter) != '\0');
-				assert((objVertex.Position > 0) && (objVertex.Normal > 0) && (objVertex.TexCoord > 0));
-				
 				//Construct and insert new vertex
-				vertex.Position		= filedata.Positions[objVertex.Position - 1];
-				vertex.Normal		= filedata.Normals[objVertex.Normal - 1];
-				vertex.TexCoords	= filedata.TextureCoords[objVertex.TexCoord- 1];
-				AddUniqueOBJVertex(vertex, uniqueVertices, meshes[currentMesh]);
+				if ((objVertex.Position > 0) && (objVertex.Normal > 0) && (objVertex.TexCoord > 0))
+				{
+					vertex.Position = filedata.Positions[objVertex.Position - 1];
+					vertex.Normal = filedata.Normals[objVertex.Normal - 1];
+					vertex.TexCoords = filedata.TextureCoords[objVertex.TexCoord - 1];
+					AddUniqueOBJVertex(vertex, uniqueVertices, meshes[currentMesh]);
+				}
+				else
+				{
+					PrintError(OBJ_ERROR_INDICES_OUT_OF_BOUNDS);
+
+					free((void*)buffer);
+					return false;
+				}
 #if defined(DEBUG_PRINTS)
 				ThreadSafePrintf("%d/%d/%d ", objVertex.Position, objVertex.TexCoord, objVertex.Normal);
 #endif
@@ -434,18 +445,25 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 					if ((*iter) == '\0')
 						break;
 					
-					assert((*iter) != '\0');
-					assert((objVertex.Position > 0) && (objVertex.Normal > 0) && (objVertex.TexCoord > 0));
-
 					//Add a new triangle base on the last couple of ones
 					meshes[currentMesh].Indices.emplace_back(startIndex);
 					meshes[currentMesh].Indices.emplace_back(meshes[currentMesh].Indices[numIndices - 1]);
 
-					//TODO: Debug why this is possible in the first place
-					vertex.Position		= filedata.Positions[objVertex.Position - 1];
-					vertex.Normal		= filedata.Normals[objVertex.Normal - 1];
-					vertex.TexCoords	= filedata.TextureCoords[objVertex.TexCoord - 1];
-					AddUniqueOBJVertex(vertex, uniqueVertices, meshes[currentMesh]);
+					//Construct and insert new vertex
+					if ((objVertex.Position > 0) && (objVertex.Normal > 0) && (objVertex.TexCoord > 0))
+					{
+						vertex.Position		= filedata.Positions[objVertex.Position - 1];
+						vertex.Normal		= filedata.Normals[objVertex.Normal - 1];
+						vertex.TexCoords	= filedata.TextureCoords[objVertex.TexCoord - 1];
+						AddUniqueOBJVertex(vertex, uniqueVertices, meshes[currentMesh]);
+					}
+					else
+					{
+						PrintError(OBJ_ERROR_INDICES_OUT_OF_BOUNDS);
+
+						free((void*)buffer);
+						return false;
+					}
 #if defined(DEBUG_PRINTS)
 					ThreadSafePrintf("%d/%d/%d ", objVertex.Position, objVertex.TexCoord, objVertex.Normal);
 #endif
@@ -467,7 +485,7 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 
 		iter++;
 	}
-/*
+
 #if defined(DEBUG_PRINTS)
 	//Print all the vertices and indicess
 	ThreadSafePrintf("Vertices:\n");
@@ -482,26 +500,6 @@ inline bool LoadOBJ(std::vector<GameMesh>& meshes, const std::string& filepath)
 		ThreadSafePrintf("%d\n", meshes[0].Indices[i]);
 	}
 #endif
-*/
-
-	//Convert all the OBJVertices to vertioces that the game can use
-	/*for (auto& mesh : objMeshes)
-	{
-		//Create a new gamemesh
-		meshes.emplace_back();
-
-		//Convert all vertices
-		Vertex v = {};
-		for (auto& vertex : mesh.Vertices)
-		{
-			v.Position	= vertex.Position > 0	? fileData.Positions[vertex.Position - 1] : glm::vec3();
-			v.Normal	= vertex.Normal > 0		? fileData.Normals[vertex.Normal - 1] : glm::vec3();
-			v.TexCoords = vertex.TexCoord > 0	? fileData.TextureCoords[vertex.TexCoord - 1] : glm::vec2();
-			meshes.back().Vertices.emplace_back(v);
-		}
-
-		meshes.back().Indices.swap(mesh.Indices);
-	}*/
 
 	free((void*)buffer);
 	return true;

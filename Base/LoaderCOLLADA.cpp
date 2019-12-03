@@ -18,6 +18,33 @@ size_t LoaderCOLLADA::WriteToBuffer(const std::string& file, void* buffer)
 }
 
 
+
+#define COLLADA_ERROR_SUCCESS				0
+#define COLLADA_ERROR_CORRUPT_FILE			1
+#define COLLADA_ERROR_EMPTY_FILE			2
+#define COLLADA_ERROR_INDICES_OUT_OF_BOUNDS 3
+
+inline void PrintError(int32_t error)
+{
+	switch (error)
+	{
+	case COLLADA_ERROR_EMPTY_FILE:
+		ThreadSafePrintf("ERROR LOADING OBJ: File is empty\n");
+		break;
+	case COLLADA_ERROR_CORRUPT_FILE:
+		ThreadSafePrintf("ERROR LOADING OBJ: Corrupt file\n");
+		break;
+	case COLLADA_ERROR_INDICES_OUT_OF_BOUNDS:
+		ThreadSafePrintf("ERROR LOADING OBJ: Indices out of bounds\n");
+		break;
+	case COLLADA_ERROR_SUCCESS:
+	default:
+		ThreadSafePrintf("LOADED OBJ SUCCESSFULLY\n");
+		break;
+	}
+}
+
+
 template<typename T>
 struct TArray
 {
@@ -41,6 +68,13 @@ struct LibraryGeometry
 };
 
 
+struct TagData
+{
+	std::string ID;
+	std::unordered_map<std::string, std::string> Data;
+};
+
+
 enum ETag : uint32_t
 {
 	TAG_UNKNOWN		= 0,
@@ -48,10 +82,11 @@ enum ETag : uint32_t
 };
 
 
-ETag SearchTag(const char** iter);
+bool IsTagTag(const char** iter, const char* tagName);
+TagData SearchTag(const char** buffer, const char* tagName);
 const char* GetEndOfString(const char** iter);
 
-std::vector<GameMesh> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
+std::vector<MeshData> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
 {
 	//Read in the full textfile into a buffer
 	const char* buffer = nullptr;
@@ -59,32 +94,62 @@ std::vector<GameMesh> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
 	if (bytes == 0)
 	{
 		ThreadSafePrintf("Failed to load '%s'\n", filepath.c_str());
-		return std::vector<GameMesh>();
+		return std::vector<MeshData>();
 	}
 	
-	std::vector<FloatArray> positions;
 	const char* iter = buffer;
+	TagData libraryGeometries	= SearchTag(&iter, "library_geometries");
+	TagData geometries			= SearchTag(&iter, "geometry");
+
+	free((void*)buffer);
+	return std::vector<MeshData>();
+}
+
+
+inline TagData SearchTag(const char** buffer, const char* tagName)
+{
+	TagData data;
+
+	//std::vector<FloatArray> positions;
+	const char* iter = (*buffer);
 	while (*iter != '\0')
 	{
-		switch (*iter)
-		{
-		case '<':
+		if (*iter == '<')
 		{
 			iter++;
 			if (*(iter) == '/')
 			{
-				break;
+				continue;
 			}
 
-			ETag tag = SearchTag(&iter);
-			if (tag == TAG_FLOAT_ARRAY)
+			//Check if this is correct tag
+			if (!IsTagTag(&iter, tagName))
+			{
+				continue;
+			}
+			
+			ThreadSafePrintf("Found %s\n", tagName);
+
+			//Did we reach endtag
+			data.ID = tagName;
+			if ((*iter) == '>')
+				break;
+
+			//Find all values for this tag
+			//while (*iter >= 'a' && *iter <= 'z')
+				//iter++;
+
+			/*if (tag == TAG_FLOAT_ARRAY)
 			{
 				if (*iter != ' ')
 				{
-					//TODO: Display error
-					break;
+					PrintError(COLLADA_ERROR_CORRUPT_FILE);
+
+					free((void*)buffer);
+					return;
 				}
 
+				//Parse ID 
 				iter++;
 				int result = strncmp(iter, "id=\"", 4);
 				if (result == 0)
@@ -93,8 +158,10 @@ std::vector<GameMesh> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
 				}
 				else
 				{
-					//TODO: Display error
-					break;
+					PrintError(COLLADA_ERROR_CORRUPT_FILE);
+
+					free((void*)buffer);
+					return;
 				}
 
 				FloatArray arr;
@@ -102,55 +169,77 @@ std::vector<GameMesh> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
 				const char* idEnd = GetEndOfString(&iter);
 				arr.ID = std::string(idBegin, size_t(idEnd - idBegin));
 
+				//Parse count
+				iter++;
 				if (*iter != ' ')
 				{
-					//TODO: Display error
-					break;
+					PrintError(COLLADA_ERROR_CORRUPT_FILE);
+
+					free((void*)buffer);
+					return;
+				}
+
+				iter++;
+				result = strncmp(iter, "count=\"", 7);
+				if (result == 0)
+				{
+					iter += 7;
+				}
+				else
+				{
+					PrintError(COLLADA_ERROR_CORRUPT_FILE);
+
+					free((void*)buffer);
+					return;
+				}
+
+				int32_t length = 0;
+				arr.Count = FastAtoi(iter, length);
+
+				//Parse data
+				iter += length + 2;
+				for (uint32_t i = 0; i < arr.Count; i++)
+				{
+					float d = (float)FastAtof(iter, length);
+					if (length == 0)
+					{
+						PrintError(COLLADA_ERROR_CORRUPT_FILE);
+
+						free((void*)buffer);
+						return;
+					}
+
+					iter += length + 1;
+					arr.Data.emplace_back(d);
 				}
 
 				positions.emplace_back(arr);
-			}
-
-			break;
-		}
-		default:
-			break;
+			}*/
 		}
 
 		iter++;
 	}
 
-	return std::vector<GameMesh>();
+	//Return the new iterator
+	(*buffer) = iter;
+	return data;
 }
 
 
-inline ETag SearchTag(const char** iter)
+inline bool IsTagTag(const char** iter, const char* tagName)
 {
-	//Create pairs of tags we are interested in
-	struct TagPair
+	//Check if the tag is correct
+	int length = strlen(tagName);
+	int result = strncmp(tagName, *iter, length);
+	if (result == 0)
 	{
-		ETag Tag = TAG_UNKNOWN;
-		const char* pTagStr = nullptr;
-		uint32_t TagLength = 0;
-	};
-	static const TagPair pairs[] =
-	{
-		{ TAG_FLOAT_ARRAY, "float_array", strlen("float_array") }
-	};
-
-	//Check if the tag is some of the pairs
-	constexpr size_t numPairs = sizeof(pairs) / sizeof(TagPair);
-	for (size_t i = 0; i < numPairs; i++)
-	{
-		int result = strncmp(pairs[i].pTagStr, *iter, pairs[i].TagLength);
-		if (result == 0)
-		{
-			(*iter) += pairs[i].TagLength;
-			return pairs[i].Tag;
-		}
+		(*iter) += length;
+		return true;
 	}
-	return TAG_UNKNOWN;
+
+	return false;
 }
+
 
 inline const char* GetEndOfString(const char** iter)
 {	

@@ -12,14 +12,6 @@
 constexpr uint64_t PRIME_MULTIPLE	= 16777619ull;
 constexpr uint32_t INITIAL_HASH		= 2166136261u;
 
-//HELPERS FOR MESHLOADING
-template <typename VertexType>
-struct TMesh
-{
-	std::vector<VertexType>  Vertices;
-	std::vector<uint32_t>    Indices;
-};
-
 std::string N2HexStr(size_t w);
 
 //IMGUI FUNCTIONS 
