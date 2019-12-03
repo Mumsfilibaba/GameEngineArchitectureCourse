@@ -23,6 +23,7 @@ void ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader
 		std::cout << "Error! A loader of the filetype hash [" << hash << "] is already registered!!!!" << std::endl;
 		return;
 	}
+	std::cout << "Registered [" << fileType << "] Loader" << std::endl;
 	m_LoaderMap.insert({ hash, loader });
 }
 
@@ -74,7 +75,7 @@ ILoader* ResourceLoader::GetLoader(size_t hash)
 	std::unordered_map<size_t, ILoader*>::const_iterator iterator = m_LoaderMap.find(hash);
 	if (iterator == m_LoaderMap.end())
 	{
-		std::cout << "Error! The exist no loader for the filetype hash [" << hash << "]" << std::endl;
+		std::cout << "Error! No loader exist for the filetype hash [" << hash << "]" << std::endl;
 		return nullptr;
 	}
 

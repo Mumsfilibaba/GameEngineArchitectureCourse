@@ -8,6 +8,7 @@
 #include <functional>
 #include "SpinLock.h"
 
+
 #define PACKAGE_PATH "package"
 
 class ResourceLoader;
@@ -25,7 +26,7 @@ public:
 	ResourceBundle* LoadResources(std::initializer_list<size_t> guids);
 	ResourceBundle* LoadResources(std::initializer_list<char*> files);
 
-	void LoadResourcesInBackground(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback);
+	void LoadResourcesInBackground(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback);
 
 	bool IsResourceLoaded(size_t guid);
 	bool IsResourceLoaded(const std::string& path);
@@ -42,7 +43,8 @@ private:
 
 	void LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid);
 	IResource* GetResource(size_t guid);
-	void BackgroundLoading(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback);
+	ResourceBundle* CreateResourceBundle(size_t* guids, size_t nrOfGuids);
+	void BackgroundLoading(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback);
 	void Update();
 
 	std::vector<ResourceBundle*> m_ResourceBundles;
@@ -50,5 +52,7 @@ private:
 	std::vector<size_t> m_ResourcesToBeLoaded;
 	std::vector<size_t> m_ResourcesToInitiate;
 	SpinLock m_LockLoading;
+	SpinLock m_LockLoaded;
 	SpinLock m_LockInitiate;
+	SpinLock m_LockResourceBundles;
 };

@@ -56,8 +56,8 @@ void Renderer::Init()
 			{
 				vec4 position = u_Transform * vec4(a_Position, 1.0);
 				v_Position	= position.xyz;
-				v_Normal	= a_Normal;
-				v_Tangent	= a_Tangent;
+				v_Normal	= normalize(a_Normal);
+				v_Tangent	= normalize(a_Tangent);
 				v_TexCoord	= a_TexCoord;
 				gl_Position = u_Projection * u_View * position;
 			}

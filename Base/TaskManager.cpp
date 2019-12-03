@@ -50,6 +50,7 @@ TaskManager::~TaskManager()
 {
 	ThreadSafePrintf("TaskManager: Waiting for tasks to finish\n");
 	Wait();
+	ThreadSafePrintf("TaskManager: All tasks are finished\n");
 }
 
 

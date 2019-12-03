@@ -34,9 +34,9 @@ public:
 
 	LoaderTGA();
 	~LoaderTGA();
-	IResource* LoadFromDisk(const std::string& file);
-	IResource* LoadFromMemory(void* data, size_t size);
-	size_t WriteToBuffer(const std::string& file, void* buffer);
+	virtual IResource* LoadFromDisk(const std::string& file) override;
+	virtual IResource* LoadFromMemory(void* data, size_t size) override;
+	virtual size_t WriteToBuffer(const std::string& file, void* buffer) override;
 
 private:
 	void ReadFromDisk(const std::string& file, TGAHeader& pTGAfile);

@@ -67,9 +67,12 @@ public:
 	LoaderBMP();
 	~LoaderBMP();
 
-	IResource* LoadFromDisk(const std::string& file);
-	IResource* LoadFromMemory(void* pData, size_t size);
-	size_t WriteToBuffer(const std::string& file, void* pBuffer);
+	virtual IResource* LoadFromDisk(const std::string& file) override;
+	virtual IResource* LoadFromMemory(void* pData, size_t size) override;
+	virtual size_t WriteToBuffer(const std::string& file, void* pBuffer) override;
+    
+private:
+	size_t LoadAndConvert(void* pBMPFileData, size_t size, void* pBuffer);
 };
 
 #endif

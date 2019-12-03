@@ -10,7 +10,8 @@ ResourceBundle::ResourceBundle(size_t* guids, size_t nrOfGuids) :
 
 ResourceBundle::~ResourceBundle()
 {
-	delete[] m_Guids;
+	if(m_Guids)
+		delete[] m_Guids;
 }
 
 Texture* ResourceBundle::GetTexture(size_t guid)

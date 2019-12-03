@@ -3,6 +3,7 @@
 #include "ResourceLoader.h"
 #include "TaskManager.h"
 #include "ResourceBundle.h"
+#include <mutex>
 
 ResourceManager::ResourceManager()
 {
@@ -11,15 +12,21 @@ ResourceManager::ResourceManager()
 
 ResourceManager::~ResourceManager()
 {
-	for (auto resource : m_LoadedResources)
 	{
-		resource.second->Release();
-		delete resource.second;
+		std::scoped_lock<SpinLock> lock(m_LockLoaded);
+		for (auto resource : m_LoadedResources)
+		{
+			resource.second->InternalRelease();
+			delete resource.second;
+		}
 	}
 
-	for (auto bundle : m_ResourceBundles)
 	{
-		delete bundle;
+		std::scoped_lock<SpinLock> lock(m_LockResourceBundles);
+		for (auto bundle : m_ResourceBundles)
+		{
+			delete bundle;
+		}
 	}
 }
 
@@ -32,11 +39,16 @@ void ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 
 	IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
 	free(data);
-	m_LoadedResources.insert({ guid, resource });
 
-	m_LockInitiate.lock();
-	m_ResourcesToInitiate.push_back(guid);
-	m_LockInitiate.unlock();
+	{
+		std::scoped_lock<SpinLock> lock(m_LockLoaded);
+		m_LoadedResources.insert({ guid, resource });
+	}
+
+	{
+		std::scoped_lock<SpinLock> lock(m_LockInitiate);
+		m_ResourcesToInitiate.push_back(guid);
+	}
 }
 
 IResource* ResourceManager::GetResource(size_t guid)
@@ -49,6 +61,14 @@ IResource* ResourceManager::GetResource(size_t guid)
 	}
 
 	return iterator->second;
+}
+
+ResourceBundle* ResourceManager::CreateResourceBundle(size_t* guids, size_t nrOfGuids)
+{
+	ResourceBundle* resourceBundle = new ResourceBundle(guids, nrOfGuids);
+	std::scoped_lock<SpinLock> lock(m_LockResourceBundles);
+	m_ResourceBundles.push_back(resourceBundle);
+	return resourceBundle;
 }
 
 ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> guids)
@@ -69,9 +89,7 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> gui
 		guidArray[index++] = guid;
 	}
 
-	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, guids.size());
-	m_ResourceBundles.push_back(resourceBundle);
-	return resourceBundle;
+	return CreateResourceBundle(guidArray, guids.size());
 }
 
 ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> files)
@@ -93,18 +111,16 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> file
 		guidArray[index++] = guid;
 	}
 
-	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, files.size());
-	m_ResourceBundles.push_back(resourceBundle);
-	return resourceBundle;
+	return CreateResourceBundle(guidArray, files.size());
 }
 
-void ResourceManager::LoadResourcesInBackground(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback)
+void ResourceManager::LoadResourcesInBackground(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback)
 {
 	TaskManager& taskManager = TaskManager::Get();
-	taskManager.Execute(std::bind(&ResourceManager::BackgroundLoading, this, files, callback));
+	taskManager.Execute(std::bind(&ResourceManager::BackgroundLoading, this, std::move(files), callback));
 }
 
-void ResourceManager::BackgroundLoading(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback)
+void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
@@ -112,19 +128,20 @@ void ResourceManager::BackgroundLoading(std::initializer_list<char*> files, cons
 	size_t* guidArray = new size_t[files.size()];
 	int index = 0;
 
+	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
+
 	//Find resources to load
 	for (const char* file : files)
 	{
 		size_t guid = HashString(file);
 		if (!IsResourceLoaded(guid))
 		{
-			m_LockLoading.lock();
+			std::scoped_lock<SpinLock> lock(m_LockLoading);
 			if (!IsResourceBeingLoaded(guid))
 			{
 				m_ResourcesToBeLoaded.push_back(guid);
 				resourcesToLoad.push_back(guid);
 			}
-			m_LockLoading.unlock();
 		}
 		guidArray[index++] = guid;
 	}
@@ -133,35 +150,31 @@ void ResourceManager::BackgroundLoading(std::initializer_list<char*> files, cons
 	for (size_t guid : resourcesToLoad)
 	{
 		LoadResource(resourceLoader, archiver, guid);
-		m_LockLoading.lock();
+		std::scoped_lock<SpinLock> lock(m_LockLoading);
 		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), guid));
-		m_LockLoading.unlock();
 	}
 
-	//Wait to make sure all resources are loaded, incase the resource is loaded from another thread
+	//Wait to make sure all resources are loaded, in case the resource is loaded from another thread
 	for (int i = 0; i < files.size(); i++)
 	{
 		size_t guid = guidArray[i];
 		while (!IsResourceLoaded(guid)){}
 	}
 
-	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, files.size());
-	m_ResourceBundles.push_back(resourceBundle);
-	callback(resourceBundle);
+	callback(CreateResourceBundle(guidArray, files.size()));
 }
 
 void ResourceManager::Update()
 {
 	if (m_ResourcesToInitiate.size() > 0)
 	{
-		m_LockInitiate.lock();
+		std::scoped_lock<SpinLock> lock(m_LockInitiate);
 		for (size_t guid : m_ResourcesToInitiate)
 		{
 			IResource* resource = GetResource(guid);
-			resource->Init();
+			resource->InternalInit(guid);
 		}
 		m_ResourcesToInitiate.clear();
-		m_LockInitiate.unlock();
 	}
 }
 
@@ -204,7 +217,6 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 			continue;
 		}
 		size_t typeHash = HashString(filepath.substr(index).c_str());
-
 		size_t bytesWritten = resourceLoader.WriteResourceToBuffer(filepath, data);
 		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);
 	}
@@ -212,6 +224,8 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 
 	archiver.SaveUncompressedPackage(PACKAGE_PATH);
 	archiver.CloseUncompressedPackage();
+
+	std::cout << "ResourcePackage [" << PACKAGE_PATH << "] Created" << std::endl;
 }
 
 ResourceManager& ResourceManager::Get()
