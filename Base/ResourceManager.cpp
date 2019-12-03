@@ -3,6 +3,7 @@
 #include "ResourceLoader.h"
 #include "TaskManager.h"
 #include "ResourceBundle.h"
+#include <mutex>
 
 ResourceManager::ResourceManager()
 {
@@ -51,6 +52,14 @@ IResource* ResourceManager::GetResource(size_t guid)
 	return iterator->second;
 }
 
+ResourceBundle* ResourceManager::CreateResourceBundle(size_t* guids, size_t nrOfGuids)
+{
+	ResourceBundle* resourceBundle = new ResourceBundle(guids, nrOfGuids);
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
+	m_ResourceBundles.push_back(resourceBundle);
+	return resourceBundle;
+}
+
 ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> guids)
 {
 	Archiver& archiver = Archiver::GetInstance();
@@ -69,9 +78,7 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> gui
 		guidArray[index++] = guid;
 	}
 
-	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, guids.size());
-	m_ResourceBundles.push_back(resourceBundle);
-	return resourceBundle;
+	return CreateResourceBundle(guidArray, guids.size());
 }
 
 ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> files)
@@ -93,9 +100,7 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> file
 		guidArray[index++] = guid;
 	}
 
-	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, files.size());
-	m_ResourceBundles.push_back(resourceBundle);
-	return resourceBundle;
+	return CreateResourceBundle(guidArray, files.size());
 }
 
 void ResourceManager::LoadResourcesInBackground(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback)
@@ -145,9 +150,7 @@ void ResourceManager::BackgroundLoading(std::initializer_list<char*> files, cons
 		while (!IsResourceLoaded(guid)){}
 	}
 
-	ResourceBundle* resourceBundle = new ResourceBundle(guidArray, files.size());
-	m_ResourceBundles.push_back(resourceBundle);
-	callback(resourceBundle);
+	callback(CreateResourceBundle(guidArray, files.size()));
 }
 
 void ResourceManager::Update()
@@ -212,6 +215,8 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 
 	archiver.SaveUncompressedPackage(PACKAGE_PATH);
 	archiver.CloseUncompressedPackage();
+
+	std::cout << "ResourcePackage [" << PACKAGE_PATH << " created" << std::endl;
 }
 
 ResourceManager& ResourceManager::Get()

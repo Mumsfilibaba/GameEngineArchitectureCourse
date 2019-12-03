@@ -40,13 +40,13 @@ void GameAssign2::Init()
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [](ResourceBundle* bundle)
 	{
-		std::cout << "Loaded meme.tga & Phone.tga in background!" << std::endl;
+		std::cout << "Loaded meme.tga in background!" << std::endl;
 		//Background Loaded
 	});
 
 	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [](ResourceBundle* bundle)
 	{
-		std::cout << "Loaded meme.tga & Phone.tga in background!" << std::endl;
+		std::cout << "Loaded Phone.tga in background!" << std::endl;
 		//Background Loaded
 	});
 
