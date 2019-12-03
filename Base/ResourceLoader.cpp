@@ -23,6 +23,7 @@ void ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader
 		std::cout << "Error! A loader of the filetype hash [" << hash << "] is already registered!!!!" << std::endl;
 		return;
 	}
+	std::cout << "Loader [" << fileType << "] Registered" << std::endl;
 	m_LoaderMap.insert({ hash, loader });
 }
 

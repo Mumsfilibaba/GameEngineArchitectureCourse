@@ -8,6 +8,7 @@
 #include <functional>
 #include "SpinLock.h"
 
+
 #define PACKAGE_PATH "package"
 
 class ResourceLoader;
@@ -42,6 +43,7 @@ private:
 
 	void LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid);
 	IResource* GetResource(size_t guid);
+	ResourceBundle* CreateResourceBundle(size_t* guids, size_t nrOfGuids);
 	void BackgroundLoading(std::initializer_list<char*> files, const std::function<void(ResourceBundle*)>& callback);
 	void Update();
 
@@ -51,4 +53,5 @@ private:
 	std::vector<size_t> m_ResourcesToInitiate;
 	SpinLock m_LockLoading;
 	SpinLock m_LockInitiate;
+	SpinLock m_LockLoaded;
 };
