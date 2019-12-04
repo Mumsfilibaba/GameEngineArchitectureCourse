@@ -50,7 +50,7 @@ IResource* ResourceManager::GetResource(size_t guid)
 	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
 	if (iterator == m_LoadedResources.end())
 	{
-		std::cout << "Resource not found!" << std::endl;
+		ThreadSafePrintf("Resource not found!\n");
 		return nullptr;
 	}
 
@@ -215,7 +215,7 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 		std::size_t index = filepath.find_last_of(".");
 		if (index == std::string::npos)
 		{
-			std::cout << "Error! Tried to package a file without a type [" << file << "]" << std::endl;
+			ThreadSafePrintf("Error! Tried to package a file without a type [%s]\n", file);
 			continue;
 		}
 		size_t typeHash = HashString(filepath.substr(index).c_str());
@@ -227,7 +227,7 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 	archiver.SaveUncompressedPackage(PACKAGE_PATH);
 	archiver.CloseUncompressedPackage();
 
-	std::cout << "ResourcePackage [" << PACKAGE_PATH << "] Created" << std::endl;
+	ThreadSafePrintf("ResourcePackage [%s] Created\n", PACKAGE_PATH);
 }
 
 ResourceManager& ResourceManager::Get()
