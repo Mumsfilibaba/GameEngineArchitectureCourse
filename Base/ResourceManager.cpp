@@ -22,15 +22,6 @@ ResourceManager::~ResourceManager()
 		}
 		m_LoadedResources.clear();
 	}
-
-	{
-		std::scoped_lock<SpinLock> lock(m_LockResourceBundles);
-		for (auto bundle : m_ResourceBundles)
-		{
-			delete bundle;
-		}
-		m_ResourceBundles.clear();
-	}
 }
 
 void ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid)
@@ -66,15 +57,7 @@ IResource* ResourceManager::GetResource(size_t guid)
 	return iterator->second;
 }
 
-ResourceBundle* ResourceManager::CreateResourceBundle(size_t* guids, size_t nrOfGuids)
-{
-	ResourceBundle* resourceBundle = new ResourceBundle(guids, nrOfGuids);
-	std::scoped_lock<SpinLock> lock(m_LockResourceBundles);
-	m_ResourceBundles.push_back(resourceBundle);
-	return resourceBundle;
-}
-
-ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> guids)
+Ref<ResourceBundle> ResourceManager::LoadResources(std::initializer_list<size_t> guids)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
@@ -92,10 +75,10 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<size_t> gui
 		guidArray[index++] = guid;
 	}
 
-	return CreateResourceBundle(guidArray, guids.size());
+	return Ref<ResourceBundle>(new ResourceBundle(guidArray, guids.size()));
 }
 
-ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> files)
+Ref<ResourceBundle> ResourceManager::LoadResources(std::initializer_list<char*> files)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
@@ -114,16 +97,16 @@ ResourceBundle* ResourceManager::LoadResources(std::initializer_list<char*> file
 		guidArray[index++] = guid;
 	}
 
-	return CreateResourceBundle(guidArray, files.size());
+	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
 }
 
-void ResourceManager::LoadResourcesInBackground(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback)
+void ResourceManager::LoadResourcesInBackground(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
 {
 	TaskManager& taskManager = TaskManager::Get();
 	taskManager.Execute(std::bind(&ResourceManager::BackgroundLoading, this, std::move(files), callback));
 }
 
-void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback)
+void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
@@ -164,7 +147,7 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 		while (!IsResourceLoaded(guid)){}
 	}
 
-	callback(CreateResourceBundle(guidArray, files.size()));
+	callback(Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size())));
 }
 
 void ResourceManager::UnloadResource(IResource* resource)

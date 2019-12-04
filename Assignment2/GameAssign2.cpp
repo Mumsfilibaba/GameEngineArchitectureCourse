@@ -28,18 +28,18 @@ void GameAssign2::Init()
     resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "BMPTest_24.bmp" });
 
     //load resources
-    ResourceBundle* pBundle = resourceManager.LoadResources({"BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
+	Ref<ResourceBundle> pBundle = resourceManager.LoadResources({"BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
 
-	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
+	m_pTexture = pBundle.Get()->GetTexture("BMPTest_24.bmp");
 
 
-	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [](ResourceBundle* bundle)
+	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [](const Ref<ResourceBundle>& bundle)
 	{
 		std::cout << "Loaded meme.tga in background!" << std::endl;
 		//Background Loaded
 	});
 
-	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [](ResourceBundle* bundle)
+	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [](const Ref<ResourceBundle>& bundle)
 	{
 		std::cout << "Loaded Phone.tga in background!" << std::endl;
 		//Backgroun Loaded
@@ -49,10 +49,10 @@ void GameAssign2::Init()
 	m_pCube = Mesh::CreateCube();
 	m_pCube.Get()->Construct();
 
-	m_pMesh = pBundle->GetMesh("teapot.obj");
+	m_pMesh = pBundle.Get()->GetMesh("teapot.obj");
 	m_pMesh.Get()->Construct();
 
-	m_pBunny = pBundle->GetMesh("bunny.obj");
+	m_pBunny = pBundle.Get()->GetMesh("bunny.obj");
 	m_pBunny.Get()->Construct();
 
 	//LoaderCOLLADA::ReadFromDisk("bunny.dae");

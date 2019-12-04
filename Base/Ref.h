@@ -53,7 +53,7 @@ public:
 		
 	};
 
-	inline T* Get()
+	inline T* Get() const
 	{
 		return (T*)m_RefCountable;
 	}

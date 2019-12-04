@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <functional>
 #include "SpinLock.h"
+#include "Ref.h"
 
 
 #define PACKAGE_PATH "package"
@@ -24,10 +25,10 @@ class ResourceManager
 public:
 	~ResourceManager();
 
-	ResourceBundle* LoadResources(std::initializer_list<size_t> guids);
-	ResourceBundle* LoadResources(std::initializer_list<char*> files);
+	Ref<ResourceBundle> LoadResources(std::initializer_list<size_t> guids);
+	Ref<ResourceBundle> LoadResources(std::initializer_list<char*> files);
 
-	void LoadResourcesInBackground(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback);
+	void LoadResourcesInBackground(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 
 	bool IsResourceLoaded(size_t guid);
 	bool IsResourceLoaded(const std::string& path);
@@ -44,18 +45,15 @@ private:
 
 	void LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid);
 	IResource* GetResource(size_t guid);
-	ResourceBundle* CreateResourceBundle(size_t* guids, size_t nrOfGuids);
-	void BackgroundLoading(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback);
+	void BackgroundLoading(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	void UnloadResource(IResource* resource);
 	void Update();
 
-	std::vector<ResourceBundle*> m_ResourceBundles;
 	std::unordered_map<size_t, IResource*> m_LoadedResources;
 	std::vector<size_t> m_ResourcesToBeLoaded;
 	std::vector<size_t> m_ResourcesToInitiate;
 	SpinLock m_LockLoading;
 	SpinLock m_LockLoaded;
 	SpinLock m_LockInitiate;
-	SpinLock m_LockResourceBundles;
 	bool m_IsCleanup;
 };

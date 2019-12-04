@@ -7,7 +7,7 @@
 #include "Ref.h"
 #include "IRefCountable.h"
 
-class ResourceBundle
+class ResourceBundle : public IRefCountable
 {
 public:
 	ResourceBundle(size_t* guids, size_t nrOfGuids);
