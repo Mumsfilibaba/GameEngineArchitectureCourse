@@ -4,9 +4,24 @@
 #include <cstdint>
 #include <vector>
 #include <SFML/System/Time.hpp>
+#include <glad/glad.h>
+#include <cassert>
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4505)		//Disable: "unreferenced local function has been removed"-warning
+#endif
+
+#if defined(_DEBUG)
+	//#define GL_DEBUG_ASSERT
+#endif
+
+bool GLHasErrors();
+void ClearErrors();
+
+#if defined(GL_DEBUG_ASSERT)
+	#define GL_CALL(x) ClearErrors(); x; assert(GLHasErrors() == false)
+#else
+	#define GL_CALL(x) x
 #endif
 
 constexpr uint64_t PRIME_MULTIPLE	= 16777619ull;

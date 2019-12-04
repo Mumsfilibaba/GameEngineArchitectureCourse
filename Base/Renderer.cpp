@@ -27,8 +27,8 @@ void Renderer::Init()
 	ThreadSafePrintf("Renderer: %s\nVersion: %s\nGLSL Version: %s\n", pRenderer, pVersion, pGLSLVersion);
 
 	//Setup opengl to be CCW
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CCW);
+	GL_CALL(glCullFace(GL_BACK));
+	GL_CALL(glFrontFace(GL_CCW));
 
 	//Create a standard texture for the shaders when not using a texture (Avoid branching)
 	sf::Uint8 pixels[4] = { 255, 255, 255, 255 };
@@ -41,7 +41,6 @@ void Renderer::Init()
 			
 			attribute vec3 a_Position;
 			attribute vec3 a_Normal;
-			attribute vec3 a_Tangent;
 			attribute vec2 a_TexCoord;
 
 			uniform mat4 u_Transform;
@@ -50,16 +49,16 @@ void Renderer::Init()
 
 			varying vec3 v_Position;
 			varying vec3 v_Normal;
-			varying vec3 v_Tangent;
 			varying vec2 v_TexCoord;
 
 			void main()
 			{
 				vec4 position = u_Transform * vec4(a_Position, 1.0);
 				v_Position	= position.xyz;
+
 				v_Normal	= normalize(a_Normal);
-				v_Tangent	= normalize(a_Tangent);
 				v_TexCoord	= a_TexCoord;
+
 				gl_Position = u_Projection * u_View * position;
 			}
 		)";
@@ -69,7 +68,6 @@ void Renderer::Init()
     
 			varying vec3 v_Position;
 			varying vec3 v_Normal;
-			varying vec3 v_Tangent;
 			varying vec2 v_TexCoord;
 
 			uniform vec3 u_CameraPos;
@@ -116,9 +114,9 @@ void Renderer::Init()
 void Renderer::Begin(const sf::Color& color, const Camera& camera)
 {
 	//Clear explicit since window.clear may not clear depthbuffer?
-	glClearColor(color.r, color.g, color.b, color.a);
-	glClearDepth(1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	GL_CALL(glClearColor(color.r, color.g, color.b, color.a));
+	GL_CALL(glClearDepth(1.0));
+	GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	//Set shader and camera
 	sf::Shader::bind(&m_MeshShader);
@@ -128,10 +126,10 @@ void Renderer::Begin(const sf::Color& color, const Camera& camera)
 	auto pos = camera.GetPosition();
 	m_MeshShader.setUniform("u_CameraPos", sf::Glsl::Vec3(pos.x, pos.y, pos.z));
 
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-    glEnable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
+	GL_CALL(glEnable(GL_DEPTH_TEST));
+	GL_CALL(glEnable(GL_CULL_FACE));
+    GL_CALL(glEnable(GL_TEXTURE_2D));
+    GL_CALL(glDisable(GL_BLEND));
 }
 
 
@@ -156,11 +154,11 @@ void Renderer::Submit(Mesh* pMesh, const sf::Color& color, const glm::mat4& tran
 void Renderer::Submit(Mesh* pMesh, const sf::Texture& texture, const sf::Color& color, const glm::mat4& transform)
 {
 	//Bind texture
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture.getNativeHandle());
+	GL_CALL(glActiveTexture(GL_TEXTURE0));
+	GL_CALL(glBindTexture(GL_TEXTURE_2D, texture.getNativeHandle()));
     
     auto uniformLocation = glGetUniformLocation(m_MeshShader.getNativeHandle(), "u_Texture");
-	glUniform1i(uniformLocation, 0);
+	GL_CALL(glUniform1i(uniformLocation, 0));
 
 	//Bind color and transform
 	m_MeshShader.setUniform("u_Color", sf::Glsl::Vec4(color));
@@ -173,9 +171,9 @@ void Renderer::Submit(Mesh* pMesh, const sf::Texture& texture, const sf::Color& 
 
 void Renderer::End()
 {
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
+	GL_CALL(glDisable(GL_CULL_FACE));
+	GL_CALL(glDisable(GL_DEPTH_TEST));
+	GL_CALL(glEnable(GL_BLEND));
 
 	sf::Shader::bind(nullptr);
 }

@@ -56,8 +56,7 @@ namespace std
 	{
 		size_t operator()(const Vertex& vertex) const
 		{
-			return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Normal) << 1)) >> 1) ^
-				(((hash<glm::vec3>()(vertex.Tangent) << 1) ^ (hash<glm::vec2>()(vertex.TexCoords) << 1)) >> 1);
+			return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Normal) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.TexCoords) << 1);
 		}
 	};
 }

@@ -11,7 +11,6 @@ struct Vertex
 public:
 	glm::vec3 Position;
 	glm::vec3 Normal;
-	glm::vec3 Tangent;
 	glm::vec2 TexCoords;
 public:
 	Vertex() {};
@@ -19,13 +18,12 @@ public:
 	{
 		Position = p;
 		Normal = n;
-		Tangent = t;
 		TexCoords = tc;
 	};
 
 	inline bool operator==(const Vertex& rs) const
 	{
-		return (Position == rs.Position) && (Normal == rs.Normal) && (Tangent == rs.Tangent) && (TexCoords == rs.TexCoords);
+		return (Position == rs.Position) && (Normal == rs.Normal) && (TexCoords == rs.TexCoords);
 	};
 };
 
