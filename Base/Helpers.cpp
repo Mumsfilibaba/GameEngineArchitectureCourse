@@ -362,3 +362,50 @@ uint32_t ReadTextfile(const std::string& filename, const char** const ppBuffer)
 	fclose(file);
 	return bytesRead;
 }
+
+
+bool GLHasErrors()
+{
+	int32_t lastError = GL_NO_ERROR;
+	int32_t error = GL_NO_ERROR;
+
+	while ((error = glGetError()) != GL_NO_ERROR)
+	{
+		ThreadSafePrintf("OpenGL Error - Code(%d) - ", error);
+
+		switch (error)
+		{
+		case GL_NO_ERROR:
+			ThreadSafePrintf("GL_NO_ERROR\n");
+			break;
+		case GL_INVALID_ENUM:
+			ThreadSafePrintf("GL_INVALID_ENUM\n");
+			break;
+		case GL_INVALID_VALUE:
+			ThreadSafePrintf("GL_INVALID_VALUE\n");
+			break;
+		case GL_INVALID_OPERATION:
+			ThreadSafePrintf("GL_INVALID_OPERATION\n");
+			break;
+		case GL_OUT_OF_MEMORY:
+			ThreadSafePrintf("GL_OUT_OF_MEMORY\n");
+			break;
+		case GL_STACK_UNDERFLOW:
+			ThreadSafePrintf("GL_STACK_UNDERFLOW\n");
+			break;
+		case GL_STACK_OVERFLOW:
+			ThreadSafePrintf("GL_STACK_OVERFLOW\n");
+			break;
+		}
+
+		lastError = error;
+	}
+
+	return (lastError != GL_NO_ERROR);
+}
+
+
+void ClearErrors()
+{
+	while (glGetError() != GL_NO_ERROR);
+}

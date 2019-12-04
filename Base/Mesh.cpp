@@ -58,17 +58,17 @@ void Mesh::Release()
 
 void Mesh::Construct()
 {
-	glGenBuffers(1, &m_VBO);
-	glGenBuffers(1, &m_IBO);
+	GL_CALL(glGenBuffers(1, &m_VBO));
+	GL_CALL(glGenBuffers(1, &m_IBO));
 
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBufferData(GL_ARRAY_BUFFER, m_VertexCount * sizeof(Vertex), m_pVertices, GL_STATIC_DRAW);
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, m_VBO));
+	GL_CALL(glBufferData(GL_ARRAY_BUFFER, m_VertexCount * sizeof(Vertex), m_pVertices, GL_STATIC_DRAW));
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_IndexCount * sizeof(uint32_t), m_pIndices, GL_STATIC_DRAW);
+	GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO));
+	GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_IndexCount * sizeof(uint32_t), m_pIndices, GL_STATIC_DRAW));
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
 
 	mm_free((void*)m_pVertices);
 	m_pVertices = nullptr;
@@ -80,41 +80,47 @@ void Mesh::Construct()
 void Mesh::Draw(const sf::Shader& shader)
 {
 	//Bind buffers
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, m_VBO));
+	GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO));
     
     //Get the native handle
     GLuint program = shader.getNativeHandle();
     
     //Position
     GLint vertexLoc = glGetAttribLocation(program, "a_Position");
-    glEnableVertexAttribArray(vertexLoc);
-    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-    //Normal
+	if (vertexLoc >= 0)
+	{
+		GL_CALL(glEnableVertexAttribArray(vertexLoc));
+		GL_CALL(glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0));
+	}
+    
+	//Normal
     GLint normalLoc = glGetAttribLocation(program, "a_Normal");
-    glEnableVertexAttribArray(normalLoc);
-    glVertexAttribPointer(normalLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
-    //Tangent
-    GLint tangentLoc = glGetAttribLocation(program, "a_Tangent");
-    glEnableVertexAttribArray(tangentLoc);
-    glVertexAttribPointer(tangentLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float)));
+	if (normalLoc >= 0)
+	{
+		GL_CALL(glEnableVertexAttribArray(normalLoc));
+		GL_CALL(glVertexAttribPointer(normalLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float))));
+	}
+
     //TexCoords
     GLint texCoordLoc = glGetAttribLocation(program, "a_TexCoord");
-    glEnableVertexAttribArray(texCoordLoc);
-    glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(9 * sizeof(float)));
+	if (texCoordLoc >= 0)
+	{
+		GL_CALL(glEnableVertexAttribArray(texCoordLoc));
+		GL_CALL(glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float))));
+	}
     
     //Draw
-	glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_INT, nullptr);
+	GL_CALL(glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_INT, nullptr));
 
 	//Unbind buffers
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
     
     //We must reset the GL-States that we use since it otherwise interfere with SFML
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-    glDisableVertexAttribArray(3);
+    GL_CALL(glDisableVertexAttribArray(vertexLoc));
+    GL_CALL(glDisableVertexAttribArray(normalLoc));
+    GL_CALL(glDisableVertexAttribArray(texCoordLoc));
 }
 
 
