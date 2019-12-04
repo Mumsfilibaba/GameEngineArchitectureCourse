@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "TextureManager.h"
 #include "Texture.h"
+#include "Ref.h"
 
 class GameAssign2 final : public Game
 {
@@ -16,8 +17,8 @@ public:
 	virtual void RenderImGui() override final;
 	virtual void Release() override final;
 private:
-	Texture* m_pTexture;
-	Mesh* m_pCube;
-	Mesh* m_pMesh;
-	Mesh* m_pBunny;
+	Ref<Texture> m_pTexture;
+	Ref<Mesh> m_pCube;
+	Ref<Mesh> m_pMesh;
+	Ref<Mesh> m_pBunny;
 };

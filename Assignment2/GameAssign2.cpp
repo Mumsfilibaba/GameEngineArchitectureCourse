@@ -9,8 +9,6 @@
 #include "Renderer.h"
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Ref.h"
-#include "IRefCountable.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
@@ -24,17 +22,13 @@ void Func()
 
 void GameAssign2::Init()
 {
-
-	//Ref<Sound> test = Ref<Sound>(new Sound());
-
-
 	ResourceManager& resourceManager = ResourceManager::Get();
 
     //create package
     resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "BMPTest_24.bmp" });
 
     //load resources
-    ResourceBundle* pBundle = resourceManager.LoadResources({"meme.tga", "BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
+    ResourceBundle* pBundle = resourceManager.LoadResources({"BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
 
 	m_pTexture = pBundle->GetTexture("BMPTest_24.bmp");
 
@@ -53,15 +47,15 @@ void GameAssign2::Init()
 
 	//Construct mesh
 	m_pCube = Mesh::CreateCube();
-	m_pCube->Construct();
+	m_pCube.Get()->Construct();
 
 	m_pMesh = pBundle->GetMesh("teapot.obj");
-	m_pMesh->Construct();
+	m_pMesh.Get()->Construct();
 
 	m_pBunny = pBundle->GetMesh("bunny.obj");
-	m_pBunny->Construct();
+	m_pBunny.Get()->Construct();
 
-	LoaderCOLLADA::ReadFromDisk("bunny.dae");
+	//LoaderCOLLADA::ReadFromDisk("bunny.dae");
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -70,9 +64,9 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	Renderer::Get().Submit(m_pBunny, sf::Color::Blue, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
-	Renderer::Get().Submit(m_pMesh, sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
-	Renderer::Get().Submit(m_pCube, m_pTexture, glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
+	Renderer::Get().Submit(m_pBunny.Get(), sf::Color::Blue, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+	Renderer::Get().Submit(m_pMesh.Get(), sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
+	Renderer::Get().Submit(m_pCube.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
 }
 
 void GameAssign2::RenderImGui()
@@ -81,22 +75,5 @@ void GameAssign2::RenderImGui()
 
 void GameAssign2::Release()
 {
-	//Note: We are using our own defined delete (Look in Mesh.h) - We are not using the OS defined
-	if (m_pCube)
-	{
-		delete m_pCube;
-		m_pCube = nullptr;
-	}
-
-	if (m_pMesh)
-	{
-		delete m_pMesh;
-		m_pMesh = nullptr;
-	}
-
-	if (m_pBunny)
-	{
-		delete m_pBunny;
-		m_pBunny = nullptr;
-	}
+	
 }

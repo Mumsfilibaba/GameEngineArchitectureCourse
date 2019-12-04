@@ -6,6 +6,7 @@
 #include <mutex>
 
 ResourceManager::ResourceManager()
+	: m_IsCleanup(false)
 {
 
 }
@@ -14,11 +15,12 @@ ResourceManager::~ResourceManager()
 {
 	{
 		std::scoped_lock<SpinLock> lock(m_LockLoaded);
+		m_IsCleanup = true;
 		for (auto resource : m_LoadedResources)
 		{
 			resource.second->InternalRelease();
-			delete resource.second;
 		}
+		m_LoadedResources.clear();
 	}
 
 	{
@@ -27,6 +29,7 @@ ResourceManager::~ResourceManager()
 		{
 			delete bundle;
 		}
+		m_ResourceBundles.clear();
 	}
 }
 
@@ -162,6 +165,22 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 	}
 
 	callback(CreateResourceBundle(guidArray, files.size()));
+}
+
+void ResourceManager::UnloadResource(IResource* resource)
+{
+	if (!m_IsCleanup)
+	{
+		std::scoped_lock<SpinLock> lock(m_LockLoaded);
+		for (auto it = m_LoadedResources.begin(); it != m_LoadedResources.end(); ++it)
+		{
+			if (it->second == resource)
+			{
+				m_LoadedResources.erase(it);
+				break;
+			}
+		}
+	}
 }
 
 void ResourceManager::Update()

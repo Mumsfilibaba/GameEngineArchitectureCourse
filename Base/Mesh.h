@@ -2,6 +2,7 @@
 #include "Helpers.h"
 #include "IResource.h"
 #include "MemoryManager.h"
+#include <SFML/Graphics/Shader.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
@@ -52,7 +53,7 @@ public:
 	virtual void Release() override;
 
 	void Construct();
-	void Draw();
+	void Draw(const sf::Shader& shader);
 
 	inline uint32_t GetIndexCount() const noexcept
 	{

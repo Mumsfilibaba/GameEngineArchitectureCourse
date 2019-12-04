@@ -18,6 +18,7 @@ class ResourceBundle;
 class ResourceManager
 {
 	friend class ResourceBundle;
+	friend class IResource;
 	friend class Game;
 
 public:
@@ -45,6 +46,7 @@ private:
 	IResource* GetResource(size_t guid);
 	ResourceBundle* CreateResourceBundle(size_t* guids, size_t nrOfGuids);
 	void BackgroundLoading(std::vector<char*> files, const std::function<void(ResourceBundle*)>& callback);
+	void UnloadResource(IResource* resource);
 	void Update();
 
 	std::vector<ResourceBundle*> m_ResourceBundles;
@@ -55,4 +57,5 @@ private:
 	SpinLock m_LockLoaded;
 	SpinLock m_LockInitiate;
 	SpinLock m_LockResourceBundles;
+	bool m_IsCleanup;
 };

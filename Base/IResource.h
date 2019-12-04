@@ -2,23 +2,19 @@
 
 #include "Helpers.h"
 #include "IRefCountable.h"
-// I need ref counting
 
 class IResource : public IRefCountable
 {
 	friend class ResourceManager;
 
 public:
-    virtual ~IResource() = default;
+	virtual ~IResource();
 
 protected:
 	virtual void Init() = 0;
 	virtual void Release() = 0;
 
 private:
-
-	size_t m_Guid;
-
 	inline void InternalInit(size_t guid)
 	{
 		m_Guid = guid;
@@ -28,11 +24,14 @@ private:
 #endif
 	};
 
-	inline void InternalRelease()
+	inline virtual void InternalRelease() override
 	{
 		Release();
 #ifdef _DEBUG
 		ThreadSafePrintf("Resource Released [%lu]\n", m_Guid);
 #endif
+		IRefCountable::InternalRelease();
 	};
+
+	size_t m_Guid;
 };

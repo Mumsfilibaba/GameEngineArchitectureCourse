@@ -14,32 +14,32 @@ ResourceBundle::~ResourceBundle()
 		delete[] m_Guids;
 }
 
-Texture* ResourceBundle::GetTexture(size_t guid)
+Ref<Texture> ResourceBundle::GetTexture(size_t guid)
 {
-	return (Texture*)ResourceManager::Get().GetResource(guid);
+	return Ref<Texture>((Texture*)ResourceManager::Get().GetResource(guid));
 }
 
-Texture* ResourceBundle::GetTexture(const std::string& file)
+Ref<Texture> ResourceBundle::GetTexture(const std::string& file)
 {
 	return GetTexture(HashString(file.c_str()));
 }
 
-Sound* ResourceBundle::GetSound(size_t guid)
+Ref<Sound> ResourceBundle::GetSound(size_t guid)
 {
-	return (Sound*)ResourceManager::Get().GetResource(guid);
+	return Ref<Sound>((Sound*)ResourceManager::Get().GetResource(guid));
 }
 
-Sound* ResourceBundle::GetSound(const std::string& file)
+Ref<Sound> ResourceBundle::GetSound(const std::string& file)
 {
 	return GetSound(HashString(file.c_str()));
 }
 
-Mesh* ResourceBundle::GetMesh(size_t guid)
+Ref<Mesh> ResourceBundle::GetMesh(size_t guid)
 {
-    return (Mesh*)ResourceManager::Get().GetResource(guid);
+    return Ref<Mesh>((Mesh*)ResourceManager::Get().GetResource(guid));
 }
 
-Mesh* ResourceBundle::GetMesh(const std::string& file)
+Ref<Mesh> ResourceBundle::GetMesh(const std::string& file)
 {
     return GetMesh(HashString(file.c_str()));
 }
