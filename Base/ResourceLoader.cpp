@@ -23,7 +23,7 @@ void ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader
 		ThreadSafePrintf("Error! A loader of the filetype hash [%lu] is already registered!\n", hash);
 		return;
 	}
-	ThreadSafePrintf("Registered [%s] Loader\n", hash);
+	ThreadSafePrintf("Registered [%lu] Loader\n", hash);
 	m_LoaderMap.insert({ hash, loader });
 }
 

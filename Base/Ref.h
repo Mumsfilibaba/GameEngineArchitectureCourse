@@ -23,6 +23,9 @@ public:
 		if (&other == this)
 			return *this;
 
+		if (m_RefCountable)
+			m_RefCountable->RemoveRef();
+
 		m_RefCountable = other.m_RefCountable;
 		if (m_RefCountable)
 			m_RefCountable->AddRef();
