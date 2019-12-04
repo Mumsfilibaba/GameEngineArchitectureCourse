@@ -23,7 +23,8 @@ void Renderer::Init()
 	//Make sure opengl works
 	const char* pRenderer = (const char*)glGetString(GL_RENDERER);
 	const char* pVersion = (const char*)glGetString(GL_VERSION);
-	ThreadSafePrintf("Renderer: %s\nVersion: %s\n", pRenderer, pVersion);
+    const char* pGLSLVersion = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+	ThreadSafePrintf("Renderer: %s\nVersion: %s\nGLSL Version: %s\n", pRenderer, pVersion, pGLSLVersion);
 
 	//Setup opengl to be CCW
 	glCullFace(GL_BACK);
@@ -166,7 +167,7 @@ void Renderer::Submit(Mesh* pMesh, const sf::Texture& texture, const sf::Color& 
 	m_MeshShader.setUniform("u_Transform", sf::Glsl::Mat4(glm::value_ptr(transform)));
 	
 	//Draw
-	pMesh->Draw();
+	pMesh->Draw(m_MeshShader);
 }
 
 

@@ -23,20 +23,28 @@ public:
 	void Execute(const std::function<void()>& task);
 	void Wait();
 
-	inline bool IsFinished()
+    
+	inline bool IsFinished() const
 	{
 		return m_CurrentFence <= m_FinishedFence.load();
 	}
+    
+    
+    inline bool ShouldRunWorker() const
+    {
+        return m_RunWorkers;
+    }
 private:
 	void Poll();
 	const bool Poptask(std::function<void()>& task);
 private:
-	std::queue<std::function<void()>> m_Tasks;
-	std::mutex m_Mutex;
-	std::condition_variable m_WakeCondition;
-	std::atomic<uint64_t> m_FinishedFence;
-	uint64_t m_CurrentFence;
-	SpinLock m_QueueLock;
+    bool m_RunWorkers;
+    std::queue<std::function<void()>> m_Tasks;
+    std::mutex m_Mutex;
+    std::condition_variable m_WakeCondition;
+    std::atomic<uint64_t> m_FinishedFence;
+    uint64_t m_CurrentFence;
+    SpinLock m_QueueLock;
 public:
 	inline static TaskManager& Get()
 	{

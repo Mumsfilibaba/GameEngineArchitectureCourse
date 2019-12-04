@@ -5,7 +5,7 @@
 
 void TaskManager::TaskThread()
 {
-	while (true)
+	while (TaskManager::Get().ShouldRunWorker())
 	{
 		std::function<void()> task;
 		if (TaskManager::Get().Poptask(task))
@@ -23,6 +23,8 @@ void TaskManager::TaskThread()
 			TaskManager::Get().m_WakeCondition.wait(lock);
 		}
 	}
+    
+    ThreadSafePrintf("Shutting down worker\n");
 }
 
 
@@ -37,6 +39,9 @@ TaskManager::TaskManager()
 	uint32_t numThreads = std::max(1U, std::thread::hardware_concurrency());
 	ThreadSafePrintf("TaskManager: Starting up %u threads\n", numThreads);
 
+    //Yes run all workers
+    m_RunWorkers = true;
+    
 	//Startup all the threads
 	for (uint32_t i = 0; i < numThreads; i++)
 	{
@@ -49,7 +54,16 @@ TaskManager::TaskManager()
 TaskManager::~TaskManager()
 {
 	ThreadSafePrintf("TaskManager: Waiting for tasks to finish\n");
+    
+    //No stop run all workers
+    m_RunWorkers = false;
+    
+    //Notify all workers to check
+    m_WakeCondition.notify_all();
+    
+    //Then we wait
 	Wait();
+    
 	ThreadSafePrintf("TaskManager: All tasks are finished\n");
 }
 

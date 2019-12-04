@@ -77,25 +77,33 @@ void Mesh::Construct()
 	m_pIndices = nullptr;
 }
 
-void Mesh::Draw()
+void Mesh::Draw(const sf::Shader& shader)
 {
 	//Bind buffers
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
     
-    //Position
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-    //Normal
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
-    //Tangent
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float)));
-    //TexCoords
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(9 * sizeof(float)));
+    //Get the native handle
+    GLuint program = shader.getNativeHandle();
     
+    //Position
+    GLint vertexLoc = glGetAttribLocation(program, "a_Position");
+    glEnableVertexAttribArray(vertexLoc);
+    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    //Normal
+    GLint normalLoc = glGetAttribLocation(program, "a_Normal");
+    glEnableVertexAttribArray(normalLoc);
+    glVertexAttribPointer(normalLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
+    //Tangent
+    GLint tangentLoc = glGetAttribLocation(program, "a_Tangent");
+    glEnableVertexAttribArray(tangentLoc);
+    glVertexAttribPointer(tangentLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float)));
+    //TexCoords
+    GLint texCoordLoc = glGetAttribLocation(program, "a_TexCoord");
+    glEnableVertexAttribArray(texCoordLoc);
+    glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(9 * sizeof(float)));
+    
+    //Draw
 	glDrawElements(GL_TRIANGLES, m_IndexCount, GL_UNSIGNED_INT, nullptr);
 
 	//Unbind buffers
