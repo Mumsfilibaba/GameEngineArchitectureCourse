@@ -44,4 +44,11 @@ Ref<Mesh> ResourceBundle::GetMesh(const std::string& file)
     return GetMesh(HashString(file.c_str()));
 }
 
-
+void ResourceBundle::Unload()
+{
+	ResourceManager& resourceManager = ResourceManager::Get();
+	for (int i = 0; i < m_NrOfGuids; i++)
+	{
+		resourceManager.UnloadResource(m_Guids[i]);
+	}
+}

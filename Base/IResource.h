@@ -8,6 +8,7 @@ class IResource : public IRefCountable
 	friend class ResourceManager;
 
 public:
+	IResource() : m_Guid(0) {};
 	virtual ~IResource();
 
 protected:
@@ -15,9 +16,8 @@ protected:
 	virtual void Release() = 0;
 
 private:
-	inline void InternalInit(size_t guid)
+	inline void InternalInit()
 	{
-		m_Guid = guid;
 		Init();
 #ifdef _DEBUG
 		ThreadSafePrintf("Resource Initiated [%lu]\n", m_Guid);
@@ -34,4 +34,5 @@ private:
 	};
 
 	size_t m_Guid;
+	size_t m_Size;
 };

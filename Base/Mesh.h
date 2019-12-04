@@ -50,7 +50,6 @@ public:
 	virtual void Init() override;
 	virtual void Release() override;
 
-	void Construct();
 	void Draw(const sf::Shader& shader);
 
 	inline uint32_t GetIndexCount() const noexcept

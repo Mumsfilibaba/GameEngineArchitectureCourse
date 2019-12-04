@@ -22,6 +22,8 @@ public:
 	Ref<Mesh> GetMesh(size_t guid);
 	Ref<Mesh> GetMesh(const std::string& file);
 
+	void Unload();
+
 private:
 	size_t* m_Guids;
 	size_t m_NrOfGuids;

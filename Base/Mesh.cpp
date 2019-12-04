@@ -49,15 +49,6 @@ Mesh::~Mesh()
 
 void Mesh::Init()
 {
-
-}
-
-void Mesh::Release()
-{
-}
-
-void Mesh::Construct()
-{
 	GL_CALL(glGenBuffers(1, &m_VBO));
 	GL_CALL(glGenBuffers(1, &m_IBO));
 
@@ -75,6 +66,11 @@ void Mesh::Construct()
 
 	mm_free((void*)m_pIndices);
 	m_pIndices = nullptr;
+}
+
+void Mesh::Release()
+{
+	
 }
 
 void Mesh::Draw(const sf::Shader& shader)

@@ -33,6 +33,11 @@ public:
 		return *this;
 	}
 
+	operator bool()
+	{
+		return m_RefCountable;
+	}
+
 protected:
 	IRefCountable* m_RefCountable;
 };

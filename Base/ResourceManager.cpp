@@ -6,32 +6,42 @@
 #include <mutex>
 
 ResourceManager::ResourceManager()
-	: m_IsCleanup(false)
+	: m_IsCleanup(false),
+	m_MaxMemory(4096 * 2000),
+	m_UsedMemory(0)
 {
 
 }
 
 ResourceManager::~ResourceManager()
 {
-	{
-		std::scoped_lock<SpinLock> lock(m_LockLoaded);
-		m_IsCleanup = true;
-		for (auto resource : m_LoadedResources)
-		{
-			resource.second->InternalRelease();
-		}
-		m_LoadedResources.clear();
-	}
+	ResourceManager::UnloadUnusedResources();
 }
 
-void ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid)
+bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid)
 {
 	size_t size = archiver.ReadRequiredSizeForPackageData(guid);
+
+	if (m_UsedMemory + size > m_MaxMemory)
+	{
+		ThreadSafePrintf("No more memory available, will try to release unused resources!\n");
+		UnloadUnusedResources();
+		if (m_UsedMemory + size > m_MaxMemory)
+		{
+			ThreadSafePrintf("Warning No more memory available for [%lu]!\n", guid);
+			return false;
+		}
+	}
+
+	m_UsedMemory += size;
+
 	void* data = malloc(size);
 	size_t typeHash;
 	archiver.ReadPackageData(guid, typeHash, data, size);
 
 	IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
+	resource->m_Guid = guid;
+	resource->m_Size = size;
 	free(data);
 
 	{
@@ -43,6 +53,7 @@ void ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 		std::scoped_lock<SpinLock> lock(m_LockInitiate);
 		m_ResourcesToInitiate.push_back(guid);
 	}
+	return true;
 }
 
 IResource* ResourceManager::GetResource(size_t guid)
@@ -50,7 +61,7 @@ IResource* ResourceManager::GetResource(size_t guid)
 	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
 	if (iterator == m_LoadedResources.end())
 	{
-		ThreadSafePrintf("Resource not found!\n");
+		ThreadSafePrintf("Resource not found! [%lu]\n", guid);
 		return nullptr;
 	}
 
@@ -135,7 +146,12 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 	//Load resources
 	for (size_t guid : resourcesToLoad)
 	{
-		LoadResource(resourceLoader, archiver, guid);
+		if (!LoadResource(resourceLoader, archiver, guid))
+		{
+			delete[] guidArray;
+			return;
+		}
+			
 		std::scoped_lock<SpinLock> lock(m_LockLoading);
 		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), guid));
 	}
@@ -160,10 +176,36 @@ void ResourceManager::UnloadResource(IResource* resource)
 			if (it->second == resource)
 			{
 				m_LoadedResources.erase(it);
+				m_UsedMemory -= resource->m_Size;
 				break;
 			}
 		}
 	}
+}
+
+void ResourceManager::UnloadUnusedResources()
+{
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
+	std::vector<IResource*> resourcesToUnload;
+	m_IsCleanup = true;
+	bool exit = false;
+	while (!exit)
+	{
+		exit = true;
+		for (auto it = m_LoadedResources.begin(); it != m_LoadedResources.end(); it++)
+		{
+			IResource* res = it->second;
+			if (res->GetRefCount() == 0)
+			{
+				res->InternalRelease();
+				m_LoadedResources.erase(it);
+				m_UsedMemory -= res->m_Size;
+				exit = false;
+				break;
+			}
+		}
+	}
+	m_IsCleanup = false;
 }
 
 void ResourceManager::Update()
@@ -174,7 +216,8 @@ void ResourceManager::Update()
 		for (size_t guid : m_ResourcesToInitiate)
 		{
 			IResource* resource = GetResource(guid);
-			resource->InternalInit(guid);
+			if(resource)
+				resource->InternalInit();
 		}
 		m_ResourcesToInitiate.clear();
 	}
@@ -198,6 +241,28 @@ bool ResourceManager::IsResourceBeingLoaded(size_t guid)
 bool ResourceManager::IsResourceBeingLoaded(const std::string& path)
 {
 	return IsResourceBeingLoaded(HashString(path.c_str()));
+}
+
+bool ResourceManager::UnloadResource(size_t guid)
+{
+	IResource* resource = GetResource(guid);
+	if (!resource)
+		return true;
+
+	if (resource->GetRefCount() == 0)
+	{
+		std::scoped_lock<SpinLock> lock(m_LockLoaded);
+		for (auto it = m_LoadedResources.begin(); it != m_LoadedResources.end(); ++it)
+		{
+			if (it->second == resource)
+			{
+				resource->InternalRelease();
+				m_LoadedResources.erase(it);
+				m_UsedMemory -= resource->m_Size;
+				break;
+			}
+		}
+	}
 }
 
 void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)

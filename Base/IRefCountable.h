@@ -8,6 +8,11 @@ class IRefCountable
 public:
 	virtual ~IRefCountable() = default;
 
+	inline int GetRefCount() const
+	{
+		return m_Refrences;
+	}
+
 protected:
 	inline IRefCountable() : m_Refrences(0) {};
 

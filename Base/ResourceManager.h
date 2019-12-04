@@ -36,6 +36,8 @@ public:
 	bool IsResourceBeingLoaded(size_t guid);
 	bool IsResourceBeingLoaded(const std::string& path);
 
+	bool UnloadResource(size_t guid);
+
 	void CreateResourcePackage(std::initializer_list<char*> files);
 
 	static ResourceManager& Get();
@@ -43,10 +45,11 @@ public:
 private:
 	ResourceManager();
 
-	void LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid);
+	bool LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid);
 	IResource* GetResource(size_t guid);
 	void BackgroundLoading(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	void UnloadResource(IResource* resource);
+	void UnloadUnusedResources();
 	void Update();
 
 	std::unordered_map<size_t, IResource*> m_LoadedResources;
@@ -56,4 +59,6 @@ private:
 	SpinLock m_LockLoaded;
 	SpinLock m_LockInitiate;
 	bool m_IsCleanup;
+	size_t m_MaxMemory;
+	std::atomic_uint64_t m_UsedMemory;
 };

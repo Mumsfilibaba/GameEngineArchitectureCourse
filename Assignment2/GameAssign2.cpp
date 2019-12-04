@@ -30,10 +30,6 @@ void GameAssign2::Init()
     //load resources
 	Ref<ResourceBundle> pBundle = resourceManager.LoadResources({"BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
 	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
-	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
-	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
-	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
-	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj" });
 
 	m_pTexture = pBundle.Get()->GetTexture("BMPTest_24.bmp");
 
@@ -51,14 +47,11 @@ void GameAssign2::Init()
 	});
 
 	//Construct mesh
-	m_pCube = Mesh::CreateCube();
-	m_pCube.Get()->Construct();
+	/*m_pCube = Mesh::CreateCube();
+	m_pCube.Get()->Construct();*/
 
 	m_pMesh = pBundle.Get()->GetMesh("teapot.obj");
-	m_pMesh.Get()->Construct();
-
 	m_pBunny = pBundle.Get()->GetMesh("bunny.obj");
-	m_pBunny.Get()->Construct();
 
 	//LoaderCOLLADA::ReadFromDisk("bunny.dae");
 }
@@ -69,9 +62,13 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
-	Renderer::Get().Submit(m_pBunny.Get(), sf::Color::Blue, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
-	Renderer::Get().Submit(m_pMesh.Get(), sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
-	Renderer::Get().Submit(m_pCube.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
+	if (m_pBunny)
+		Renderer::Get().Submit(m_pBunny.Get(), sf::Color::Blue, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+
+	if (m_pMesh)
+		Renderer::Get().Submit(m_pMesh.Get(), sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
+
+	//Renderer::Get().Submit(m_pCube.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));*/
 }
 
 void GameAssign2::RenderImGui()
