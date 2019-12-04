@@ -121,7 +121,9 @@ void Renderer::Begin(const sf::Color& color, const Camera& camera)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//Set shader and camera
-	sf::Shader::bind(&m_MeshShader);
+    GLint program = m_MeshShader.getNativeHandle();
+    glUseProgram(program);
+    
 	m_MeshShader.setUniform("u_Projection", sf::Glsl::Mat4(glm::value_ptr(camera.GetProjection())));
 	m_MeshShader.setUniform("u_View", sf::Glsl::Mat4(glm::value_ptr(camera.GetView())));
 	
@@ -177,5 +179,5 @@ void Renderer::End()
 	glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
 
-	sf::Shader::bind(nullptr);
+    glUseProgram(0);
 }
