@@ -12,7 +12,7 @@
 #endif
 
 #if defined(_DEBUG)
-	#define GL_DEBUG_ASSERT
+	//#define GL_DEBUG_ASSERT
 #endif
 
 bool GLHasErrors();
