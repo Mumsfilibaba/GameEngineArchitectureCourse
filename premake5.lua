@@ -11,12 +11,12 @@ workspace "Game Engine Architecture"
     configurations
     {
         "Debug",
-        "Release"
+        "Release",
 	}
 	defines 
 	{ 
 		"SFML_STATIC",
-		"_CRT_SECURE_NO_WARNINGS"
+		"_CRT_SECURE_NO_WARNINGS",
 	}
 
 	-- Defines for when using visual studio
@@ -33,7 +33,7 @@ workspace "Game Engine Architecture"
         defines
         {
 			"DEBUG",
-			"_CRTDBG_MAP_ALLOC"
+			"_CRTDBG_MAP_ALLOC",
 		}
 
 	-- Setup configurations for Release for all projects
@@ -53,7 +53,8 @@ workspace "Game Engine Architecture"
 			"/usr/local/include",
 			"Dependencies/ImGui",
 			"Dependencies/glm",
-			"Dependencies/Glad/Include"
+			"Dependencies/Glad/Include",
+			"Dependencies/tinyxml2/",
 		}
 		libdirs
 		{
@@ -68,12 +69,13 @@ workspace "Game Engine Architecture"
 			"Dependencies/zlib/include",
 			"Dependencies/ImGui",
 			"Dependencies/glm",
-			"Dependencies/Glad/Include"
+			"Dependencies/Glad/Include",
+			"Dependencies/tinyxml2/",
 		}
 		libdirs
 		{
 			"Dependencies/SFML-2.5.1/lib",
-			"Dependencies/zlib/lib"
+			"Dependencies/zlib/lib",
 		}
 
 	-- Setup Assignment 1
@@ -93,7 +95,7 @@ workspace "Game Engine Architecture"
 		links
 		{
 			"ImGui",
-			"Glad"
+			"Glad",
 		}
 		includedirs
 		{
@@ -210,7 +212,8 @@ workspace "Game Engine Architecture"
 		links
 		{
 			"ImGui",
-			"Glad"
+			"Glad",
+			"tinyxml2",
 		}
 		includedirs
 		{
@@ -225,4 +228,5 @@ workspace "Game Engine Architecture"
 	group "Dependencies"
 		include "Dependencies/ImGui"
 		include "Dependencies/Glad"
+		include "Dependencies/tinyxml2"
 	group ""

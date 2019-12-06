@@ -157,7 +157,7 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 	}
 
 	//Wait to make sure all resources are loaded, in case the resource is loaded from another thread
-	for (int i = 0; i < files.size(); i++)
+	for (size_t i = 0; i < files.size(); i++)
 	{
 		size_t guid = guidArray[i];
 		while (!IsResourceLoaded(guid)){}

@@ -46,14 +46,12 @@ void GameAssign2::Init()
 		//Backgroun Loaded
 	});
 
-	//Construct mesh
-	/*m_pCube = Mesh::CreateCube();
-	m_pCube.Get()->Construct();*/
-
-	m_pMesh = pBundle.Get()->GetMesh("teapot.obj");
+    
+	//Construct meshes
+    m_pMesh = pBundle.Get()->GetMesh("teapot.obj");
 	m_pBunny = pBundle.Get()->GetMesh("bunny.obj");
 
-	//LoaderCOLLADA::ReadFromDisk("bunny.dae");
+	LoaderCOLLADA::ReadFromDisk("bunny.dae");
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)

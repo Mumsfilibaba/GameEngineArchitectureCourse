@@ -1,4 +1,7 @@
 #include "LoaderCOLLADA.h"
+#include <tinyxml2.h>
+
+#define DEBUG_PRINTS 1
 
 IResource* LoaderCOLLADA::LoadFromDisk(const std::string& file)
 {
@@ -18,33 +21,6 @@ size_t LoaderCOLLADA::WriteToBuffer(const std::string& file, void* buffer)
 }
 
 
-
-#define COLLADA_ERROR_SUCCESS				0
-#define COLLADA_ERROR_CORRUPT_FILE			1
-#define COLLADA_ERROR_EMPTY_FILE			2
-#define COLLADA_ERROR_INDICES_OUT_OF_BOUNDS 3
-
-inline void PrintError(int32_t error)
-{
-	switch (error)
-	{
-	case COLLADA_ERROR_EMPTY_FILE:
-		ThreadSafePrintf("ERROR LOADING OBJ: File is empty\n");
-		break;
-	case COLLADA_ERROR_CORRUPT_FILE:
-		ThreadSafePrintf("ERROR LOADING OBJ: Corrupt file\n");
-		break;
-	case COLLADA_ERROR_INDICES_OUT_OF_BOUNDS:
-		ThreadSafePrintf("ERROR LOADING OBJ: Indices out of bounds\n");
-		break;
-	case COLLADA_ERROR_SUCCESS:
-	default:
-		ThreadSafePrintf("LOADED OBJ SUCCESSFULLY\n");
-		break;
-	}
-}
-
-
 template<typename T>
 struct TArray
 {
@@ -52,199 +28,205 @@ struct TArray
 	size_t Count;
 	std::vector<T> Data;
 };
-using FloatArray = TArray<float>;
+using COLLADAFloatArray = TArray<float>;
 
 
-struct Geometry
+struct COLLADAAccessor
+{
+    std::string Source;
+    int32_t Count;
+    int32_t Stride;
+};
+
+
+struct COLLADATechnique
+{
+    COLLADAAccessor Accessor;
+};
+
+
+struct COLLADASource
+{
+    std::string ID;
+    COLLADAFloatArray FloatArray;
+    COLLADATechnique Technique;
+};
+
+
+struct COLLADAMesh
+{
+    std::vector<COLLADASource> Sources;
+};
+
+
+struct COLLADAGeometry
 {
 	std::string ID;
 	std::string Name;
+    std::vector<COLLADAMesh> Meshes;
 };
 
 
-struct LibraryGeometry
+struct COLLADALibraryGeometry
 {
-	std::vector<Geometry> Geometries;
+	std::vector<COLLADAGeometry> Geometries;
 };
 
 
-struct TagData
+inline COLLADAAccessor GetAccessor(tinyxml2::XMLElement* pTechnique)
 {
-	std::string ID;
-	std::unordered_map<std::string, std::string> Data;
-};
+    using namespace tinyxml2;
+    
+    COLLADAAccessor accessor = {};
+
+    //Get technique node
+    XMLElement* pAccessor = pTechnique->FirstChildElement("accessor");
+    if (pAccessor != nullptr)
+    {
+        //Get source id
+        const char* Source = pAccessor->Attribute("source");
+        if (Source != nullptr)
+            accessor.Source = Source;
+        
+        //Get count
+        XMLError result = pAccessor->QueryIntAttribute("count", &accessor.Count);
+        assert(result == XML_SUCCESS);
+        //Get stride
+        result = pAccessor->QueryIntAttribute("stride", &accessor.Stride);
+        assert(result == XML_SUCCESS);
+    }
+    
+    return accessor;
+}
 
 
-enum ETag : uint32_t
+inline COLLADATechnique GetTechnique(tinyxml2::XMLElement* pSource)
 {
-	TAG_UNKNOWN		= 0,
-	TAG_FLOAT_ARRAY = 1
-};
+    using namespace tinyxml2;
+    
+    COLLADATechnique technique = {};
+
+    //Get technique node
+    XMLElement* pTechnique = pSource->FirstChildElement("technique_common");
+    if (pTechnique != nullptr)
+        technique.Accessor = GetAccessor(pTechnique);
+    
+    return technique;
+}
 
 
-bool IsTagTag(const char** iter, const char* tagName);
-TagData SearchTag(const char** buffer, const char* tagName);
-const char* GetEndOfString(const char** iter);
+inline void GetSources(COLLADAMesh& meshes, tinyxml2::XMLElement* pMesh)
+{
+    using namespace tinyxml2;
+    
+    XMLElement* pSource = pMesh->FirstChildElement("source");
+    while (pSource != nullptr)
+    {
+        COLLADASource source = {};
+        
+        //Get attributes
+        const char* ID = pSource->Attribute("id");
+        if (ID != nullptr)
+            source.ID = ID;
+        
+        //Get techniques
+        source.Technique = GetTechnique(pSource);
+        
+        meshes.Sources.push_back(source);
+        pSource = pSource->NextSiblingElement("source");
+    }
+}
+
+
+inline void GetMeshes(COLLADAGeometry& geometry, tinyxml2::XMLElement* pGeometry)
+{
+    using namespace tinyxml2;
+    
+    XMLElement* pMesh = pGeometry->FirstChildElement("mesh");
+    while (pMesh != nullptr)
+    {
+        COLLADAMesh mesh = {};
+        
+        //Get all sources inside mesh
+        GetSources(mesh, pMesh);
+        
+        geometry.Meshes.push_back(mesh);
+        pMesh = pMesh->NextSiblingElement("mesh");
+    }
+}
+
+
+inline void GetGeometries(COLLADALibraryGeometry& libraryGeometries, tinyxml2::XMLElement* pLibrary)
+{
+    using namespace tinyxml2;
+    
+    XMLElement* pGeometry = pLibrary->FirstChildElement("geometry");
+    while (pGeometry != nullptr)
+    {
+        COLLADAGeometry geometry = {};
+        
+        //Get attributes
+        const char* ID = pGeometry->Attribute("id");
+        if (ID != nullptr)
+        {
+            geometry.ID = ID;
+        }
+        const char* name = pGeometry->Attribute("name");
+        if (name != nullptr)
+        {
+            geometry.Name = name;
+        }
+        
+        //Find all meshes
+        GetMeshes(geometry, pGeometry);
+        
+        //Add geometry
+        libraryGeometries.Geometries.push_back(geometry);
+        pGeometry = pGeometry->NextSiblingElement("geometry");
+    }
+}
 
 std::vector<MeshData> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
 {
-	//Read in the full textfile into a buffer
-	const char* buffer = nullptr;
-	uint32_t bytes = ReadTextfile(filepath, &buffer);
-	if (bytes == 0)
-	{
-		ThreadSafePrintf("Failed to load '%s'\n", filepath.c_str());
-		return std::vector<MeshData>();
-	}
-	
-	const char* iter = buffer;
-	TagData libraryGeometries	= SearchTag(&iter, "library_geometries");
-	TagData geometries			= SearchTag(&iter, "geometry");
-
-	free((void*)buffer);
+    using namespace tinyxml2;
+    
+    //Read in document
+    XMLDocument doc = {};
+    XMLError result = doc.LoadFile(filepath.c_str());
+    if (result != XML_SUCCESS)
+    {
+        ThreadSafePrintf("Failed to load file '%s'\n", filepath.c_str());
+        return std::vector<MeshData>();
+    }
+    else
+    {
+        ThreadSafePrintf("Loaded file '%s'\n", filepath.c_str());
+    }
+    
+    //Get the first node
+    XMLElement* pFirst = doc.FirstChildElement();
+    if (pFirst == nullptr)
+    {
+        ThreadSafePrintf("File '%s' is empty\n", filepath.c_str());
+        return std::vector<MeshData>();
+    }
+    
+    //Get library_geometries
+    XMLElement* pLibrary = pFirst->FirstChildElement("library_geometries");
+    if (pLibrary == nullptr)
+    {
+        ThreadSafePrintf("File '%s' does not contain any library_geometries\n", filepath.c_str());
+        return std::vector<MeshData>();
+    }
+    
+    //Get all geometry
+    COLLADALibraryGeometry libraryGeometries = {};
+    GetGeometries(libraryGeometries, pLibrary);
+    
+    //Debug print
+#if DEBUG_PRINTS
+    for (auto geometry : libraryGeometries.Geometries)
+        ThreadSafePrintf("geometry id=\"%s\" name=\"%s\"\n", geometry.ID.c_str(), geometry.Name.c_str());
+#endif
 	return std::vector<MeshData>();
-}
-
-
-inline TagData SearchTag(const char** buffer, const char* tagName)
-{
-	TagData data;
-
-	//std::vector<FloatArray> positions;
-	const char* iter = (*buffer);
-	while (*iter != '\0')
-	{
-		if (*iter == '<')
-		{
-			iter++;
-			if (*(iter) == '/')
-			{
-				continue;
-			}
-
-			//Check if this is correct tag
-			if (!IsTagTag(&iter, tagName))
-			{
-				continue;
-			}
-			
-			ThreadSafePrintf("Found %s\n", tagName);
-
-			//Did we reach endtag
-			data.ID = tagName;
-			if ((*iter) == '>')
-				break;
-
-			//Find all values for this tag
-			//while (*iter >= 'a' && *iter <= 'z')
-				//iter++;
-
-			/*if (tag == TAG_FLOAT_ARRAY)
-			{
-				if (*iter != ' ')
-				{
-					PrintError(COLLADA_ERROR_CORRUPT_FILE);
-
-					free((void*)buffer);
-					return;
-				}
-
-				//Parse ID 
-				iter++;
-				int result = strncmp(iter, "id=\"", 4);
-				if (result == 0)
-				{
-					iter += 4;
-				}
-				else
-				{
-					PrintError(COLLADA_ERROR_CORRUPT_FILE);
-
-					free((void*)buffer);
-					return;
-				}
-
-				FloatArray arr;
-				const char* idBegin = iter;
-				const char* idEnd = GetEndOfString(&iter);
-				arr.ID = std::string(idBegin, size_t(idEnd - idBegin));
-
-				//Parse count
-				iter++;
-				if (*iter != ' ')
-				{
-					PrintError(COLLADA_ERROR_CORRUPT_FILE);
-
-					free((void*)buffer);
-					return;
-				}
-
-				iter++;
-				result = strncmp(iter, "count=\"", 7);
-				if (result == 0)
-				{
-					iter += 7;
-				}
-				else
-				{
-					PrintError(COLLADA_ERROR_CORRUPT_FILE);
-
-					free((void*)buffer);
-					return;
-				}
-
-				int32_t length = 0;
-				arr.Count = FastAtoi(iter, length);
-
-				//Parse data
-				iter += length + 2;
-				for (uint32_t i = 0; i < arr.Count; i++)
-				{
-					float d = (float)FastAtof(iter, length);
-					if (length == 0)
-					{
-						PrintError(COLLADA_ERROR_CORRUPT_FILE);
-
-						free((void*)buffer);
-						return;
-					}
-
-					iter += length + 1;
-					arr.Data.emplace_back(d);
-				}
-
-				positions.emplace_back(arr);
-			}*/
-		}
-
-		iter++;
-	}
-
-	//Return the new iterator
-	(*buffer) = iter;
-	return data;
-}
-
-
-inline bool IsTagTag(const char** iter, const char* tagName)
-{
-	//Check if the tag is correct
-	int length = strlen(tagName);
-	int result = strncmp(tagName, *iter, length);
-	if (result == 0)
-	{
-		(*iter) += length;
-		return true;
-	}
-
-	return false;
-}
-
-
-inline const char* GetEndOfString(const char** iter)
-{	
-	while ((**iter) != '\"')
-		(*iter)++;
-
-	return *iter;
 }
