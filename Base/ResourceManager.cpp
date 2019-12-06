@@ -263,6 +263,8 @@ bool ResourceManager::UnloadResource(size_t guid)
 			}
 		}
 	}
+    
+    return false;
 }
 
 void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)

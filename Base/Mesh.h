@@ -14,7 +14,7 @@ public:
 	glm::vec2 TexCoords;
 public:
 	Vertex() {};
-	Vertex(const glm::vec3& p, const glm::vec3& n, const glm::vec3& t, const glm::vec2& tc)
+	Vertex(const glm::vec3& p, const glm::vec3& n, const glm::vec2& tc)
 	{
 		Position = p;
 		Normal = n;

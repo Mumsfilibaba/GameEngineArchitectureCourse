@@ -36,7 +36,7 @@ public:
     }
 private:
 	void Poll();
-	const bool Poptask(std::function<void()>& task);
+	bool Poptask(std::function<void()>& task);
 private:
     bool m_RunWorkers;
     std::queue<std::function<void()>> m_Tasks;

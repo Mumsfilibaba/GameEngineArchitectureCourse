@@ -29,12 +29,13 @@ void TaskManager::TaskThread()
 
 
 TaskManager::TaskManager()
-	: m_CurrentFence(0),
-	m_FinishedFence(0),
-	m_Mutex(),
-	m_QueueLock(),
-	m_Tasks(),
-	m_WakeCondition()
+    : m_RunWorkers(true),
+    m_Tasks(),
+    m_Mutex(),
+    m_WakeCondition(),
+    m_FinishedFence(0),
+    m_CurrentFence(0),
+    m_QueueLock()
 {
 	uint32_t numThreads = std::max(1U, std::thread::hardware_concurrency());
 	ThreadSafePrintf("TaskManager: Starting up %u threads\n", numThreads);
@@ -95,7 +96,7 @@ void TaskManager::Poll()
 }
 
 
-const bool TaskManager::Poptask(std::function<void()>& task)
+bool TaskManager::Poptask(std::function<void()>& task)
 {
 	std::lock_guard<SpinLock> lock(m_QueueLock);
 	if (!m_Tasks.empty())

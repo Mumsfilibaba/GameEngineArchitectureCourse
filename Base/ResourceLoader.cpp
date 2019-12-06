@@ -32,7 +32,7 @@ IResource* ResourceLoader::LoadResourceFromDisk(const std::string& file)
 	std::size_t index = file.find_last_of(".");
 	if (index == std::string::npos)
 	{
-		ThreadSafePrintf("Error! Tried to load a file without a type [%s]!\n", file);
+		ThreadSafePrintf("Error! Tried to load a file without a type [%s]!\n", file.c_str());
 		return nullptr;
 	}
 	std::string fileType = file.substr(index);
@@ -58,7 +58,7 @@ size_t ResourceLoader::WriteResourceToBuffer(const std::string& file, void* buff
 	std::size_t index = file.find_last_of(".");
 	if (index == std::string::npos)
 	{
-		ThreadSafePrintf("Error! Tried to load a file without a type [%s]!\n", file);
+		ThreadSafePrintf("Error! Tried to load a file without a type [%s]!\n", file.c_str());
 		return size_t(-1);
 	}
 	std::string fileType = file.substr(index);

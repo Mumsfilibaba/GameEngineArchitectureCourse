@@ -5,8 +5,8 @@ std::atomic_size_t StackAllocator::s_TotalAllocated = 0;
 std::atomic_size_t StackAllocator::s_TotalUsed = 0;
 
 StackAllocator::StackAllocator(size_t size)
-	: m_Size(size),
-	m_Used(0)
+	: m_Used(0),
+    m_Size(size)
 {
 	m_pStart = mm_allocate(size, 1, "Stack Allocation Chunk");
 	m_pEnd = (void*)((size_t)m_pStart + size);

@@ -111,7 +111,7 @@ sf::Texture* TextureManager::LoadTGAFile(const char* fileName)
 
 }
 
-sf::Texture * TextureManager::LoadTGAFile(void* pData)
+sf::Texture* TextureManager::LoadTGAFile(void* pData)
 {
 	TGAFile* pTGAfile = new TGAFile();
 
