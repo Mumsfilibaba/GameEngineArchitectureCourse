@@ -25,10 +25,42 @@ template<typename T>
 struct TArray
 {
 	std::string ID;
-	size_t Count;
+	int32_t Count;
 	std::vector<T> Data;
 };
 using COLLADAFloatArray = TArray<float>;
+using P = TArray<float>;
+
+struct COLLADAInput
+{
+    std::string Semantic;
+    std::string Source;
+    int32_t Offset;
+    int32_t Set;
+};
+
+
+struct COLLADAVertices
+{
+    std::string ID;
+    std::vector<COLLADAInput> Inputs;
+};
+
+
+struct COLLADATriangles
+{
+    std::string Material;
+    std::vector<COLLADAInput> Inputs;
+    int32_t Count;
+    P Indices;
+};
+
+
+struct COLLADAParam
+{
+    std::string Name;
+    std::string Type;
+};
 
 
 struct COLLADAAccessor
@@ -36,6 +68,7 @@ struct COLLADAAccessor
     std::string Source;
     int32_t Count;
     int32_t Stride;
+    std::vector<COLLADAParam> Params;
 };
 
 
@@ -56,6 +89,8 @@ struct COLLADASource
 struct COLLADAMesh
 {
     std::vector<COLLADASource> Sources;
+    std::vector<COLLADAVertices> Vertices;
+    std::vector<COLLADATriangles> Triangles;
 };
 
 
@@ -71,6 +106,145 @@ struct COLLADALibraryGeometry
 {
 	std::vector<COLLADAGeometry> Geometries;
 };
+
+
+inline P GetP(COLLADATriangles& triangles, tinyxml2::XMLElement* pParent)
+{
+    using namespace tinyxml2;
+    
+    P p = {};
+    XMLElement* pP = pParent->FirstChildElement("p");
+    if (pP != nullptr)
+    {
+        //Get data (tricount * 3 * input.size) - number of triangles * vertices per triangle * inputs per vertex
+        p.Data.resize(triangles.Count * 3 * triangles.Inputs.size());
+        const char* pText = pP->GetText();
+        
+        //Parse the float data
+        int32_t length = 0;
+        int32_t count = 0;
+        const char* pIter = pText;
+        do
+        {
+            p.Data[count] = FastAtoi(pIter, length);
+            pIter += length;
+            if (*pIter == ' ')
+                pIter++;
+            count++;
+        } while (length > 0);
+        
+        assert((count-1) == (int32_t)p.Data.size());
+    }
+    
+    return p;
+}
+
+
+inline void GetInputs(std::vector<COLLADAInput>& inputs, tinyxml2::XMLElement* pParent)
+{
+    using namespace tinyxml2;
+    
+    XMLElement* pInput = pParent->FirstChildElement("input");
+    while (pInput != nullptr)
+    {
+        COLLADAInput input = {};
+        
+        //Get semantic
+        const char* semantic = pInput->Attribute("semantic");
+        if (semantic != nullptr)
+            input.Semantic = semantic;
+        //Get source
+        const char* source = pInput->Attribute("source");
+        if (source != nullptr)
+            input.Source = source;
+        //Get offset and set
+        XMLError result = pInput->QueryIntAttribute("offset", &input.Offset);
+        result = pInput->QueryIntAttribute("set", &input.Set);
+        
+        //Go to next
+        inputs.push_back(input);
+        pInput = pInput->NextSiblingElement("input");
+    }
+}
+
+
+inline void GetVertices(std::vector<COLLADAVertices>& vertices, tinyxml2::XMLElement* pParent)
+{
+    using namespace tinyxml2;
+    
+    XMLElement* pVertices = pParent->FirstChildElement("vertices");
+    while (pVertices != nullptr)
+    {
+        COLLADAVertices verts = {};
+        
+        //Get ID
+        const char* ID = pVertices->Attribute("id");
+        if (ID != nullptr)
+            verts.ID = ID;
+        //Get source
+        GetInputs(verts.Inputs, pVertices);
+        
+        //Go to next
+        vertices.push_back(verts);
+        pVertices = pVertices->NextSiblingElement("vertices");
+    }
+}
+
+
+inline void GetTriangles(std::vector<COLLADATriangles>& triangles, tinyxml2::XMLElement* pParent)
+{
+    using namespace tinyxml2;
+    
+    XMLElement* pTriangles = pParent->FirstChildElement("triangles");
+    while (pTriangles != nullptr)
+    {
+        COLLADATriangles tris = {};
+        
+        //Get ID
+        const char* material = pTriangles->Attribute("material");
+        if (material != nullptr)
+            tris.Material = material;
+        
+        //Get tri count
+        XMLError result = pTriangles->QueryIntAttribute("count", &tris.Count);
+        assert(result == XML_SUCCESS);
+        
+        //Get source
+        GetInputs(tris.Inputs, pTriangles);
+        
+        //Get the indices
+        tris.Indices = GetP(tris, pTriangles);
+        
+        //Go to next
+        triangles.push_back(tris);
+        pTriangles = pTriangles->NextSiblingElement("triangles");
+    }
+}
+
+
+inline void GetParams(COLLADAAccessor& accessor, tinyxml2::XMLElement* pAccessor)
+{
+    using namespace tinyxml2;
+    
+    COLLADAParam param = {};
+
+    //Get technique node
+    XMLElement* pParam = pAccessor->FirstChildElement("param");
+    while (pParam != nullptr)
+    {
+        //Get param name
+        const char* name = pParam->Attribute("name");
+        if (name != nullptr)
+            param.Name = name;
+        //Get param type
+        const char* type = pParam->Attribute("type");
+        if (type != nullptr)
+            param.Type = type;
+        
+        accessor.Params.push_back(param);
+        pParam = pParam->NextSiblingElement("param");
+    }
+}
 
 
 inline COLLADAAccessor GetAccessor(tinyxml2::XMLElement* pTechnique)
@@ -94,6 +268,8 @@ inline COLLADAAccessor GetAccessor(tinyxml2::XMLElement* pTechnique)
         //Get stride
         result = pAccessor->QueryIntAttribute("stride", &accessor.Stride);
         assert(result == XML_SUCCESS);
+        
+        GetParams(accessor, pAccessor);
     }
     
     return accessor;
@@ -115,6 +291,49 @@ inline COLLADATechnique GetTechnique(tinyxml2::XMLElement* pSource)
 }
 
 
+inline COLLADAFloatArray GetFloatArray(tinyxml2::XMLElement* pSource)
+{
+    using namespace tinyxml2;
+    
+    COLLADAFloatArray array = {};
+
+    //Get technique node
+    XMLElement* pArray = pSource->FirstChildElement("float_array");
+    if (pArray != nullptr)
+    {
+        //Get ID of array
+        const char* ID = pArray->Attribute("id");
+        if (ID != nullptr)
+            array.ID = ID;
+        
+        //Get count
+        XMLError result = pArray->QueryIntAttribute("count", &array.Count);
+        assert(result == XML_SUCCESS);
+        
+        //Get data
+        array.Data.resize(array.Count);
+        const char* pText = pArray->GetText();
+
+        //Parse the float data
+        int32_t length = 0;
+        int32_t count = 0;
+        const char* pIter = pText;
+        do
+        {
+            array.Data[count] = FastAtof(pIter, length);
+            pIter += length;
+            if (*pIter == ' ')
+                pIter++;
+            count++;
+        } while (length > 0);
+        
+        assert((count-1) == (int32_t)array.Data.size());
+    }
+    
+    return array;
+}
+
+
 inline void GetSources(COLLADAMesh& meshes, tinyxml2::XMLElement* pMesh)
 {
     using namespace tinyxml2;
@@ -130,7 +349,8 @@ inline void GetSources(COLLADAMesh& meshes, tinyxml2::XMLElement* pMesh)
             source.ID = ID;
         
         //Get techniques
-        source.Technique = GetTechnique(pSource);
+        source.Technique    = GetTechnique(pSource);
+        source.FloatArray   = GetFloatArray(pSource);
         
         meshes.Sources.push_back(source);
         pSource = pSource->NextSiblingElement("source");
@@ -149,6 +369,10 @@ inline void GetMeshes(COLLADAGeometry& geometry, tinyxml2::XMLElement* pGeometry
         
         //Get all sources inside mesh
         GetSources(mesh, pMesh);
+        //Get all vertices
+        GetVertices(mesh.Vertices, pMesh);
+        //Get all triangles
+        GetTriangles(mesh.Triangles, pMesh);
         
         geometry.Meshes.push_back(mesh);
         pMesh = pMesh->NextSiblingElement("mesh");
@@ -185,6 +409,7 @@ inline void GetGeometries(COLLADALibraryGeometry& libraryGeometries, tinyxml2::X
         pGeometry = pGeometry->NextSiblingElement("geometry");
     }
 }
+
 
 std::vector<MeshData> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
 {
@@ -223,10 +448,5 @@ std::vector<MeshData> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
     COLLADALibraryGeometry libraryGeometries = {};
     GetGeometries(libraryGeometries, pLibrary);
     
-    //Debug print
-#if DEBUG_PRINTS
-    for (auto geometry : libraryGeometries.Geometries)
-        ThreadSafePrintf("geometry id=\"%s\" name=\"%s\"\n", geometry.ID.c_str(), geometry.Name.c_str());
-#endif
 	return std::vector<MeshData>();
 }

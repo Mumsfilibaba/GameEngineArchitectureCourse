@@ -260,20 +260,26 @@ void ThreadSafePrintf(const char* pFormat, ...)
 double FastAtof(const char* const str, int32_t& length)
 {
 	const char* iter = str;
-	bool negative = false;
-	double integer = 0.0;
-	double decimal = 0.0;
+    double integer = 0.0;
+    double decimal = 0.0;
 
-	//Set length to zero
-	length = 0;
+    //Set length to zero
+    length = 0;
 
-	//Check sign
+    //Check sign
+    bool negative = false;
 	if ((*iter) == '-')
 	{
 		negative = true;
 		iter++;
 		length++;
 	}
+    else if ((*iter) == '+')
+    {
+        negative = false;
+        iter++;
+        length++;
+    }
 
 	//Get "Interger"-part
 	while ((*iter) > '/' && (*iter) < ':')
@@ -302,11 +308,48 @@ double FastAtof(const char* const str, int32_t& length)
 		}
 	}
 
-	//Set sign
-	if (negative)
-		return -(integer + decimal);
+    //Calculate the result
+    double result = integer + decimal;
+    
+    //Check for e (Scientific notation)
+    if ((*iter) == 'e' || (*iter) == 'E')
+    {
+        iter++;
+        length++;
 
-	return integer + decimal;
+        //Check sign of exponent
+        bool sign = false;
+        if ((*iter) == '-')
+        {
+            sign = true;
+            iter++;
+            length++;
+        }
+        
+        //Get the exponent itself
+        int64_t exp = 0;
+        while ((*iter) > '/' && (*iter) < ':')
+        {
+            exp *= 10;
+            exp += (*iter) - '0';
+
+            length++;
+            iter++;
+        }
+        
+        //Put sign in exp
+        double base = (sign) ? 0.1 : 10.0;
+        for (int64_t i = 0; i < exp; i++)
+            result = result * base;
+        
+        //Return with the exponent
+        return result;
+    }
+    else
+    {
+        //Return the number with correct sign
+        return (negative) ? -result : result;
+    }
 }
 
 int32_t FastAtoi(const char* const str, int32_t& length)
@@ -317,6 +360,13 @@ int32_t FastAtoi(const char* const str, int32_t& length)
 
 	//Set length to zero
 	length = 0;
+    
+    //Get rid of all white spaces
+    while ((*iter) == ' ')
+    {
+        length++;
+        iter++;
+    }
 
 	//Get sign
 	if ((*iter) == '-')
@@ -325,6 +375,12 @@ int32_t FastAtoi(const char* const str, int32_t& length)
 		iter++;
 		negative = true;
 	}
+    else if ((*iter) == '+')
+    {
+        length++;
+        iter++;
+        negative = false;
+    }
 
 	//Get Interger
 	while ((*iter) > '/' && (*iter) < ':')
