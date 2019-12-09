@@ -92,8 +92,7 @@ void GameAssign2::Render()
 
 void GameAssign2::RenderImGui()
 {
-	ImGui::ShowDemoWindow();
-
+#if defined(CREATE_PACKAGE)
 	if (ImGui::Begin("Package Creation Window"))
 	{
 		static bool packageSaved = false;
@@ -197,6 +196,7 @@ void GameAssign2::RenderImGui()
 		ImGui::Columns(1);
 		ImGui::End();
 	}
+#endif
 }
 
 void GameAssign2::Release()

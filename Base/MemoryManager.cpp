@@ -140,10 +140,10 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 
 void MemoryManager::Free(void* allocationPtr)
 {
-	std::lock_guard<SpinLock> lock(m_MemoryLock);
+	std::scoped_lock<SpinLock> lock(m_MemoryLock);
 
 	size_t allocationAddress = (size_t)allocationPtr;
-	Allocation& allocation = m_AllocationHeaders[allocationAddress];
+	Allocation allocation = m_AllocationHeaders[allocationAddress];
 	m_AllocationHeaders.erase(allocationAddress);
 
 	size_t offsetAllocationAddress = allocationAddress - allocation.padding;
