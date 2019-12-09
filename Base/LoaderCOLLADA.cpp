@@ -25,8 +25,8 @@ template<typename T>
 struct TArray
 {
 	std::string ID;
-	int32_t Count;
-	std::vector<T> Data;
+    std::vector<T> Data;
+    int32_t Count;
 };
 using COLLADAFloatArray = TArray<float>;
 using P = TArray<float>;
@@ -122,18 +122,14 @@ inline P GetP(COLLADATriangles& triangles, tinyxml2::XMLElement* pParent)
         
         //Parse the float data
         int32_t length = 0;
-        int32_t count = 0;
         const char* pIter = pText;
-        do
+        for (int32_t i = 0; i < p.Count; i++)
         {
-            p.Data[count] = FastAtoi(pIter, length);
+            p.Data[i] = FastAtof(pIter, length);
             pIter += length;
             if (*pIter == ' ')
                 pIter++;
-            count++;
-        } while (length > 0);
-        
-        assert((count-1) == (int32_t)p.Data.size());
+        }
     }
     
     return p;
@@ -316,18 +312,14 @@ inline COLLADAFloatArray GetFloatArray(tinyxml2::XMLElement* pSource)
 
         //Parse the float data
         int32_t length = 0;
-        int32_t count = 0;
         const char* pIter = pText;
-        do
+        for (int32_t i = 0; i < array.Count; i++)
         {
-            array.Data[count] = FastAtof(pIter, length);
+            array.Data[i] = FastAtof(pIter, length);
             pIter += length;
             if (*pIter == ' ')
                 pIter++;
-            count++;
-        } while (length > 0);
-        
-        assert((count-1) == (int32_t)array.Data.size());
+        }
     }
     
     return array;
