@@ -2,6 +2,7 @@
 
 #include "ILoader.h"
 #include "Texture.h"
+#include "MemoryManager.h"
 #include <SFML/Graphics.hpp>
 
 

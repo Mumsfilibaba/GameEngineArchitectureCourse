@@ -1,5 +1,7 @@
 #include "LoaderTGA.h"
 #include "Helpers.h"
+#include "StackAllocator.h"
+
 
 #define INVERTED_BIT            (1 << 5)
 #define BYTE32 32
@@ -17,7 +19,7 @@ IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 	TGAHeader pTGAfile;
 	ReadFromDisk(file, pTGAfile);
 	Texture* pTexture = new Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
-	free(pTGAfile.imageDataBuffer);
+	mm_free(pTGAfile.imageDataBuffer);
 	return pTexture;
 }
 
@@ -40,7 +42,7 @@ size_t LoaderTGA::WriteToBuffer(const std::string& file, void* buffer)
 	memcpy((void*)((size_t)buffer + 4), pTGAfile.imageDataBuffer, (pTGAfile.imageWidth *  pTGAfile.imageHeight * 4));
 
 	size_t sizeInBytes = ((pTGAfile.imageWidth *  pTGAfile.imageHeight * 4) + 2 + 2);
-	free(pTGAfile.imageDataBuffer);
+	mm_free(pTGAfile.imageDataBuffer);
 
 	return sizeInBytes;
 }
@@ -110,9 +112,10 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 
 
 	//reading another arbitrary byte
-
+	
 	//allocating memory for the data
-	pTGAfile.imageDataBuffer = (unsigned char*)malloc(sizeof(unsigned char)*imageSize);
+	//pTGAfile.imageDataBuffer = (unsigned char*)malloc((sizeof(unsigned char)*imageSize));
+	pTGAfile.imageDataBuffer = (unsigned char*)mm_allocate((sizeof(unsigned char)*imageSize), 1, "TextureTGA");
 
 	// Read the image data.
 	//fread(&pTGAfile->imageDataBuffer[0], sizeof(unsigned char), imageSize, pFile);
