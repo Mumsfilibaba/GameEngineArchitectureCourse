@@ -1,24 +1,82 @@
 #include "LoaderCOLLADA.h"
 #include <tinyxml2.h>
+#include <string>
+#include <unordered_map>
 
 #define DEBUG_PRINTS 1
 
 IResource* LoaderCOLLADA::LoadFromDisk(const std::string& file)
 {
-	return nullptr;
+    std::vector<MeshData> meshes = std::move(ReadFromDisk(file));
+    if (!meshes.empty())
+    {
+        //Create mesh object
+        auto& vertices = meshes[0].Vertices;
+        auto& indices  = meshes[0].Indices;
+
+        //Create a new array for these (That can be stores inside the Mesh and destroyed when constructed later)
+        Vertex* pVertices = new(mm_allocate(sizeof(Vertex) * vertices.size(), 1, file + "Vertices")) Vertex[vertices.size()];
+        memcpy(pVertices, vertices.data(), sizeof(Vertex) * vertices.size());
+
+        uint32_t* pIndices = new(mm_allocate(sizeof(uint32_t) * indices.size(), 1, file + "Indices")) uint32_t[indices.size()];
+        memcpy(pIndices, indices.data(), sizeof(uint32_t) * indices.size());
+
+        return new(file.c_str()) Mesh(pVertices, pIndices, uint32_t(vertices.size()), uint32_t(indices.size()));
+    }
+
+    return nullptr;
 }
 
 
-IResource* LoaderCOLLADA::LoadFromMemory(void* data, size_t size)
+IResource* LoaderCOLLADA::LoadFromMemory(void* pData, size_t)
 {
-	return nullptr;
+    if (pData)
+    {
+        BinaryMeshData data = {};
+        memcpy(&data, pData, sizeof(BinaryMeshData));
+        
+        uint8_t* pByteBuffer = (uint8_t*)pData;
+        
+        //Create a new array for these (That can be stores inside the Mesh and destroyed when constructed later)
+        uint32_t vertexStride = sizeof(Vertex) * data.VertexCount;
+        Vertex* pVertices = new(mm_allocate(vertexStride, 1, "Vertices LoadFromMemory")) Vertex[data.VertexCount];
+        memcpy(pVertices, pByteBuffer + sizeof(BinaryMeshData), vertexStride);
+
+        uint32_t indexStride = sizeof(uint32_t) * data.IndexCount;
+        uint32_t* pIndices = new(mm_allocate(indexStride, 1, "Indices LoadFromMemory")) uint32_t[data.IndexCount];
+        memcpy(pIndices, pByteBuffer + sizeof(BinaryMeshData) + vertexStride, indexStride);
+        
+        return new("Mesh LoadedFromMemory") Mesh(pVertices, pIndices, data.VertexCount, data.IndexCount);
+    }
+    
+    return nullptr;
 }
 
 
 size_t LoaderCOLLADA::WriteToBuffer(const std::string& file, void* buffer)
 {
-	return size_t();
+    std::vector<MeshData> meshes = std::move(ReadFromDisk(file));
+    if (!meshes.empty())
+    {
+        BinaryMeshData data = {};
+        data.VertexCount    = uint32_t(meshes[0].Vertices.size());
+        data.IndexCount     = uint32_t(meshes[0].Indices.size());
+        
+        memcpy(buffer, &data, sizeof(BinaryMeshData));
+        
+        uint8_t* pByteBuffer = (uint8_t*)buffer;
+        uint32_t vertexStride = sizeof(Vertex) * data.VertexCount;
+        memcpy(pByteBuffer + sizeof(BinaryMeshData), meshes[0].Vertices.data(), vertexStride);
+        
+        uint32_t indexStride = sizeof(uint32_t) * data.IndexCount;
+        memcpy(pByteBuffer + sizeof(BinaryMeshData)+ vertexStride, meshes[0].Indices.data(), indexStride);
+        
+        return sizeof(BinaryMeshData) + vertexStride + indexStride;
+    }
+    
+    return size_t(-1);
 }
+
 
 
 template<typename T>
@@ -29,30 +87,14 @@ struct TArray
     int32_t Count;
 };
 using COLLADAFloatArray = TArray<float>;
-using P = TArray<float>;
+using COLLADAIntArray = TArray<int32_t>;
+
 
 struct COLLADAInput
 {
     std::string Semantic;
     std::string Source;
-    int32_t Offset;
-    int32_t Set;
-};
-
-
-struct COLLADAVertices
-{
-    std::string ID;
-    std::vector<COLLADAInput> Inputs;
-};
-
-
-struct COLLADATriangles
-{
-    std::string Material;
-    std::vector<COLLADAInput> Inputs;
-    int32_t Count;
-    P Indices;
+    int32_t Offset = -1;
 };
 
 
@@ -72,71 +114,54 @@ struct COLLADAAccessor
 };
 
 
-struct COLLADATechnique
-{
-    COLLADAAccessor Accessor;
-};
-
-
 struct COLLADASource
 {
     std::string ID;
     COLLADAFloatArray FloatArray;
-    COLLADATechnique Technique;
+    COLLADAAccessor Accessor;
 };
 
 
 struct COLLADAMesh
 {
-    std::vector<COLLADASource> Sources;
-    std::vector<COLLADAVertices> Vertices;
-    std::vector<COLLADATriangles> Triangles;
+    std::vector<glm::vec3> Positions;
+    std::vector<glm::vec3> Normals;
+    std::vector<glm::vec2> TexCoords;
+    std::vector<Vertex> Vertices;
+    std::vector<uint32_t> Indices;
+    std::unordered_map<Vertex, uint32_t> UniqueVertices;
 };
 
 
-struct COLLADAGeometry
-{
-	std::string ID;
-	std::string Name;
-    std::vector<COLLADAMesh> Meshes;
-};
-
-
-struct COLLADALibraryGeometry
-{
-	std::vector<COLLADAGeometry> Geometries;
-};
-
-
-inline P GetP(COLLADATriangles& triangles, tinyxml2::XMLElement* pParent)
+inline COLLADAIntArray GetIndices(uint32_t count, tinyxml2::XMLElement* pParent)
 {
     using namespace tinyxml2;
     
-    P p = {};
-    XMLElement* pP = pParent->FirstChildElement("p");
-    if (pP != nullptr)
+    COLLADAIntArray indices = {};
+    XMLElement* pIndices = pParent->FirstChildElement("p");
+    if (pIndices != nullptr)
     {
-        //Get data (tricount * 3 * input.size) - number of triangles * vertices per triangle * inputs per vertex
-        p.Data.resize(triangles.Count * 3 * triangles.Inputs.size());
-        const char* pText = pP->GetText();
+        indices.Count = count;
+        indices.Data.resize(count);
+        const char* pText = pIndices->GetText();
         
         //Parse the float data
         int32_t length = 0;
         const char* pIter = pText;
-        for (int32_t i = 0; i < p.Count; i++)
+        for (int32_t i = 0; i < indices.Count; i++)
         {
-            p.Data[i] = FastAtof(pIter, length);
+            indices.Data[i] = FastAtof(pIter, length);
             pIter += length;
             if (*pIter == ' ')
                 pIter++;
         }
     }
     
-    return p;
+    return indices;
 }
 
 
-inline void GetInputs(std::vector<COLLADAInput>& inputs, tinyxml2::XMLElement* pParent)
+inline void ReadInputs(std::unordered_map<std::string, COLLADAInput>& inputs, tinyxml2::XMLElement* pParent)
 {
     using namespace tinyxml2;
     
@@ -147,73 +172,188 @@ inline void GetInputs(std::vector<COLLADAInput>& inputs, tinyxml2::XMLElement* p
         
         //Get semantic
         const char* semantic = pInput->Attribute("semantic");
-        if (semantic != nullptr)
-            input.Semantic = semantic;
+        assert(semantic != nullptr);
+        input.Semantic = semantic;
+        
         //Get source
         const char* source = pInput->Attribute("source");
-        if (source != nullptr)
-            input.Source = source;
+        assert(semantic != nullptr);
+        input.Source = source;
+        
         //Get offset and set
         XMLError result = pInput->QueryIntAttribute("offset", &input.Offset);
-        result = pInput->QueryIntAttribute("set", &input.Set);
+        if (result != XML_SUCCESS)
+            input.Offset = -1;
         
         //Go to next
-        inputs.push_back(input);
+        inputs.emplace(std::make_pair(input.Semantic, input));
         pInput = pInput->NextSiblingElement("input");
     }
 }
 
 
-inline void GetVertices(std::vector<COLLADAVertices>& vertices, tinyxml2::XMLElement* pParent)
+inline void ConstructVec3(const std::string& semantic, std::vector<glm::vec3>& vec, std::unordered_map<std::string, COLLADASource>& sources, std::unordered_map<std::string, COLLADAInput>& inputs)
 {
-    using namespace tinyxml2;
-    
-    XMLElement* pVertices = pParent->FirstChildElement("vertices");
-    while (pVertices != nullptr)
+    //Read positions and construct positions
+    auto input = inputs.find(semantic);
+    if (input != inputs.end())
     {
-        COLLADAVertices verts = {};
+        //Get source ID, but remove the # in the beginning
+        std::string sourceID = input->second.Source.substr(1);
         
-        //Get ID
-        const char* ID = pVertices->Attribute("id");
-        if (ID != nullptr)
-            verts.ID = ID;
-        //Get source
-        GetInputs(verts.Inputs, pVertices);
-        
-        //Go to next
-        vertices.push_back(verts);
-        pVertices = pVertices->NextSiblingElement("vertices");
+        //Get the source and construct positions
+        auto source = sources.find(sourceID);
+        if (source != sources.end())
+        {
+            uint32_t componentCount = source->second.Accessor.Params.size();
+            assert(componentCount == 3); // We only support vec3 here
+            
+            auto& data = source->second.FloatArray.Data;
+            for (size_t i = 0; i < data.size(); i += 3)
+                vec.emplace_back(data[i], data[i+1], data[i+2]);
+        }
+        else
+        {
+            ThreadSafePrintf("Source '%s' in COLLADA file was not found\n", input->second.Source.c_str());
+        }
     }
 }
 
 
-inline void GetTriangles(std::vector<COLLADATriangles>& triangles, tinyxml2::XMLElement* pParent)
+inline void ConstructVec2(const std::string& semantic, std::vector<glm::vec2>& vec, std::unordered_map<std::string, COLLADASource>& sources, std::unordered_map<std::string, COLLADAInput>& inputs)
+{
+    //Read positions and construct positions
+    auto input = inputs.find(semantic);
+    if (input != inputs.end())
+    {
+        //Get source ID, but remove the # in the beginning
+        std::string sourceID = input->second.Source.substr(1);
+        
+        //Get the source and construct positions
+        auto source = sources.find(sourceID);
+        if (source != sources.end())
+        {
+            uint32_t componentCount = source->second.Accessor.Params.size();
+            assert(componentCount == 2); // We only support vec2 here
+            
+            auto& data = source->second.FloatArray.Data;
+            for (size_t i = 0; i < data.size(); i += 2)
+                vec.emplace_back(data[i], data[i+1]);
+        }
+        else
+        {
+            ThreadSafePrintf("Source '%s' in COLLADA file was not found\n", input->second.Source.c_str());
+        }
+    }
+}
+
+
+inline void ReadVertices(COLLADAMesh& mesh, std::unordered_map<std::string, COLLADASource>& sources, tinyxml2::XMLElement* pParent)
 {
     using namespace tinyxml2;
     
-    XMLElement* pTriangles = pParent->FirstChildElement("triangles");
-    while (pTriangles != nullptr)
+    //Get vertices element
+    XMLElement* pVertices = pParent->FirstChildElement("vertices");
+    if (pVertices != nullptr)
     {
-        COLLADATriangles tris = {};
+        std::unordered_map<std::string, COLLADAInput> inputs;
+        //Get source
+        ReadInputs(inputs, pVertices);
         
-        //Get ID
-        const char* material = pTriangles->Attribute("material");
-        if (material != nullptr)
-            tris.Material = material;
+        //Construct positions
+        ConstructVec3("POSITION", mesh.Positions, sources, inputs);
+    }
+    else
+    {
+        ThreadSafePrintf("COLLADA file does not contain any vertices\n");
+    }
+}
+
+
+inline void ReadTriangles(COLLADAMesh& mesh, std::unordered_map<std::string, COLLADASource>& sources, tinyxml2::XMLElement* pParent)
+{
+    using namespace tinyxml2;
+    
+    //Get triangles
+    XMLElement* pTriangles = pParent->FirstChildElement("triangles");
+    if (pTriangles == nullptr)
+    {
+        //Get polylist element if no triangles element exists
+        pTriangles = pParent->FirstChildElement("polylist");
+    }
+    
+    //Do the actual parsing
+    if (pTriangles != nullptr)
+    {
+        //Get input
+        std::unordered_map<std::string, COLLADAInput> inputs;
+        ReadInputs(inputs, pTriangles);
         
-        //Get tri count
-        XMLError result = pTriangles->QueryIntAttribute("count", &tris.Count);
+        //Get trianglecount
+        int32_t triangleCount = 0;
+        XMLError result = pTriangles->QueryIntAttribute("count", &triangleCount);
         assert(result == XML_SUCCESS);
         
-        //Get source
-        GetInputs(tris.Inputs, pTriangles);
-        
         //Get the indices
-        tris.Indices = GetP(tris, pTriangles);
+        COLLADAIntArray indices = GetIndices(inputs.size() * triangleCount * 3, pTriangles);
+        if (indices.Data.empty())
+        {
+            ThreadSafePrintf("COLLADA file does not contain any indices\n");
+            return;
+        }
         
-        //Go to next
-        triangles.push_back(tris);
-        pTriangles = pTriangles->NextSiblingElement("triangles");
+        //Construct normals
+        ConstructVec3("NORMAL", mesh.Normals, sources, inputs);
+        //Construct texcoords
+        ConstructVec2("TEXCOORD", mesh.TexCoords, sources, inputs);
+
+        //Read normal components
+        int32_t normalOffset = -1;
+        {
+            auto normal = inputs.find("NORMAL");
+            if (normal != inputs.end())
+                normalOffset = normal->second.Offset;
+        }
+        
+        //Read texcoords
+        int32_t texcoordOffset = -1;
+        {
+            auto texcoord = inputs.find("TEXCOORD");
+            if (texcoord != inputs.end())
+                texcoordOffset = texcoord->second.Offset;
+        }
+
+        //Read position offset
+        int32_t positionOffset = -1;
+        {
+            auto position = inputs.find("VERTEX");
+            if (position != inputs.end())
+                positionOffset = position->second.Offset;
+        }
+        
+        
+        Vertex vertex = {};
+        size_t vertexComponents = inputs.size();
+        for (size_t i = 0; i < indices.Data.size(); i += vertexComponents)
+        {
+            //Construct vertices
+            vertex.Position  = (positionOffset >= 0)  ? mesh.Positions[indices.Data[i + positionOffset]]    : glm::vec3();
+            vertex.Normal    = (normalOffset >= 0)    ? mesh.Normals[indices.Data[i + normalOffset]]        : glm::vec3();
+            vertex.TexCoords = (texcoordOffset >= 0)  ? mesh.TexCoords[indices.Data[i + texcoordOffset]]    : glm::vec3();
+            
+            //Insert unique vertex
+            if (mesh.UniqueVertices.count(vertex) == 0)
+            {
+                mesh.UniqueVertices[vertex] = (uint32_t)mesh.Vertices.size();
+                mesh.Vertices.push_back(vertex);
+            }
+
+            mesh.Indices.emplace_back(mesh.UniqueVertices[vertex]);
+        }
+    }
+    else
+    {
+        ThreadSafePrintf("COLLADA file does not contain any triangles or polylist\n");
     }
 }
 
@@ -243,20 +383,27 @@ inline void GetParams(COLLADAAccessor& accessor, tinyxml2::XMLElement* pAccessor
 }
 
 
-inline COLLADAAccessor GetAccessor(tinyxml2::XMLElement* pTechnique)
+inline COLLADAAccessor GetAccessor(tinyxml2::XMLElement* pSource)
 {
     using namespace tinyxml2;
     
     COLLADAAccessor accessor = {};
 
     //Get technique node
+    XMLElement* pTechnique = pSource->FirstChildElement("technique_common");
+    if (pTechnique == nullptr)
+    {
+        return accessor;
+    }
+    
+    //Get technique node
     XMLElement* pAccessor = pTechnique->FirstChildElement("accessor");
     if (pAccessor != nullptr)
     {
         //Get source id
-        const char* Source = pAccessor->Attribute("source");
-        if (Source != nullptr)
-            accessor.Source = Source;
+        const char* source = pAccessor->Attribute("source");
+        assert(source != nullptr);
+        accessor.Source = source;
         
         //Get count
         XMLError result = pAccessor->QueryIntAttribute("count", &accessor.Count);
@@ -269,21 +416,6 @@ inline COLLADAAccessor GetAccessor(tinyxml2::XMLElement* pTechnique)
     }
     
     return accessor;
-}
-
-
-inline COLLADATechnique GetTechnique(tinyxml2::XMLElement* pSource)
-{
-    using namespace tinyxml2;
-    
-    COLLADATechnique technique = {};
-
-    //Get technique node
-    XMLElement* pTechnique = pSource->FirstChildElement("technique_common");
-    if (pTechnique != nullptr)
-        technique.Accessor = GetAccessor(pTechnique);
-    
-    return technique;
 }
 
 
@@ -326,7 +458,7 @@ inline COLLADAFloatArray GetFloatArray(tinyxml2::XMLElement* pSource)
 }
 
 
-inline void GetSources(COLLADAMesh& meshes, tinyxml2::XMLElement* pMesh)
+inline void ReadSources(std::unordered_map<std::string, COLLADASource>& sources, tinyxml2::XMLElement* pMesh)
 {
     using namespace tinyxml2;
     
@@ -337,69 +469,66 @@ inline void GetSources(COLLADAMesh& meshes, tinyxml2::XMLElement* pMesh)
         
         //Get attributes
         const char* ID = pSource->Attribute("id");
-        if (ID != nullptr)
-            source.ID = ID;
+        assert(ID != nullptr);
+        source.ID = ID;
         
         //Get techniques
-        source.Technique    = GetTechnique(pSource);
-        source.FloatArray   = GetFloatArray(pSource);
+        source.Accessor   = GetAccessor(pSource);
+        source.FloatArray = GetFloatArray(pSource);
         
-        meshes.Sources.push_back(source);
+        //Emplace current source and move to the next one
+        sources.emplace(std::make_pair(source.ID, source));
         pSource = pSource->NextSiblingElement("source");
     }
+    
+    ThreadSafePrintf("COLLADA file contains %d sources\n", sources.size());
 }
 
 
-inline void GetMeshes(COLLADAGeometry& geometry, tinyxml2::XMLElement* pGeometry)
+inline std::vector<MeshData> ReadMeshes(tinyxml2::XMLElement* pRoot)
 {
     using namespace tinyxml2;
     
-    XMLElement* pMesh = pGeometry->FirstChildElement("mesh");
-    while (pMesh != nullptr)
+    std::vector<MeshData> meshes;
+    
+    //Get library_geometries
+    XMLElement* pLibrary = pRoot->FirstChildElement("library_geometries");
+    if (pLibrary == nullptr)
     {
-        COLLADAMesh mesh = {};
-        
-        //Get all sources inside mesh
-        GetSources(mesh, pMesh);
-        //Get all vertices
-        GetVertices(mesh.Vertices, pMesh);
-        //Get all triangles
-        GetTriangles(mesh.Triangles, pMesh);
-        
-        geometry.Meshes.push_back(mesh);
-        pMesh = pMesh->NextSiblingElement("mesh");
+        ThreadSafePrintf("COLLADA file does not contain elemement 'library_geometries'\n");
+        return std::vector<MeshData>();
     }
-}
-
-
-inline void GetGeometries(COLLADALibraryGeometry& libraryGeometries, tinyxml2::XMLElement* pLibrary)
-{
-    using namespace tinyxml2;
     
+    //All the sources for a mesh
+    std::unordered_map<std::string, COLLADASource> sources;
+    
+    //Read all geometry
     XMLElement* pGeometry = pLibrary->FirstChildElement("geometry");
     while (pGeometry != nullptr)
     {
-        COLLADAGeometry geometry = {};
-        
-        //Get attributes
-        const char* ID = pGeometry->Attribute("id");
-        if (ID != nullptr)
+        XMLElement* pMesh = pGeometry->FirstChildElement("mesh");
+        while (pMesh != nullptr)
         {
-            geometry.ID = ID;
-        }
-        const char* name = pGeometry->Attribute("name");
-        if (name != nullptr)
-        {
-            geometry.Name = name;
+            COLLADAMesh mesh = {};
+            ReadSources(sources, pMesh);
+            ReadVertices(mesh, sources, pMesh);
+            ReadTriangles(mesh, sources, pMesh);
+           
+            //Set mesh
+            MeshData meshData = {};
+            meshData.Vertices.swap(mesh.Vertices);
+            meshData.Indices.swap(mesh.Indices);
+            meshes.emplace_back(meshData);
+            
+            //Go to next mesh element
+            pMesh = pMesh->NextSiblingElement("mesh");
         }
         
-        //Find all meshes
-        GetMeshes(geometry, pGeometry);
-        
-        //Add geometry
-        libraryGeometries.Geometries.push_back(geometry);
+        //Go to mext geometry element
         pGeometry = pGeometry->NextSiblingElement("geometry");
     }
+    
+    return meshes;
 }
 
 
@@ -428,17 +557,6 @@ std::vector<MeshData> LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
         return std::vector<MeshData>();
     }
     
-    //Get library_geometries
-    XMLElement* pLibrary = pFirst->FirstChildElement("library_geometries");
-    if (pLibrary == nullptr)
-    {
-        ThreadSafePrintf("File '%s' does not contain any library_geometries\n", filepath.c_str());
-        return std::vector<MeshData>();
-    }
-    
-    //Get all geometry
-    COLLADALibraryGeometry libraryGeometries = {};
-    GetGeometries(libraryGeometries, pLibrary);
-    
-	return std::vector<MeshData>();
+    //Get all the meshes in the COLLADA scene
+    return ReadMeshes(pFirst);
 }

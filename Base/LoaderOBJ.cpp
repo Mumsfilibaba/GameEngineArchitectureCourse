@@ -3,8 +3,6 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
 #include "StackAllocator.h"
 
 #ifdef VISUAL_STUDIO
@@ -41,25 +39,6 @@ struct OBJData
 	std::vector<glm::vec3> Normals;
 	std::vector<glm::vec2> TextureCoords;
 };
-    
-struct BinaryMeshData
-{
-    uint32_t VertexCount    = 0;
-    uint32_t IndexCount     = 0;
-};
-
-//Create hashfunction for a vertex
-namespace std
-{
-	template<>
-	struct hash<Vertex>
-	{
-		size_t operator()(const Vertex& vertex) const
-		{
-			return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Normal) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.TexCoords) << 1);
-		}
-	};
-}
 
 bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath);
 uint32_t ReadTextfile(const std::string& filename, const char** const buffer);

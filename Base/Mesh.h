@@ -5,7 +5,10 @@
 #include <SFML/Graphics/Shader.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
+//Define vertex used by application
 struct Vertex
 {
 public:
@@ -27,15 +30,35 @@ public:
 	};
 };
 
+//Create hashfunction for a vertex
+namespace std
+{
+    template<>
+    struct hash<Vertex>
+    {
+        size_t operator()(const Vertex& vertex) const
+        {
+            return ((hash<glm::vec3>()(vertex.Position) ^ (hash<glm::vec3>()(vertex.Normal) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.TexCoords) << 1);
+        }
+    };
+}
 
-//HELPER FOR MESHLOADING
+
+//HELPERS FOR MESHLOADING
 struct MeshData
 {
-	std::vector<Vertex>  Vertices;
-	std::vector<uint32_t>    Indices;
+	std::vector<Vertex>     Vertices;
+	std::vector<uint32_t>   Indices;
+};
+
+struct BinaryMeshData
+{
+    uint32_t VertexCount    = 0;
+    uint32_t IndexCount     = 0;
 };
 
 
+//Define mesh
 class Mesh : public IResource
 {
 public:

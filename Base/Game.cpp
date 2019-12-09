@@ -11,6 +11,7 @@
 #include "LoaderTGA.h"
 #include "LoaderBMP.h"
 #include "LoaderOBJ.h"
+#include "LoaderCOLLADA.h"
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4002)		//Disable: "too many arguments for function-like macro invocation"-warning
@@ -55,6 +56,7 @@ void Game::InternalInit()
 	resourceLoader.RegisterLoader(".tga", new LoaderTGA());
 	resourceLoader.RegisterLoader(".bmp", new LoaderBMP());
 	resourceLoader.RegisterLoader(".obj", new LoaderOBJ());
+    resourceLoader.RegisterLoader(".dae", new LoaderCOLLADA());
 
 	//Init client
 	Init();
@@ -164,7 +166,7 @@ void Game::InternalUpdate(const sf::Time& deltatime)
 
 void Game::InternalRender(const sf::Time& deltatime)
 {
-	Renderer::Get().Begin(sf::Color::Red, m_Camera);
+	Renderer::Get().Begin(sf::Color::Black, m_Camera);
 	Render();
 	Renderer::Get().End();
 }
