@@ -21,4 +21,8 @@ private:
 	Ref<Mesh> m_pCube;
 	Ref<Mesh> m_pMesh;
 	Ref<Mesh> m_pBunny;
+	static GameAssign2* s_pInstance;
+
+	std::vector<char*> m_ResourcesNotInPackage;
+	std::vector<char*> m_ResourcesInPackage;
 };

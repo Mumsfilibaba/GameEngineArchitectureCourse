@@ -1,0 +1,3 @@
+BMPTest_24.bmp
+BMPTest_8.bmp
+bunny.obj
