@@ -39,6 +39,7 @@ public:
 	bool UnloadResource(size_t guid);
 
 	void CreateResourcePackage(std::initializer_list<char*> files);
+	void CreateResourcePackage(std::vector<char*>& files);
 
 	static ResourceManager& Get();
 

@@ -21,4 +21,7 @@ private:
 	Ref<Mesh> m_pCube;
 	Ref<Mesh> m_pMesh;
 	Ref<Mesh> m_pBunny;
+
+	std::vector<char*> m_ResourcesNotInPackage;
+	std::vector<char*> m_ResourcesInPackage;
 };
