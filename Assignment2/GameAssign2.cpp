@@ -12,13 +12,11 @@
 #include <filesystem>
 
 
-#define CREATE_PACKAGE
+//#define CREATE_PACKAGE
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
-
-GameAssign2* GameAssign2::s_pInstance = nullptr;
 
 void Func()
 {
@@ -28,7 +26,6 @@ void Func()
 
 void GameAssign2::Init()
 {
-	s_pInstance = this;
 	ResourceManager& resourceManager = ResourceManager::Get();
 
     //create package
@@ -48,19 +45,16 @@ void GameAssign2::Init()
 	Ref<ResourceBundle> pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae" });
 	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae" });
 
-	m_pTexture = pBundle.Get()->GetTexture("BMPTest_24.bmp");
-
-
-	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [](const Ref<ResourceBundle>& bundle)
+	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
 		std::cout << "Loaded meme.tga in background!" << std::endl;
 		//Background Loaded
+        m_pTexture = bundle.Get()->GetTexture("meme.tga");
 	});
 
-	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [](const Ref<ResourceBundle>& bundle)
+	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
 		std::cout << "Loaded Phone.tga in background!" << std::endl;
-		s_pInstance->m_pTexture = bundle.Get()->GetTexture("Phone.tga");
 		//Backgroun Loaded
 	});
     
@@ -103,13 +97,13 @@ void GameAssign2::Render()
 {
 #if !defined(CREATE_PACKAGE)
 	if (m_pBunny && m_pTexture)
-		Renderer::Get().Submit(m_pBunny.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+		Renderer::Get().Submit(m_pBunny.Get(), sf::Color::Green, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
 
 	if (m_pMesh)
 		Renderer::Get().Submit(m_pMesh.Get(), sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
     
     if (m_pCube)
-        Renderer::Get().Submit(m_pCube.Get(), sf::Color::Green, glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
+        Renderer::Get().Submit(m_pCube.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
 #endif
 }
 
