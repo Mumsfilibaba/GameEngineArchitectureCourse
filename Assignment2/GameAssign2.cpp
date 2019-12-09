@@ -99,20 +99,31 @@ void GameAssign2::RenderImGui()
 		static bool packageSaved = false;
 		static size_t packageSavedCounter = 0;
 
+		ImGui::BeginChild("", ImVec2(ImGui::GetWindowWidth(), 20));
 		if (m_ResourcesInPackage.size() > 0)
 		{
 			if (ImGui::Button("Create Package", ImVec2(120, 20)))
 			{
 				//create package
 				ResourceManager::Get().CreateResourcePackage(m_ResourcesInPackage);
+
+				std::ofstream fileStream;
+				fileStream.open("resourcesSavedDebug.txt", std::ios_base::out);
+
+				if (fileStream.is_open())
+				{
+					for (auto& str : m_ResourcesInPackage)
+					{
+						fileStream << str << std::endl;
+					}
+
+					fileStream.close();
+				}
+
 				packageSaved = true;
 			}
 		}
-		else
-		{
-			ImGui::NewLine();
-		}
-
+			
 		if (packageSaved)
 		{
 			ImGui::SameLine();
@@ -125,13 +136,15 @@ void GameAssign2::RenderImGui()
 				packageSavedCounter = 0;
 			}
 		}
+		ImGui::EndChild();
 
+		ImGui::Separator();
 		ImGui::Columns(3, "Select Resources", true);
 
 		constexpr size_t listsWidth = 300;
 
 		ImGui::SetColumnWidth(0, listsWidth + 10);
-		ImGui::SetColumnWidth(1, 40);
+		ImGui::SetColumnWidth(1, 34);
 		ImGui::SetColumnWidth(2, listsWidth + 10);
 		{
 			static int currentNotInPackageItem = 0;

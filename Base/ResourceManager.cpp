@@ -321,7 +321,7 @@ void ResourceManager::CreateResourcePackage(std::vector<char*>& files)
 	}
 	free(data);
 
-	archiver.SaveUncompressedPackage("Fim");
+	archiver.SaveUncompressedPackage(PACKAGE_PATH);
 	archiver.CloseUncompressedPackage();
 
 	ThreadSafePrintf("ResourcePackage [%s] Created\n", PACKAGE_PATH);
