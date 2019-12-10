@@ -29,7 +29,7 @@ void GameAssign2::Init()
 	ResourceManager& resourceManager = ResourceManager::Get();
 
     //create package
-    resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "BMPTest_24.bmp" });
+    resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae", "BMPTest_24.bmp" });
 
 #if defined(CREATE_PACKAGE)
 	std::string path = "Resources";
@@ -42,44 +42,48 @@ void GameAssign2::Init()
 	}
 #else
     //load resources
-	Ref<ResourceBundle> pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae" });
-	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae" });
+	Ref<ResourceBundle> pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
+	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-		std::cout << "Loaded meme.tga in background!" << std::endl;
-		//Background Loaded
+        ThreadSafePrintf("Loaded meme.tga in background!\n");
         m_pTexture = bundle.Get()->GetTexture("meme.tga");
 	});
 
 	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-		std::cout << "Loaded Phone.tga in background!" << std::endl;
-		//Backgroun Loaded
+        ThreadSafePrintf("Loaded Phone.tga in background!\n");
 	});
     
     resourceManager.LoadResourcesInBackground({ "teapot.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        std::cout << "Loaded teapot.obj in background!" << std::endl;
+        ThreadSafePrintf("Loaded teapot.obj  in background!\n");
         m_pMesh = bundle.Get()->GetMesh("teapot.obj");
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        std::cout << "Loaded bunny.obj in background!" << std::endl;
+        ThreadSafePrintf("Loaded bunny.obj in background!\n");
         m_pBunny = bundle.Get()->GetMesh("bunny.obj");
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        std::cout << "Loaded bunny.dae in background!" << std::endl;
+        ThreadSafePrintf("Loaded bunny.dae  in background!\n");
         //m_pCube = bundle.Get()->GetMesh("bunny.dae");
     });
     
     resourceManager.LoadResourcesInBackground({ "cube.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        std::cout << "Loaded cube.dae in background!" << std::endl;
+        ThreadSafePrintf("Loaded cube.dae in background!\n");
         m_pCube = bundle.Get()->GetMesh("cube.dae");
+    });
+    
+    resourceManager.LoadResourcesInBackground({ "M4A1.dae" }, [this](const Ref<ResourceBundle>& bundle)
+    {
+        ThreadSafePrintf("Loaded M4A1.dae in background!\n");
+        m_pGun = bundle.Get()->GetMesh("M4A1.dae");
     });
 #endif
 }
@@ -104,6 +108,14 @@ void GameAssign2::Render()
     
     if (m_pCube)
         Renderer::Get().Submit(m_pCube.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
+    
+    if (m_pGun)
+    {
+        glm::mat4 translation   = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 2.5f));
+        glm::mat4 rotation      = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 scale         = glm::scale(rotation, glm::vec3(0.15f, 0.15f, 0.15f));
+        Renderer::Get().Submit(m_pGun.Get(), sf::Color::Blue, scale);
+    }
 #endif
 }
 

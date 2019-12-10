@@ -7,7 +7,7 @@
 
 ResourceManager::ResourceManager()
 	: m_IsCleanup(false),
-	m_MaxMemory(4096 * 2000),
+	m_MaxMemory(RESOURCE_MANAGER_MAX_MEMORY),
 	m_UsedMemory(0)
 {
 
