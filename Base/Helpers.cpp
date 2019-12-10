@@ -70,7 +70,7 @@ void ImGuiPrintMemoryManagerAllocations()
 		auto& stackAllocationsRef = MemoryManager::GetInstance().GetStackAllocations();
 
 		MemoryManager::GetInstance().GetMemoryLock().lock();
-		auto memoryManagerAllocations = std::map<size_t, Allocation>(memoryManagerAllocationsRef);
+		auto memoryManagerAllocations = std::map<size_t, Allocation*>(memoryManagerAllocationsRef);
 		MemoryManager::GetInstance().GetMemoryLock().unlock();
 
 		MemoryManager::GetInstance().GetPoolAllocationLock().lock();
@@ -85,11 +85,24 @@ void ImGuiPrintMemoryManagerAllocations()
 		auto poolAllocationIt = poolAllocations.begin();
 		auto stackAllocationIt = stackAllocations.begin();
 		const void* pMemoryManagerStart = MemoryManager::GetInstance().GetMemoryStart();
-		const FreeEntry* pStartFreeEntry = MemoryManager::GetInstance().GetFreeList();
-		const FreeEntry* pCurrentFreeEntry = pStartFreeEntry;
+		const FreeEntry* pFreeListHead = MemoryManager::GetInstance().GetFreeListHead();
+		const FreeEntry* pCurrentFreeEntry = pFreeListHead;
+		size_t pFreeListStartAddress = ULLONG_MAX;
+
+		do
+		{
+			if ((size_t)pCurrentFreeEntry < pFreeListStartAddress)
+				pFreeListStartAddress = (size_t)pCurrentFreeEntry;
+
+			pCurrentFreeEntry = pCurrentFreeEntry->pNext;
+		} while (pCurrentFreeEntry != pFreeListHead);
+
+		const FreeEntry* pStartFreeEntry = (FreeEntry*)pFreeListStartAddress;
+		pCurrentFreeEntry = pStartFreeEntry;
 
 		size_t lastAddress = 0;
 		size_t currentAddress = (size_t)pMemoryManagerStart;
+		bool hasEncounteredFreeBlock = false;
 
 		while (true)
 		{
@@ -106,7 +119,7 @@ void ImGuiPrintMemoryManagerAllocations()
 				distanceToStackAllocation = stackAllocationIt->first - currentAddress;
 
 			size_t distanceToFreeEntry = ULLONG_MAX;
-			if (pCurrentFreeEntry != pStartFreeEntry || lastAddress == 0)
+			if (pCurrentFreeEntry != pStartFreeEntry || !hasEncounteredFreeBlock)
 				distanceToFreeEntry = (size_t)pCurrentFreeEntry - currentAddress;
 
 			size_t minDistance = std::min(distanceToFreeEntry, std::min(distanceToStackAllocation, std::min(distanceToMemoryManagerAllocation, distanceToPoolAllocation)));
@@ -120,10 +133,10 @@ void ImGuiPrintMemoryManagerAllocations()
 			if (minDistance == distanceToMemoryManagerAllocation)
 			{
 				std::string allocationStr =
-					memoryManagerAllocationIt->second.tag + "\n"
+					memoryManagerAllocationIt->second->tag + "\n"
 					"Address:   " + N2HexStr(memoryManagerAllocationIt->first) + "\n"
-					"Padding: " + std::to_string(memoryManagerAllocationIt->second.padding) + "\n"
-					"Size: " + std::to_string(memoryManagerAllocationIt->second.sizeInBytes) + "bytes\n\n";
+					"Padding: " + std::to_string(memoryManagerAllocationIt->second->padding) + "\n"
+					"Size: " + std::to_string(memoryManagerAllocationIt->second->sizeInBytes) + "bytes\n\n";
 				if (showMemoryManagerAllocations) ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), allocationStr.c_str());
 
 				lastAddress = currentAddress;
@@ -166,6 +179,7 @@ void ImGuiPrintMemoryManagerAllocations()
 				lastAddress = currentAddress;
 				currentAddress = (size_t)pCurrentFreeEntry;
 				pCurrentFreeEntry = pCurrentFreeEntry->pNext;
+				hasEncounteredFreeBlock = true;
 			}
 			else
 			{

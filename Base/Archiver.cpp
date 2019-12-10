@@ -9,13 +9,14 @@
 
 void* ArchiverAlloc(void*, unsigned num, unsigned size)
 {
-	return MemoryManager::GetInstance().Allocate(num * size, 1, "Archiver");
+	return MemoryManager::GetInstance().Allocate((size_t)num * (size_t)size, 1, "zLib");
 }
 
 void ArchiverFree(void*, void* pAddress)
 {
 	MemoryManager::GetInstance().Free(pAddress);
 }
+
 
 static alloc_func zalloc = ArchiverAlloc;
 static free_func zfree = ArchiverFree;
@@ -343,8 +344,11 @@ void Archiver::CloseUncompressedPackage()
 {
 	for (auto& it : m_UncompressedPackageEntries)
 	{
-		MemoryManager::GetInstance().Free(it.second.pData);
-		it.second.pData = nullptr;
+		if (it.second.pData != nullptr)
+		{
+			MemoryManager::GetInstance().Free(it.second.pData);
+			it.second.pData = nullptr;
+		}
 	}
 
 	m_UncompressedPackageEntries.clear();

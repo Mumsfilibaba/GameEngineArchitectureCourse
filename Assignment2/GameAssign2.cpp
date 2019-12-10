@@ -12,7 +12,11 @@
 #include <filesystem>
 
 
-//#define CREATE_PACKAGE
+#define CREATE_PACKAGE
+
+#ifdef CREATE_PACKAGE
+const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
+#endif
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
@@ -29,11 +33,10 @@ void GameAssign2::Init()
 	ResourceManager& resourceManager = ResourceManager::Get();
 
     //create package
-    resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "BMPTest_24.bmp" });
+    //resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "BMPTest_24.bmp" });
 
 #if defined(CREATE_PACKAGE)
-	std::string path = "Resources";
-	for (const auto& entry : std::filesystem::directory_iterator(path))
+	for (const auto& entry : std::filesystem::directory_iterator(UNPACKAGED_RESOURCES_DIR))
 	{
 		std::string fileNameString = entry.path().filename().string();
 		char* fileName = new char[fileNameString.length() + 1];
@@ -121,10 +124,10 @@ void GameAssign2::RenderImGui()
 			if (ImGui::Button("Create Package", ImVec2(120, 20)))
 			{
 				//create package
-				ResourceManager::Get().CreateResourcePackage(m_ResourcesInPackage);
+				ResourceManager::Get().CreateResourcePackage(UNPACKAGED_RESOURCES_DIR + "/", m_ResourcesInPackage);
 
 				std::ofstream fileStream;
-				fileStream.open("resourcesSavedDebug.txt", std::ios_base::out);
+				fileStream.open("PackageHeader.txt", std::ios_base::out);
 
 				if (fileStream.is_open())
 				{

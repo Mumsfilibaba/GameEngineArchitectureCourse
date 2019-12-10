@@ -69,8 +69,8 @@ private:
 		{
 			if (pData != nullptr)
 			{
-				MemoryManager::GetInstance().Free(pData);
-				pData = nullptr;
+				//MemoryManager::GetInstance().Free(pData);
+				//pData = nullptr;
 			}
 		}
 

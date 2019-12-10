@@ -13,7 +13,7 @@
 #include "Helpers.h"
 
 //#define SIZE_IN_BYTES (64 * 1024)
-#define SIZE_IN_BYTES 1024 * 1024 * 64 // = 64mb
+#define SIZE_IN_BYTES 1024 * 1024 * 256 // = 64mb
 #define mm_allocate(...) MemoryManager::GetInstance().Allocate(__VA_ARGS__)
 #define mm_free(...) MemoryManager::GetInstance().Free(__VA_ARGS__)
 
@@ -21,7 +21,7 @@ struct Allocation
 {
 	Allocation()
 	{
-		this->tag = "";
+		this->tag = "Rövslask";
 		this->sizeInBytes = 0;
 		this->padding = 0;
 	}
@@ -71,7 +71,6 @@ class MemoryManager
 {
 public:
 	~MemoryManager();
-	void Reset();
 	void* Allocate(size_t allocationSizeInBytes, size_t alignment, const std::string& tag);
 	void Free(void* allocation);
 
@@ -84,9 +83,9 @@ public:
 	void ClearStackAllocations();
 	const std::map<size_t, SubAllocation>& GetStackAllocations() { return m_StackAllocations; }
 
-	const std::map<size_t, Allocation>& GetAllocations() { return m_AllocationHeaders; }
+	const std::map<size_t, Allocation*>& GetAllocations() { return m_AllocationHeaders; }
 	const void* GetMemoryStart() { return m_pMemory; }
-	const FreeEntry* GetFreeList() { return m_pFreeListStart; };
+	const FreeEntry* GetFreeListHead() { return m_pFreeHead; };
 #endif
 
 	SpinLock& GetMemoryLock() { return m_MemoryLock; }
@@ -98,11 +97,12 @@ public:
 
 private:
 	MemoryManager();
+	void PrintFreeList();
+	void CheckFreeListCorruption();
 
 private:
 	void* m_pMemory;
-	std::map<size_t, Allocation> m_AllocationHeaders;
-	FreeEntry* m_pFreeListStart;
+	std::map<size_t, Allocation*> m_AllocationHeaders;
 	FreeEntry* m_pFreeHead;
 	FreeEntry* m_pFreeTail;
 	SpinLock m_MemoryLock;

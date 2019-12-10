@@ -297,7 +297,7 @@ void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
 	ThreadSafePrintf("ResourcePackage [%s] Created\n", PACKAGE_PATH);
 }
 
-void ResourceManager::CreateResourcePackage(std::vector<char*>& files)
+void ResourceManager::CreateResourcePackage(const std::string& directory, std::vector<char*>& fileNames)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
@@ -306,17 +306,18 @@ void ResourceManager::CreateResourcePackage(std::vector<char*>& files)
 
 	void* data = malloc(4096 * 4096);
 
-	for (const char* file : files)
+	for (const char* file : fileNames)
 	{
-		std::string filepath = std::string(file);
-		std::size_t index = filepath.find_last_of(".");
+		std::string fileName = std::string(file);
+		std::string filePath = directory + fileName;
+		std::size_t index = fileName.find_last_of(".");
 		if (index == std::string::npos)
 		{
-			ThreadSafePrintf("Error! Tried to package a file without a type [%s]\n", file);
+			ThreadSafePrintf("Error! Tried to package a file without a type [%s]\n", fileName);
 			continue;
 		}
-		size_t typeHash = HashString(filepath.substr(index).c_str());
-		size_t bytesWritten = resourceLoader.WriteResourceToBuffer(filepath, data);
+		size_t typeHash = HashString(fileName.substr(index).c_str());
+		size_t bytesWritten = resourceLoader.WriteResourceToBuffer(filePath, data);
 		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);
 	}
 	free(data);
