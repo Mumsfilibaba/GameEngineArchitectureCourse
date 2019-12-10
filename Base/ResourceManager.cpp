@@ -7,7 +7,7 @@
 
 ResourceManager::ResourceManager()
 	: m_IsCleanup(false),
-	m_MaxMemory(4096 * 2000),
+	m_MaxMemory(RESOURCE_MANAGER_MAX_MEMORY),
 	m_UsedMemory(0)
 {
 
@@ -326,6 +326,32 @@ void ResourceManager::CreateResourcePackage(const std::string& directory, std::v
 	archiver.CloseUncompressedPackage();
 
 	ThreadSafePrintf("ResourcePackage [%s] Created\n", PACKAGE_PATH);
+}
+
+size_t ResourceManager::GetMaxMemory() const
+{
+	return m_MaxMemory;
+}
+
+size_t ResourceManager::GetUsedMemory() const
+{
+	return m_UsedMemory;
+}
+
+size_t ResourceManager::GetNrOfResourcesLoaded() const
+{
+	return m_LoadedResources.size();
+}
+
+size_t ResourceManager::GetNrOfResourcesInUse() const
+{
+	size_t resourcesInUse = 0;
+	for(std::pair<size_t, IResource*> resource : m_LoadedResources)
+	{
+		if (resource.second->GetRefCount() > 0)
+			resourcesInUse++;
+	}
+	return resourcesInUse;
 }
 
 ResourceManager& ResourceManager::Get()

@@ -52,7 +52,7 @@ void AddUniqueOBJVertex(const Vertex& vertex, std::unordered_map<Vertex, uint32_
 
 IResource* LoaderOBJ::LoadFromDisk(const std::string& file)
 {
-    std::vector<MeshData> meshes = std::move(ReadFromDisk(file));
+    std::vector<MeshData> meshes = ReadFromDisk(file);
     if (!meshes.empty())
     {
         //Create mesh object
@@ -100,7 +100,7 @@ IResource* LoaderOBJ::LoadFromMemory(void* pData, size_t)
 
 size_t LoaderOBJ::WriteToBuffer(const std::string& file, void* buffer)
 {
-    std::vector<MeshData> meshes = std::move(ReadFromDisk(file));
+    std::vector<MeshData> meshes = ReadFromDisk(file);
     if (!meshes.empty())
     {
         BinaryMeshData data = {};
@@ -478,6 +478,9 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 		ThreadSafePrintf("%d\n", meshes[0].Indices[i]);
 	}
 #endif
+    
+    //Print number of vertices, indices and triangles
+    ThreadSafePrintf("Finished loading OBJ-file '%s' - VertexCount=%d, IndexCount=%d, TriangleCount=%d\n", filepath.c_str(), meshes[0].Vertices.size(), meshes[0].Indices.size(), meshes[0].Indices.size() / 3);
 
 	free((void*)buffer);
 	return true;

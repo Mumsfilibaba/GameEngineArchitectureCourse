@@ -11,6 +11,7 @@
 
 
 #define PACKAGE_PATH "package"
+#define RESOURCE_MANAGER_MAX_MEMORY 4096 * 4096
 
 class ResourceLoader;
 class Archiver;
@@ -40,6 +41,11 @@ public:
 
 	void CreateResourcePackage(std::initializer_list<char*> files);
 	void CreateResourcePackage(const std::string& directory, std::vector<char*>& fileNames);
+
+	size_t GetMaxMemory() const;
+	size_t GetUsedMemory() const;
+	size_t GetNrOfResourcesLoaded() const;
+	size_t GetNrOfResourcesInUse() const;
 
 	static ResourceManager& Get();
 

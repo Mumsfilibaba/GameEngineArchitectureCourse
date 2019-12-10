@@ -5,6 +5,7 @@
 
 #define INVERTED_BIT            (1 << 5)
 #define BYTE32 32
+#define TGADEBUG
 
 LoaderTGA::LoaderTGA()
 {
@@ -56,6 +57,7 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 
 	// reading file with binary mode.
 	pFile = fopen(file.c_str(), "rb");
+
 	if (!pFile)
 	{
 		//make an assert
@@ -86,6 +88,7 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 	fread(&pTGAfile.startX, sizeof(short int), 1, pFile);
 	fread(&pTGAfile.startY, sizeof(short int), 1, pFile);
 
+
 	// Read the image's width and height.
 	fread(&pTGAfile.imageWidth, sizeof(short int), 1, pFile);
 	fread(&pTGAfile.imageHeight, sizeof(short int), 1, pFile);
@@ -110,9 +113,6 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 	colorMode = pTGAfile.bitCount / 8;
 	imageSize = pTGAfile.imageWidth * pTGAfile.imageHeight * colorMode;
 
-
-	//reading another arbitrary byte
-	
 	//allocating memory for the data
 	//pTGAfile.imageDataBuffer = (unsigned char*)malloc((sizeof(unsigned char)*imageSize));
 	pTGAfile.imageDataBuffer = (unsigned char*)mm_allocate((sizeof(unsigned char)*imageSize), 1, "TextureTGA");
@@ -143,6 +143,33 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 
 		}
 	}
+#if defined(TGADEBUG)
+	std::cout << "------------------------------------------" << std::endl;
+	std::cout << "file '" + file + "' header data:" << std::endl;
 
+	if (pTGAfile.imageType == 2)
+	{
+		std::cout << "image type(2): uncompressed true-color image." << std::endl;
+	}
+	else if (pTGAfile.imageType == 10)
+	{
+		std::cout << "image type(10): run-length encoded true-color image" << std::endl;
+	}
+	std::cout << "pixel start x: " + std::to_string(pTGAfile.startX) << std::endl;
+	std::cout << "pixel start y: " + std::to_string(pTGAfile.startX) << std::endl;
+	std::cout << "image width: " + std::to_string(pTGAfile.imageWidth) << std::endl;
+	std::cout << "image height: " + std::to_string(pTGAfile.imageHeight) << std::endl;
+	std::cout << "pixel size(in bits): " + std::to_string(pTGAfile.bitCount) << std::endl;
+	std::cout << "image size: " + std::to_string(imageSize) << std::endl;
+	if (!(pTGAfile.imageDescr & INVERTED_BIT))
+	{
+		std::cout << "pixel order: top-to-bottom"<< std::endl;
+	}
+	else
+	{
+		std::cout << "pixel order: left-to-right" << std::endl;
+	}
+	std::cout << "------------------------------------------" << std::endl;
+#endif
 	fclose(pFile);
 }

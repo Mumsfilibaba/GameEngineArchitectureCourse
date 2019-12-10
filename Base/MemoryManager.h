@@ -13,7 +13,7 @@
 #include "Helpers.h"
 
 //#define SIZE_IN_BYTES (64 * 1024)
-#define SIZE_IN_BYTES 1024 * 1024 * 256 // = 64mb
+#define SIZE_IN_BYTES 1024 * 1024 * 128 // = 128mb
 #define mm_allocate(...) MemoryManager::GetInstance().Allocate(__VA_ARGS__)
 #define mm_free(...) MemoryManager::GetInstance().Free(__VA_ARGS__)
 
@@ -21,7 +21,7 @@ struct Allocation
 {
 	Allocation()
 	{
-		this->tag = "Rövslask";
+		this->tag = "Rï¿½vslask";
 		this->sizeInBytes = 0;
 		this->padding = 0;
 	}
