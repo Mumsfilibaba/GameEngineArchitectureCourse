@@ -42,6 +42,11 @@ public:
 	void CreateResourcePackage(std::initializer_list<char*> files);
 	void CreateResourcePackage(std::vector<char*>& files);
 
+	size_t GetMaxMemory() const;
+	size_t GetUsedMemory() const;
+	size_t GetNrOfResourcesLoaded() const;
+	size_t GetNrOfResourcesInUse() const;
+
 	static ResourceManager& Get();
 
 private:
