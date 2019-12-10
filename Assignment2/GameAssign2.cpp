@@ -102,7 +102,7 @@ void GameAssign2::Render()
 	if (m_pMesh)
 		Renderer::Get().Submit(m_pMesh.Get(), sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
     
-    if (m_pCube)
+    if (m_pCube && m_pTexture)
         Renderer::Get().Submit(m_pCube.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
 #endif
 }
