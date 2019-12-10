@@ -13,6 +13,7 @@
 
 
 //#define CREATE_PACKAGE
+#define RESOURCE_INFO_DEBUG
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
@@ -22,6 +23,24 @@ void Func()
 {
 	for (uint32_t i = 0; i < 200000000; i++)
 		i++;
+}
+
+void RenderResourceDataInfo()
+{
+	ImGui::Begin("Resource Data Window");
+	ImGui::Separator();
+
+	constexpr int nrCount = 90;
+	static float nrOfResources[nrCount] = { 0 };
+	static int   valuesOffset = 0;
+
+	nrOfResources[valuesOffset] = ResourceManager::Get().GetNrOfResourcesInUse();
+	valuesOffset = (valuesOffset + 1) % nrCount;
+
+	ImGui::Text("Number of Resources in use: %d", ResourceManager::Get().GetNrOfResourcesInUse());
+	ImGui::PlotLines("", nrOfResources, 90, 0, "", 0.0f, 30.0f, ImVec2(0, 80));
+
+	ImGui::End();
 }
 
 void GameAssign2::Init()
@@ -223,10 +242,18 @@ void GameAssign2::RenderImGui()
 		}
 
 		ImGui::Columns(1);
+
+
 		ImGui::End();
 	}
 #endif
+#if defined(RESOURCE_INFO_DEBUG)
+	RenderResourceDataInfo();
+#endif
+
 }
+
+
 
 void GameAssign2::Release()
 {
