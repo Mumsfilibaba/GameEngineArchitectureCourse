@@ -43,7 +43,7 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 	{
 		if (manager->IsResourceLoaded(file))
 		{
-			IResource* res = manager->Get().GetResource(HashString(file));
+			IResource* res = manager->Get().GetResource(HashString(file.c_str()));
 			if (res->GetRefCount() > 0)
 				resourceStates[file] = 3;
 			else
