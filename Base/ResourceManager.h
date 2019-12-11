@@ -28,6 +28,7 @@ public:
 
 	Ref<ResourceBundle> LoadResources(std::initializer_list<size_t> guids);
 	Ref<ResourceBundle> LoadResources(std::initializer_list<char*> files);
+	Ref<ResourceBundle> LoadResources(std::vector<std::string>& files);
 
 	void LoadResourcesInBackground(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 

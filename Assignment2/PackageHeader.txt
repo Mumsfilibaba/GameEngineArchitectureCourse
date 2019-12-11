@@ -1,6 +1,9 @@
-Phone.tga
-teapot.obj
 BMPTest_24.bmp
 bunny.dae
 bunny.obj
 cube.dae
+flag_b16.tga
+M4A1.dae
+meme.tga
+Phone.tga
+teapot.obj

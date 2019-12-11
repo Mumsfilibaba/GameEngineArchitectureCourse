@@ -310,129 +310,133 @@ void MemoryManager::Free(void* allocationPtr)
 	FreeEntry* pClosestLeft = nullptr;
 	FreeEntry* pClosestRight = (FreeEntry*)ULLONG_MAX;
 
-	do
+	//Check if we have more than one allocation left, if this is the last allocation, we don't want to coalesce the last two freeblocks
+	if (m_AllocationHeaders.size() > 1)
 	{
-		//We encounter a block that ends in our start (Coalesce left)
-		if ((size_t)pCurrentFree + pCurrentFree->sizeInBytes == offsetAllocationAddress)
+		do
 		{
-			FreeEntry* pNewFreeEntry = nullptr;
-
-			//We have a block on our right that we can coalesce with as well
-			if (offsetAllocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree->pNext)
+			//We encounter a block that ends in our start (Coalesce left)
+			if ((size_t)pCurrentFree + pCurrentFree->sizeInBytes == offsetAllocationAddress)
 			{
-				size_t newFreeSize = pCurrentFree->sizeInBytes + pAllocation->sizeInBytes + pCurrentFree->pNext->sizeInBytes;
+				FreeEntry* pNewFreeEntry = nullptr;
 
-				FreeEntry* pCurrentFreeNextNext = pCurrentFree->pNext->pNext;
-				pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
-				pLastFree->pNext = pNewFreeEntry;
-				pNewFreeEntry->pNext = pCurrentFreeNextNext;
+				//We have a block on our right that we can coalesce with as well
+				if (offsetAllocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree->pNext)
+				{
+					size_t newFreeSize = pCurrentFree->sizeInBytes + pAllocation->sizeInBytes + pCurrentFree->pNext->sizeInBytes;
+
+					FreeEntry* pCurrentFreeNextNext = pCurrentFree->pNext->pNext;
+					pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
+					pLastFree->pNext = pNewFreeEntry;
+					pNewFreeEntry->pNext = pCurrentFreeNextNext;
 
 #ifdef DEBUG_MEMORY_MANAGER
-				std::cout << "Coalesce left then right" << std::endl;
+					std::cout << "Coalesce left then right" << std::endl;
 #endif
-			}
-			else
-			{
-				size_t newFreeSize = pCurrentFree->sizeInBytes + pAllocation->sizeInBytes;
+				}
+				else
+				{
+					size_t newFreeSize = pCurrentFree->sizeInBytes + pAllocation->sizeInBytes;
 
-				FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
-				pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
-				pLastFree->pNext = pNewFreeEntry;
-				pNewFreeEntry->pNext = pCurrentFreeNext;
+					FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
+					pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
+					pLastFree->pNext = pNewFreeEntry;
+					pNewFreeEntry->pNext = pCurrentFreeNext;
 
 #ifdef DEBUG_MEMORY_MANAGER
-				std::cout << "Coalesce left" << std::endl;
-#endif
-				
-			}
-
-			m_pFreeHead = pNewFreeEntry;
-			m_pFreeTail = pLastFree;
-
-#ifdef DEBUG_MEMORY_MANAGER
-			CheckFreeListCorruption();
-			std::cout << "--------------------------------------------" << std::endl;
+					std::cout << "Coalesce left" << std::endl;
 #endif
 
-			delete pAllocation;
-			return;
-		}
-		//We encounter a block that starts in our end (Coalesce right)
-		else if (offsetAllocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree)
-		{
-			FreeEntry* pNewFreeEntry = nullptr;
-
-			//We have a block on our left that we can coalesce with as well
-			if ((size_t)pLastFree + pLastFree->sizeInBytes == offsetAllocationAddress)
-			{
-				size_t newFreeSize = pLastFree->sizeInBytes + pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
-
-				FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
-				pNewFreeEntry = new(pLastFree) FreeEntry(newFreeSize);
-				pNewFreeEntry->pNext = pCurrentFreeNext;
-
-
-				m_pFreeHead = pNewFreeEntry->pNext;
-				m_pFreeTail = pNewFreeEntry;
-
-#ifdef DEBUG_MEMORY_MANAGER
-				std::cout << "Coalesce Right then left" << std::endl;
-
-				CheckFreeListCorruption();
-				std::cout << "--------------------------------------------" << std::endl;
-#endif
-			}
-			else
-			{
-				size_t newFreeSize = pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
-
-				/*std::cout << "Last: " << N2HexStr((size_t)pLastFree) << std::endl;
-				std::cout << "New:  " << N2HexStr(offsetAllocationAddress) << std::endl;
-				std::cout << "Curr: " << N2HexStr((size_t)pCurrentFree) << std::endl;
-				std::cout << std::endl;*/
-
-				FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
-				pNewFreeEntry = new((void*)offsetAllocationAddress) FreeEntry(newFreeSize);
-				pLastFree->pNext = pNewFreeEntry;
-				pNewFreeEntry->pNext = pCurrentFreeNext;
-
+				}
 
 				m_pFreeHead = pNewFreeEntry;
 				m_pFreeTail = pLastFree;
 
 #ifdef DEBUG_MEMORY_MANAGER
-				std::cout << "Coalesce Right" << std::endl;
-
 				CheckFreeListCorruption();
 				std::cout << "--------------------------------------------" << std::endl;
 #endif
+
+				delete pAllocation;
+				return;
 			}
-
-			delete pAllocation;
-
-			return;
-		}
-
-		if ((size_t)pLastFree < allocationAddress)
-		{
-			if ((size_t)pCurrentFree > allocationAddress)
+			//We encounter a block that starts in our end (Coalesce right)
+			else if (offsetAllocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree)
 			{
-				pClosestLeft = pLastFree;
-				pClosestRight = pCurrentFree;
-				//break;
+				FreeEntry* pNewFreeEntry = nullptr;
+
+				//We have a block on our left that we can coalesce with as well
+				if ((size_t)pLastFree + pLastFree->sizeInBytes == offsetAllocationAddress)
+				{
+					size_t newFreeSize = pLastFree->sizeInBytes + pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
+
+					FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
+					pNewFreeEntry = new(pLastFree) FreeEntry(newFreeSize);
+					pNewFreeEntry->pNext = pCurrentFreeNext;
+
+
+					m_pFreeHead = pNewFreeEntry->pNext;
+					m_pFreeTail = pNewFreeEntry;
+
+#ifdef DEBUG_MEMORY_MANAGER
+					std::cout << "Coalesce Right then left" << std::endl;
+
+					CheckFreeListCorruption();
+					std::cout << "--------------------------------------------" << std::endl;
+#endif
+				}
+				else
+				{
+					size_t newFreeSize = pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
+
+					/*std::cout << "Last: " << N2HexStr((size_t)pLastFree) << std::endl;
+					std::cout << "New:  " << N2HexStr(offsetAllocationAddress) << std::endl;
+					std::cout << "Curr: " << N2HexStr((size_t)pCurrentFree) << std::endl;
+					std::cout << std::endl;*/
+
+					FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
+					pNewFreeEntry = new((void*)offsetAllocationAddress) FreeEntry(newFreeSize);
+					pLastFree->pNext = pNewFreeEntry;
+					pNewFreeEntry->pNext = pCurrentFreeNext;
+
+
+					m_pFreeHead = pNewFreeEntry;
+					m_pFreeTail = pLastFree;
+
+#ifdef DEBUG_MEMORY_MANAGER
+					std::cout << "Coalesce Right" << std::endl;
+
+					CheckFreeListCorruption();
+					std::cout << "--------------------------------------------" << std::endl;
+#endif
+				}
+
+				delete pAllocation;
+
+				return;
 			}
-			else if ((size_t)pCurrentFree < (size_t)pLastFree && (size_t)pCurrentFree < (size_t)pClosestRight)
+
+			if ((size_t)pLastFree < allocationAddress)
 			{
-				pClosestLeft = pLastFree;
-				pClosestRight = pCurrentFree;
-				//break;
+				if ((size_t)pCurrentFree > allocationAddress)
+				{
+					pClosestLeft = pLastFree;
+					pClosestRight = pCurrentFree;
+					//break;
+				}
+				else if ((size_t)pCurrentFree < (size_t)pLastFree && (size_t)pCurrentFree < (size_t)pClosestRight)
+				{
+					pClosestLeft = pLastFree;
+					pClosestRight = pCurrentFree;
+					//break;
+				}
 			}
-		}
 
-		pLastFree = pCurrentFree;
-		pCurrentFree = pCurrentFree->pNext;
+			pLastFree = pCurrentFree;
+			pCurrentFree = pCurrentFree->pNext;
 
-	} while (pCurrentFree != m_pFreeHead);
+		} while (pCurrentFree != m_pFreeHead);
+	}
 
 	if (pClosestLeft == nullptr)
 	{

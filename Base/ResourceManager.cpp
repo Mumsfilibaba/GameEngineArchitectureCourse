@@ -111,6 +111,28 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::initializer_list<char*> 
 	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
 }
 
+Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string>& files)
+{
+	Archiver& archiver = Archiver::GetInstance();
+	ResourceLoader& resourceLoader = ResourceLoader::Get();
+
+	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
+
+	size_t* guidArray = new size_t[files.size()];
+	int index = 0;
+	for (std::string& file : files)
+	{
+		size_t guid = HashString(file.c_str());
+		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
+		if (iterator == m_LoadedResources.end())
+			LoadResource(resourceLoader, archiver, guid);
+
+		guidArray[index++] = guid;
+	}
+
+	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
+}
+
 void ResourceManager::LoadResourcesInBackground(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
 {
 	TaskManager& taskManager = TaskManager::Get();

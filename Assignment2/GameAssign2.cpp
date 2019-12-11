@@ -11,17 +11,18 @@
 #include <imgui.h>
 #include <filesystem>
 
+#ifdef VISUAL_STUDIO
+	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
+#endif
 
-//#define CREATE_PACKAGE
-#define RESOURCE_INFO_DEBUG
-
+#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
 
-#ifdef VISUAL_STUDIO
-	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
-#endif
+#define RESOURCE_INFO_DEBUG
+
+const std::string PACKAGE_HEADER_PATH = "PackageHeader.txt";
 
 void Func()
 {
@@ -51,9 +52,6 @@ void GameAssign2::Init()
 {
 	ResourceManager& resourceManager = ResourceManager::Get();
 
-    //create package
-    //resourceManager.CreateResourcePackage({ "meme.tga", "Phone.tga", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "BMPTest_24.bmp" });
-
 #if defined(CREATE_PACKAGE)
 	for (const auto& entry : std::filesystem::directory_iterator(UNPACKAGED_RESOURCES_DIR))
 	{
@@ -63,9 +61,23 @@ void GameAssign2::Init()
 		m_ResourcesNotInPackage.push_back(fileName);
 	}
 #else
-    //load resources
-	Ref<ResourceBundle> pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
-	pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
+	//Read Package Header created by the Packaging Tool
+	std::ifstream packageHeader;
+	packageHeader.open(PACKAGE_HEADER_PATH, std::ios_base::in);
+
+	std::vector<std::string> resourcesInPackage;
+	while (!packageHeader.eof())
+	{
+		std::string resource;
+		packageHeader >> resource;
+
+		if (resource.length() > 0)
+			resourcesInPackage.push_back(resource);
+	}
+
+	//Load Resources described in the Package Header
+	Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
+	//Ref<ResourceBundle> pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
@@ -158,7 +170,7 @@ void GameAssign2::RenderImGui()
 				ResourceManager::Get().CreateResourcePackage(UNPACKAGED_RESOURCES_DIR + "/", m_ResourcesInPackage);
 
 				std::ofstream fileStream;
-				fileStream.open("PackageHeader.txt", std::ios_base::out);
+				fileStream.open(PACKAGE_HEADER_PATH, std::ios_base::out);
 
 				if (fileStream.is_open())
 				{
