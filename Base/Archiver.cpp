@@ -158,7 +158,15 @@ bool Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t
 	{
 		case LOAD_AND_STORE:
 		{
-			pCompressedStart = reinterpret_cast<void*>((size_t)m_CompressedPackage.pData + packageTableEntry->second.offset);
+			if (packageTableEntry->second.compressedSize > 0)
+			{
+				pCompressedStart = reinterpret_cast<void*>((size_t)m_CompressedPackage.pData + packageTableEntry->second.offset);
+			}
+			else
+			{
+				memcpy(pBuf, (void*)((size_t)m_CompressedPackage.pData + packageTableEntry->second.offset), packageTableEntry->second.uncompressedSize);
+				return true;
+			}
 			break;
 		}
 		case LOAD_AND_PREPARE:
@@ -183,7 +191,6 @@ bool Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t
 						fileStream.read(reinterpret_cast<char*>(pBuf), packageTableEntry->second.uncompressedSize);
 						return true;
 					}
-
 				}
 			}
 
@@ -196,34 +203,27 @@ bool Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t
 		}
 	}
 
-	if (packageTableEntry->second.compressedSize > 0)
-	{
-		int err;
-		z_stream decompressionStream;
-		decompressionStream.zalloc = zalloc;
-		decompressionStream.zfree = zfree;
-		decompressionStream.opaque = nullptr;
+	int err;
+	z_stream decompressionStream;
+	decompressionStream.zalloc = zalloc;
+	decompressionStream.zfree = zfree;
+	decompressionStream.opaque = nullptr;
 
-		err = inflateInit(&decompressionStream);
-		ARCHIVER_CHECK_ERR(err, "inflateInit");
+	err = inflateInit(&decompressionStream);
+	ARCHIVER_CHECK_ERR(err, "inflateInit");
 
-		//std::cout << "Loaded Data: " << reinterpret_cast<char*>(pCompressedStart) << std::endl;
+	//std::cout << "Loaded Data: " << reinterpret_cast<char*>(pCompressedStart) << std::endl;
 
-		decompressionStream.next_in = reinterpret_cast<Byte*>(pCompressedStart);
-		decompressionStream.next_out = reinterpret_cast<Byte*>(pBuf);
-		decompressionStream.avail_in = (uInt)packageTableEntry->second.compressedSize;
-		decompressionStream.avail_out = (uInt)packageTableEntry->second.uncompressedSize;
+	decompressionStream.next_in = reinterpret_cast<Byte*>(pCompressedStart);
+	decompressionStream.next_out = reinterpret_cast<Byte*>(pBuf);
+	decompressionStream.avail_in = (uInt)packageTableEntry->second.compressedSize;
+	decompressionStream.avail_out = (uInt)packageTableEntry->second.uncompressedSize;
 
-		err = inflate(&decompressionStream, Z_FINISH);
-		assert(err > Z_OK);
+	err = inflate(&decompressionStream, Z_FINISH);
+	assert(err > Z_OK);
 
-		err = inflateEnd(&decompressionStream);
-		ARCHIVER_CHECK_ERR(err, "inflateEnd");
-	}
-	else
-	{
-		memcpy(pCompressedStart, pBuf, packageTableEntry->second.uncompressedSize);
-	}
+	err = inflateEnd(&decompressionStream);
+	ARCHIVER_CHECK_ERR(err, "inflateEnd");
 
 	if (m_CompressedPackage.packageMode == LOAD_AND_PREPARE)
 		MemoryManager::GetInstance().Free(pCompressedStart);

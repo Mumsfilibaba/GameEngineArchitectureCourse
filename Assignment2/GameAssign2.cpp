@@ -1,5 +1,6 @@
 #include "GameAssign2.h"
 #include "ResourceManager.h"
+#include "ResourceLoader.h"
 #include "ResourceBundle.h"
 #include "TaskManager.h"
 #include "LoaderOBJ.h"
@@ -15,7 +16,7 @@
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-//#define CREATE_PACKAGE
+#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
@@ -23,12 +24,6 @@ const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #define RESOURCE_INFO_DEBUG
 
 const std::string PACKAGE_HEADER_PATH = "PackageHeader.txt";
-
-void Func()
-{
-	for (uint32_t i = 0; i < 200000000; i++)
-		i++;
-}
 
 void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::string> resourceInPackage)
 {
@@ -124,15 +119,13 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		it++;
 	}
 
-	/*for (auto entity : resourcesInUses)
+	for (auto entity : resourcesInUses)
 	{
 		ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
 		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
 		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
 		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
-	}*/
-	
-
+	}
 
 	ImGui::End();
 }
@@ -145,9 +138,13 @@ void GameAssign2::Init()
 	for (const auto& entry : std::filesystem::directory_iterator(UNPACKAGED_RESOURCES_DIR))
 	{
 		std::string fileNameString = entry.path().filename().string();
-		char* fileName = new char[fileNameString.length() + 1];
-		strcpy(fileName, fileNameString.c_str());
-		m_ResourcesNotInPackage.push_back(fileName);
+
+		if (ResourceLoader::Get().HasLoaderForFile(fileNameString))
+		{
+			char* fileName = new char[fileNameString.length() + 1];
+			strcpy(fileName, fileNameString.c_str());
+			m_ResourcesNotInPackage.push_back(fileName);
+		}
 	}
 #else
 	//Read Package Header created by the Packaging Tool
@@ -404,8 +401,6 @@ void GameAssign2::RenderImGui()
 #endif
 
 }
-
-
 
 void GameAssign2::Release()
 {
