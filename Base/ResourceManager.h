@@ -11,7 +11,7 @@
 
 
 #define PACKAGE_PATH "package"
-#define RESOURCE_MANAGER_MAX_MEMORY 4096 * 4096
+#define RESOURCE_MANAGER_MAX_MEMORY 4096 * 4096 * 8
 
 class ResourceLoader;
 class Archiver;

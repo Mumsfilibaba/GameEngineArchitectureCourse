@@ -22,6 +22,7 @@ private:
 	Ref<Mesh> m_pMesh;
 	Ref<Mesh> m_pBunny;
     Ref<Mesh> m_pGun;
+	Ref<Mesh> m_pCar;
 
 	std::vector<char*> m_ResourcesNotInPackage;
 	std::vector<char*> m_ResourcesInPackage;

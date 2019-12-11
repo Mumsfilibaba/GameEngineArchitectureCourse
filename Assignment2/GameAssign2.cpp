@@ -15,7 +15,7 @@
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-#define CREATE_PACKAGE
+//#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
@@ -119,6 +119,12 @@ void GameAssign2::Init()
         ThreadSafePrintf("Loaded M4A1.dae in background!\n");
         m_pGun = bundle.Get()->GetMesh("M4A1.dae");
     });
+
+	resourceManager.LoadResourcesInBackground({ "AudiR8.dae" }, [this](const Ref<ResourceBundle>& bundle)
+	{
+		ThreadSafePrintf("Loaded AudiR8 in background!\n");
+		m_pCar = bundle.Get()->GetMesh("AudiR8.dae");
+	});
 #endif
 }
 
@@ -150,6 +156,15 @@ void GameAssign2::Render()
         glm::mat4 scale         = glm::scale(rotation, glm::vec3(0.15f, 0.15f, 0.15f));
         Renderer::Get().Submit(m_pGun.Get(), sf::Color::Blue, scale);
     }
+
+	if (m_pCar)
+	{
+		glm::mat4 translation	= glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 1.0f, -4.5f));
+		glm::mat4 rotation = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 0.0f, 1.0f));
+		rotation = glm::rotate(rotation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 scale			= glm::scale(rotation, glm::vec3(1.0f, 1.0f, 1.0f));
+		Renderer::Get().Submit(m_pCar.Get(), sf::Color::White, scale);
+	}
 #endif
 }
 
