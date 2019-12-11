@@ -175,7 +175,10 @@ void GameAssign2::Init()
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-        m_pTexture = bundle.Get()->GetTexture("meme.tga");
+		if (bundle)
+		{
+			m_pTexture = bundle.Get()->GetTexture("meme.tga");
+		}
 	});
 
 	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [this](const Ref<ResourceBundle>& bundle)
@@ -185,45 +188,66 @@ void GameAssign2::Init()
     
     resourceManager.LoadResourcesInBackground({ "teapot.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        m_pMesh = bundle.Get()->GetMesh("teapot.obj");
+		if (bundle)
+		{
+			m_pMesh = bundle.Get()->GetMesh("teapot.obj");
+		}
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        m_pBunny = bundle.Get()->GetMesh("bunny.obj");
+		if (bundle)
+		{
+			m_pBunny = bundle.Get()->GetMesh("bunny.obj");
+		}
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        //m_pCube = bundle.Get()->GetMesh("bunny.dae");
+		if (bundle)
+		{
+			//m_pCube = bundle.Get()->GetMesh("bunny.dae");
+		}
     });
     
     resourceManager.LoadResourcesInBackground({ "cube.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        m_pCube = bundle.Get()->GetMesh("cube.dae");
-    });
+		if (bundle)
+		{
+			m_pCube = bundle.Get()->GetMesh("cube.dae");
+		}
+	});
     
     resourceManager.LoadResourcesInBackground({ "M4A1.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        m_pGun = bundle.Get()->GetMesh("M4A1.dae");
+		if (bundle)
+		{
+			m_pGun = bundle.Get()->GetMesh("M4A1.dae");
+		}
     });
 
 	resourceManager.LoadResourcesInBackground({ "AudiR8.dae" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-		ThreadSafePrintf("Loaded AudiR8.dae in background!\n");
-		m_pCar = bundle.Get()->GetMesh("AudiR8.dae");
+		if (bundle)
+		{
+			m_pCar = bundle.Get()->GetMesh("AudiR8.dae");
+		}
 	});
 
 	resourceManager.LoadResourcesInBackground({ "stormtrooper.obj" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-		ThreadSafePrintf("Loaded stormtrooper.obj in background!\n");
-		m_pStorm = bundle.Get()->GetMesh("stormtrooper.obj");
+		if (bundle)
+		{
+			m_pStorm = bundle.Get()->GetMesh("stormtrooper.obj");
+		}
 	});
 
 	resourceManager.LoadResourcesInBackground({ "stormtrooper.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-		ThreadSafePrintf("Loaded stormtrooper.tga in background!\n");
-		m_pTexture2 = bundle.Get()->GetTexture("stormtrooper.tga");
+		if (bundle)
+		{
+			m_pTexture2 = bundle.Get()->GetTexture("stormtrooper.tga");
+		}
 	});
 #endif
 }

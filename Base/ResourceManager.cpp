@@ -21,6 +21,11 @@ ResourceManager::~ResourceManager()
 bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid, const std::string& file)
 {
 	size_t size = archiver.ReadRequiredSizeForPackageData(guid);
+	if (size == 0)
+	{
+		ThreadSafePrintf("Failed to read size of [%s]!\n", file.c_str());
+		return false;
+	}
 
 	if (m_UsedMemory + size > m_MaxMemory)
 	{
@@ -37,9 +42,21 @@ bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 
 	void* data = malloc(size);
 	size_t typeHash;
-	archiver.ReadPackageData(guid, typeHash, data, size);
+	if (!archiver.ReadPackageData(guid, typeHash, data, size))
+	{
+		ThreadSafePrintf("Failed to load resource data [%s]!\n", file.c_str());
+		free(data);
+		return false;
+	}
 
-	IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
+	IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash, file);
+	if (!resource)
+	{
+		ThreadSafePrintf("Failed to create resource [%s]!\n", file.c_str());
+		free(data);
+		return false;
+	}
+
 	resource->m_Guid = guid;
 	resource->m_Size = size;
 	resource->m_Name = file;
@@ -85,7 +102,10 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 		if (iterator == m_LoadedResources.end())
 		{
 			if (!LoadResource(resourceLoader, archiver, guid, file))
-				return Ref<ResourceBundle>(nullptr);
+			{
+				delete[] guidArray;
+				return Ref<ResourceBundle>();
+			}
 			ThreadSafePrintf("Loaded [%s]\n", file.c_str());
 		}
 			
@@ -133,7 +153,7 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 		if (!LoadResource(resourceLoader, archiver, pair.first, pair.second))
 		{
 			delete[] guidArray;
-			callback(Ref<ResourceBundle>(nullptr));
+			callback(Ref<ResourceBundle>());
 			return;
 		}
 		ThreadSafePrintf("Loaded [%s] in background!\n", pair.second);
@@ -252,36 +272,6 @@ bool ResourceManager::UnloadResource(size_t guid)
     return false;
 }
 
-void ResourceManager::CreateResourcePackage(std::initializer_list<char*> files)
-{
-	Archiver& archiver = Archiver::GetInstance();
-	ResourceLoader& resourceLoader = ResourceLoader::Get();
-
-	archiver.CreateUncompressedPackage();
-
-	void* data = malloc(4096*4096);
-
-	for (const char* file : files)
-	{
-		std::string filepath = std::string(file);
-		std::size_t index = filepath.find_last_of(".");
-		if (index == std::string::npos)
-		{
-			ThreadSafePrintf("Error! Tried to package a file without a type [%s]\n", file);
-			continue;
-		}
-		size_t typeHash = HashString(filepath.substr(index).c_str());
-		size_t bytesWritten = resourceLoader.WriteResourceToBuffer(filepath, data);
-		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);
-	}
-	free(data);
-
-	archiver.SaveUncompressedPackage(PACKAGE_PATH);
-	archiver.CloseUncompressedPackage();
-
-	ThreadSafePrintf("ResourcePackage [%s] Created\n", PACKAGE_PATH);
-}
-
 void ResourceManager::CreateResourcePackage(const std::string& directory, std::vector<char*>& fileNames)
 {
 	Archiver& archiver = Archiver::GetInstance();
@@ -298,11 +288,16 @@ void ResourceManager::CreateResourcePackage(const std::string& directory, std::v
 		std::size_t index = fileName.find_last_of(".");
 		if (index == std::string::npos)
 		{
-			ThreadSafePrintf("Error! Tried to package a file without a type [%s]\n", fileName);
+			ThreadSafePrintf("Error! Tried to package a file without a type [%s]\n", file);
 			continue;
 		}
 		size_t typeHash = HashString(fileName.substr(index).c_str());
 		size_t bytesWritten = resourceLoader.WriteResourceToBuffer(filePath, data);
+		if (bytesWritten == ULLONG_MAX)
+		{
+			ThreadSafePrintf("Error! Failed to package the following file [%s]\n", file);
+			continue;
+		}
 		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);
 	}
 	free(data);
