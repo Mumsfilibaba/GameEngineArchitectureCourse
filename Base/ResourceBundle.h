@@ -2,7 +2,6 @@
 #include <vector>
 #include <string>
 #include "Texture.h"
-#include "Sound.h"
 #include "Mesh.h"
 #include "Ref.h"
 #include "IRefCountable.h"
