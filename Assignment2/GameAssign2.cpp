@@ -65,8 +65,11 @@ void GameAssign2::RenderResourceDataInfo()
 	static const char* states[] = { "Load", "Unload", "Use",};
 	nrOfResources[0] = resourcesInUses.size();
 
-	ImGui::Text("Number of Resources: %d", m_ResourcesInCompressedPackage.size());
-	ImGui::PlotLines("", nrOfResources, 90, 0, "", 0.0f, 30.0f, ImVec2(0, 80));
+
+	ImGui::Text("Number of kilobytes currently in use");
+	char buf[32];
+	sprintf(buf, "%.2f/%.2f", (float)manager->GetUsedMemory() / 1024, (float)manager->GetMaxMemory() / 1024);
+	ImGui::ProgressBar(((float)manager->GetUsedMemory() / (float)manager->GetMaxMemory()), ImVec2(0.0f, 0.0f), buf);
 
 	ImGui::Separator();
 
