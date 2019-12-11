@@ -25,14 +25,42 @@ const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 
 const std::string PACKAGE_HEADER_PATH = "PackageHeader.txt";
 
-void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
+void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::string> resourceInPackage)
 {
 	ImVec4 notLoaded = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 	ImVec4 isLoadedAndUsed = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-	ImVec4 istLoadedNotUsed = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+	ImVec4 isLoadedNotUsed = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+	ImVec4 color;
 
-	std::vector<IResource*> resources;
-	ResourceManager::Get().GetResourcesInUse(resources);
+	ResourceManager* manager = &ResourceManager::Get();
+	std::vector<IResource*> resourcesInUses;
+
+	ResourceManager::Get().GetResourcesInUse(resourcesInUses);
+	
+	std::map<std::string, int> resourceStates;
+	int state = 1;
+
+	for (auto resource : resourceInPackage)
+	{
+		if (manager->IsResourceLoaded(resource))
+		{
+			for (auto& inUse : resourcesInUses)
+			{
+				if (inUse->GetName() == resource)
+				{
+					state = 3;
+					break;
+				}
+				else
+				{
+					state = 2;
+				}
+			}
+			
+		}
+		resourceStates[resource] = state;
+	}
+
 	ImGui::ShowDemoWindow();
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
@@ -63,14 +91,50 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
 	ImGui::Text("GUID:");
 	ImGui::NextColumn();
 
+	std::map<std::string, int>::iterator it = resourceStates.begin();
 
-	for (auto &entity : resources)
+	while (it != resourceStates.end())
 	{
-		ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+		switch (it->second)
+		{
+		case 1:
+			color = notLoaded;
+			break;
+		case 2:
+			color = isLoadedNotUsed;
+			break;
+		case 3:
+			color = isLoadedAndUsed;
+			break;
+	
+		}
+
+		IResource* entity = manager->GetResource(HashString(it->first.c_str()));
+		if (entity)
+		{
+			ImGui::TextColored(color, entity->GetName().c_str()); ImGui::NextColumn();
+			ImGui::TextColored(color, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
+			ImGui::TextColored(color, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
+			ImGui::TextColored(color, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+		}
+		else
+		{
+			ImGui::TextColored(color, it->first.c_str()); ImGui::NextColumn();
+			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
+			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
+			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
+		}
+
+		it++;
 	}
+
+	//for (auto entity : resourcesInUses)
+	//{
+	//	ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
+	//	ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
+	//	ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
+	//	ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+	//}
 	
 
 
@@ -300,7 +364,7 @@ void GameAssign2::RenderImGui()
 	}
 #endif
 #if defined(RESOURCE_INFO_DEBUG)
-	RenderResourceDataInfo(m_pBundle);
+	RenderResourceDataInfo(m_pBundle, m_resourcesInPackage);
 #endif
 
 }
