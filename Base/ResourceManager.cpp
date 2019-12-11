@@ -18,7 +18,7 @@ ResourceManager::~ResourceManager()
 	ResourceManager::UnloadUnusedResources();
 }
 
-bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid)
+bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid, const std::string& file)
 {
 	size_t size = archiver.ReadRequiredSizeForPackageData(guid);
 
@@ -42,6 +42,7 @@ bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 	IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash);
 	resource->m_Guid = guid;
 	resource->m_Size = size;
+	resource->m_Name = file;
 	free(data);
 
 	{
@@ -68,50 +69,7 @@ IResource* ResourceManager::GetResource(size_t guid)
 	return iterator->second;
 }
 
-Ref<ResourceBundle> ResourceManager::LoadResources(std::initializer_list<size_t> guids)
-{
-	Archiver& archiver = Archiver::GetInstance();
-	ResourceLoader& resourceLoader = ResourceLoader::Get();
-
-	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
-
-	size_t* guidArray = new size_t[guids.size()];
-	int index = 0;
-	for (size_t guid : guids)
-	{
-		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
-		if (iterator == m_LoadedResources.end())
-			LoadResource(resourceLoader, archiver, guid);
-
-		guidArray[index++] = guid;
-	}
-
-	return Ref<ResourceBundle>(new ResourceBundle(guidArray, guids.size()));
-}
-
-Ref<ResourceBundle> ResourceManager::LoadResources(std::initializer_list<char*> files)
-{
-	Archiver& archiver = Archiver::GetInstance();
-	ResourceLoader& resourceLoader = ResourceLoader::Get();
-
-	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
-
-	size_t* guidArray = new size_t[files.size()];
-	int index = 0;
-	for (const char* file : files)
-	{
-		size_t guid = HashString(file);
-		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
-		if (iterator == m_LoadedResources.end())
-			LoadResource(resourceLoader, archiver, guid);
-
-		guidArray[index++] = guid;
-	}
-
-	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
-}
-
-Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string>& files)
+Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> files)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
@@ -125,8 +83,12 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string>& fil
 		size_t guid = HashString(file.c_str());
 		std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
 		if (iterator == m_LoadedResources.end())
-			LoadResource(resourceLoader, archiver, guid);
-
+		{
+			if (!LoadResource(resourceLoader, archiver, guid, file))
+				return Ref<ResourceBundle>(nullptr);
+			ThreadSafePrintf("Loaded [%s]\n", file.c_str());
+		}
+			
 		guidArray[index++] = guid;
 	}
 
@@ -143,7 +105,7 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
-	std::vector<size_t> resourcesToLoad;
+	std::vector<std::pair<size_t, const char*>> resourcesToLoad;
 	size_t* guidArray = new size_t[files.size()];
 	int index = 0;
 
@@ -159,23 +121,24 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 			if (!IsResourceBeingLoaded(guid))
 			{
 				m_ResourcesToBeLoaded.push_back(guid);
-				resourcesToLoad.push_back(guid);
+				resourcesToLoad.push_back({ guid, file });
 			}
 		}
 		guidArray[index++] = guid;
 	}
 
 	//Load resources
-	for (size_t guid : resourcesToLoad)
+	for (auto& pair : resourcesToLoad)
 	{
-		if (!LoadResource(resourceLoader, archiver, guid))
+		if (!LoadResource(resourceLoader, archiver, pair.first, pair.second))
 		{
 			delete[] guidArray;
+			callback(Ref<ResourceBundle>(nullptr));
 			return;
 		}
-			
+		ThreadSafePrintf("Loaded [%s] in background!\n", pair.second);
 		std::scoped_lock<SpinLock> lock(m_LockLoading);
-		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), guid));
+		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair.first));
 	}
 
 	//Wait to make sure all resources are loaded, in case the resource is loaded from another thread
@@ -374,6 +337,23 @@ size_t ResourceManager::GetNrOfResourcesInUse() const
 			resourcesInUse++;
 	}
 	return resourcesInUse;
+}
+
+void ResourceManager::GetResourcesInUse(std::vector<IResource*>& vector) const
+{
+	for (std::pair<size_t, IResource*> resource : m_LoadedResources)
+	{
+		if (resource.second->GetRefCount() > 0)
+			vector.push_back(resource.second);
+	}
+}
+
+void ResourceManager::GetResourcesLoaded(std::vector<IResource*>& vector) const
+{
+	for (std::pair<size_t, IResource*> resource : m_LoadedResources)
+	{
+		vector.push_back(resource.second);
+	}
 }
 
 ResourceManager& ResourceManager::Get()

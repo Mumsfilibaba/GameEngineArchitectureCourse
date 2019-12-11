@@ -2,6 +2,7 @@
 #include <iostream>
 #include "Game.h"
 #include "TextureManager.h"
+#include "ResourceBundle.h"
 #include "Texture.h"
 #include "Ref.h"
 
@@ -24,6 +25,9 @@ private:
     Ref<Mesh> m_pGun;
 	Ref<Mesh> m_pCar;
 
+	Ref<ResourceBundle> m_pBundle;
+
+	std::vector<std::string> m_resourcesInPackage;
 	std::vector<char*> m_ResourcesNotInPackage;
 	std::vector<char*> m_ResourcesInPackage;
 };

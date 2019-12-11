@@ -30,8 +30,15 @@ void Func()
 		i++;
 }
 
-void RenderResourceDataInfo()
+void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
 {
+	ImVec4 notLoaded = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	ImVec4 isLoadedAndUsed = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+	ImVec4 istLoadedNotUsed = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+
+	std::vector<IResource*> resources;
+	ResourceManager::Get().GetResourcesInUse(resources);
+	ImGui::ShowDemoWindow();
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
 
@@ -44,6 +51,33 @@ void RenderResourceDataInfo()
 
 	ImGui::Text("Number of Resources in use: %d", ResourceManager::Get().GetNrOfResourcesInUse());
 	ImGui::PlotLines("", nrOfResources, 90, 0, "", 0.0f, 30.0f, ImVec2(0, 80));
+
+	ImGui::Separator();
+
+	ImGui::Columns(4, "Resources being referenced", true);
+
+	ImGui::Text("name:");
+	ImGui::NextColumn();
+
+	ImGui::Text("Size(kb):");
+	ImGui::NextColumn();
+
+	ImGui::Text("References:");
+	ImGui::NextColumn();
+
+	ImGui::Text("GUID:");
+	ImGui::NextColumn();
+
+
+	for (auto &entity : resources)
+	{
+		ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+	}
+	
+
 
 	ImGui::End();
 }
@@ -65,58 +99,52 @@ void GameAssign2::Init()
 	std::ifstream packageHeader;
 	packageHeader.open(PACKAGE_HEADER_PATH, std::ios_base::in);
 
-	std::vector<std::string> resourcesInPackage;
+	
 	while (!packageHeader.eof())
 	{
 		std::string resource;
 		packageHeader >> resource;
 
 		if (resource.length() > 0)
-			resourcesInPackage.push_back(resource);
+			m_resourcesInPackage.push_back(resource);
 	}
 
 	//Load Resources described in the Package Header
-	Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
-	//Ref<ResourceBundle> pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
+	//Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
+	m_pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-        ThreadSafePrintf("Loaded meme.tga in background!\n");
         m_pTexture = bundle.Get()->GetTexture("meme.tga");
 	});
 
 	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-        ThreadSafePrintf("Loaded Phone.tga in background!\n");
+       
 	});
     
     resourceManager.LoadResourcesInBackground({ "teapot.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded teapot.obj  in background!\n");
         m_pMesh = bundle.Get()->GetMesh("teapot.obj");
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded bunny.obj in background!\n");
         m_pBunny = bundle.Get()->GetMesh("bunny.obj");
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded bunny.dae  in background!\n");
         //m_pCube = bundle.Get()->GetMesh("bunny.dae");
     });
     
     resourceManager.LoadResourcesInBackground({ "cube.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded cube.dae in background!\n");
         m_pCube = bundle.Get()->GetMesh("cube.dae");
     });
     
     resourceManager.LoadResourcesInBackground({ "M4A1.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded M4A1.dae in background!\n");
         m_pGun = bundle.Get()->GetMesh("M4A1.dae");
     });
 
@@ -278,7 +306,7 @@ void GameAssign2::RenderImGui()
 	}
 #endif
 #if defined(RESOURCE_INFO_DEBUG)
-	RenderResourceDataInfo();
+	RenderResourceDataInfo(m_pBundle);
 #endif
 
 }
