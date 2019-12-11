@@ -25,6 +25,8 @@ const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 
 const std::string PACKAGE_HEADER_PATH = "PackageHeader.txt";
 
+std::string g_stateChangeName = "";
+static int g_selectedState = -1;
 void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::string> resourceInPackage)
 {
 	ImVec4 notLoaded = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -34,7 +36,6 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 
 	ResourceManager* manager = &ResourceManager::Get();
 	std::vector<IResource*> resourcesInUses;
-	std::string name = "";
 	ResourceManager::Get().GetResourcesInUse(resourcesInUses);
 	
 	std::map<std::string, int> resourceStates;
@@ -60,7 +61,6 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 	constexpr int nrCount = 90;
 	static float nrOfResources[nrCount] = { 0 };
 	static int   valuesOffset = 0;
-	static int selectedState = -1;
 	const char* states[] = { "Load", "Unload", "Use",};
 	nrOfResources[valuesOffset] = ResourceManager::Get().GetNrOfResourcesInUse();
 	valuesOffset = (valuesOffset + 1) % nrCount;
@@ -94,7 +94,7 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		{
 			if (ImGui::Selectable(states[i]))
 			{
-				selectedState = i;
+				g_selectedState = i;
 			}
 		}
 		ImGui::EndPopup();
@@ -116,17 +116,23 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		}
 
 		IResource* entity = manager->GetResource(HashString(it->first.c_str()));
-		if (ImGui::Button(entity->GetName().c_str()))
-		{
-			//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
-			name = entity->GetName();
-			ImGui::OpenPopup("ResourceGroup");
+		//if (ImGui::Button(entity->GetName().c_str()))
+		//{
+		//	//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
+		//	name = entity->GetName();
+		//	ImGui::OpenPopup("ResourceGroup");
 
-		}ImGui::NextColumn();
+		//}ImGui::NextColumn();
 
 		if (entity)
 		{
+			if (ImGui::Button(entity->GetName().c_str()))
+			{
+				//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
+				g_stateChangeName = entity->GetName();
+				ImGui::OpenPopup("ResourceGroup");
 
+			}ImGui::NextColumn();
 			//ImGui::TextColored(color, entity->GetName().c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
@@ -134,7 +140,14 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		}
 		else
 		{
-			ImGui::Button(it->first.c_str()); ImGui::NextColumn();
+			if (ImGui::Button(it->first.c_str()))
+			{
+				//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
+				g_stateChangeName = it->first;
+				ImGui::OpenPopup("ResourceGroup");
+
+			}ImGui::NextColumn();
+			//ImGui::Button(it->first.c_str()); ImGui::NextColumn();
 			//ImGui::TextColored(color, it->first.c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
 			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
