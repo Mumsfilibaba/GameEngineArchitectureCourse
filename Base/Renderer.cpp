@@ -127,7 +127,7 @@ void Renderer::Begin(const sf::Color& color, const Camera& camera)
 	m_MeshShader.setUniform("u_CameraPos", sf::Glsl::Vec3(pos.x, pos.y, pos.z));
 
 	GL_CALL(glEnable(GL_DEPTH_TEST));
-	GL_CALL(glEnable(GL_CULL_FACE));
+	//GL_CALL(glEnable(GL_CULL_FACE));
     GL_CALL(glEnable(GL_TEXTURE_2D));
     GL_CALL(glDisable(GL_BLEND));
 }
@@ -171,7 +171,7 @@ void Renderer::Submit(Mesh* pMesh, const sf::Texture& texture, const sf::Color& 
 
 void Renderer::End()
 {
-	GL_CALL(glDisable(GL_CULL_FACE));
+	//GL_CALL(glDisable(GL_CULL_FACE));
 	GL_CALL(glDisable(GL_DEPTH_TEST));
 	GL_CALL(glEnable(GL_BLEND));
 

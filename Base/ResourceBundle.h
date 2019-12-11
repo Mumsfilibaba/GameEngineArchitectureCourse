@@ -16,9 +16,6 @@ public:
 	Ref<Texture> GetTexture(size_t guid);
 	Ref<Texture> GetTexture(const std::string& file);
 
-	Ref<Sound> GetSound(size_t guid);
-	Ref<Sound> GetSound(const std::string& file);
-
 	Ref<Mesh> GetMesh(size_t guid);
 	Ref<Mesh> GetMesh(const std::string& file);
 

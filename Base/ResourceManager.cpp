@@ -289,7 +289,7 @@ void ResourceManager::CreateResourcePackage(const std::string& directory, std::v
 
 	archiver.CreateUncompressedPackage();
 
-	void* data = malloc(4096 * 4096);
+	void* data = malloc(4096 * 4096 * 4);
 
 	for (const char* file : fileNames)
 	{
