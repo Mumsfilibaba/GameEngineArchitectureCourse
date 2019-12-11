@@ -60,11 +60,7 @@ void GameAssign2::RenderResourceDataInfo()
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
 
-	constexpr int nrCount = 90;
-	static float nrOfResources[nrCount] = { 0 };
 	static const char* states[] = { "Load", "Unload", "Use",};
-	nrOfResources[0] = resourcesInUses.size();
-
 
 	ImGui::Text("Number of kilobytes currently in use");
 	char buf[32];
