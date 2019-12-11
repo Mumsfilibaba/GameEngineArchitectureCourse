@@ -41,3 +41,5 @@ Assignment2/package.txt
 Assignment2/package_debug.txt
 Dependencies/Glad/bin-int/Debug-windows-x86_64/Glad/Glad.vcxproj.FileListAbsolute.txt
 Dependencies/ImGui/bin-int/Debug-windows-x86_64/ImGui/ImGui.vcxproj.FileListAbsolute.txt
+
+Assignment2/package.chat
