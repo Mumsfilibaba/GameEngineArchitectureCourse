@@ -1,14 +1,16 @@
 #include "MemoryManager.h"
 #include <thread>
 #include <iostream>
-#include <windows.h>
+#ifdef _WIN32
+    #include <windows.h>
+#endif
 
 std::atomic_size_t MemoryManager::s_TotalAllocated = 0;
 std::atomic_size_t MemoryManager::s_TotalUsed = 0;
 
 //#define DEBUG_MEMORY_MANAGER
 
-#ifdef DEBUG_MEMORY_MANAGER
+#if defined(DEBUG_MEMORY_MANAGER) && defined(_WIN32)
 inline std::ostream& redText(std::ostream& s)
 {
 	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
