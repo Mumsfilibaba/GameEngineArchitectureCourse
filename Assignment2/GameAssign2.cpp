@@ -30,8 +30,10 @@ void Func()
 		i++;
 }
 
-void RenderResourceDataInfo()
+void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
 {
+	
+	ImGui::ShowDemoWindow();
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
 
@@ -44,6 +46,21 @@ void RenderResourceDataInfo()
 
 	ImGui::Text("Number of Resources in use: %d", ResourceManager::Get().GetNrOfResourcesInUse());
 	ImGui::PlotLines("", nrOfResources, 90, 0, "", 0.0f, 30.0f, ImVec2(0, 80));
+
+	ImGui::Separator();
+
+	ImGui::Columns(3, "Resources being referenced", true);
+
+	ImGui::Text("Resource:");
+	ImGui::NextColumn();
+
+	ImGui::Text("Number of references:");
+	ImGui::NextColumn();
+
+	ImGui::Text("Resource GUID:");
+	ImGui::NextColumn();
+	
+
 
 	ImGui::End();
 }
@@ -76,8 +93,8 @@ void GameAssign2::Init()
 	}
 
 	//Load Resources described in the Package Header
-	Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
-	//Ref<ResourceBundle> pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
+	//Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
+	m_pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
@@ -263,7 +280,7 @@ void GameAssign2::RenderImGui()
 	}
 #endif
 #if defined(RESOURCE_INFO_DEBUG)
-	RenderResourceDataInfo();
+	RenderResourceDataInfo(m_pBundle);
 #endif
 
 }
