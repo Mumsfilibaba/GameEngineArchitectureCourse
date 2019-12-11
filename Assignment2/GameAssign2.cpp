@@ -16,7 +16,7 @@
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-#define CREATE_PACKAGE
+//#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
@@ -119,14 +119,6 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		it++;
 	}
 
-	for (auto entity : resourcesInUses)
-	{
-		ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
-	}
-
 	ImGui::End();
 }
 
@@ -151,18 +143,17 @@ void GameAssign2::Init()
 	std::ifstream packageHeader;
 	packageHeader.open(PACKAGE_HEADER_PATH, std::ios_base::in);
 
-	std::vector<std::string> resourcesInPackage;
 	while (!packageHeader.eof())
 	{
 		std::string resource;
 		packageHeader >> resource;
 
 		if (resource.length() > 0)
-			resourcesInPackage.push_back(resource);
+			m_ResourcesInCompressedPackage.push_back(resource);
 	}
 
 	//Load Resources described in the Package Header
-	Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
+	Ref<ResourceBundle> pBundle = resourceManager.LoadResources(m_ResourcesInCompressedPackage);
 	//m_pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
@@ -397,7 +388,7 @@ void GameAssign2::RenderImGui()
 	}
 #endif
 #if defined(RESOURCE_INFO_DEBUG)
-	RenderResourceDataInfo(m_pBundle, m_resourcesInPackage);
+	RenderResourceDataInfo(m_pBundle, m_ResourcesInCompressedPackage);
 #endif
 
 }
