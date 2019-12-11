@@ -111,7 +111,6 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		case 3:
 			color = isLoadedAndUsed;
 			break;
-	
 		}
 
 		IResource* entity = manager->GetResource(HashString(it->first.c_str()));
