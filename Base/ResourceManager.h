@@ -39,7 +39,6 @@ public:
 
 	bool UnloadResource(size_t guid);
 
-	void CreateResourcePackage(std::initializer_list<char*> files);
 	void CreateResourcePackage(const std::string& directory, std::vector<char*>& fileNames);
 
 	size_t GetMaxMemory() const;
