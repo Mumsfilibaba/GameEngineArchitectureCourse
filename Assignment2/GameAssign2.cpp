@@ -145,11 +145,6 @@ void GameAssign2::Init()
 #endif
 }
 
-void onLoaded(const Ref<ResourceBundle>& bundle)
-{
-	std::cout << "Loaded meme.tga in background!" << std::endl;
-}
-
 void GameAssign2::Update(const sf::Time& deltaTime)
 {
 }
