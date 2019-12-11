@@ -16,16 +16,17 @@ public:
 	virtual void Render() override final;
 	virtual void RenderImGui() override final;
 	virtual void Release() override final;
+
+	void LoadResource(const std::string& file);
+	void UnLoadResource(const std::string& file);
+	void UseResource(const std::string& file);
+	void UnUseResource(const std::string& file);
+
+	void RenderResourceDataInfo();
+
 private:
-	Ref<Texture> m_pTexture;
-	Ref<Texture> m_pTexture2;
-	Ref<Mesh> m_pCube;
-	Ref<Mesh> m_pMesh;
-	Ref<Mesh> m_pBunny;
-    Ref<Mesh> m_pGun;
-	Ref<Mesh> m_pCar;
-	Ref<Mesh> m_pStorm;
-	Ref<ResourceBundle> m_pBundle;
+	std::unordered_map<std::string, IResource*> m_Resources;
+	std::unordered_map<std::string, IResource*> m_ResourcesInUse;
 
 	std::vector<std::string> m_ResourcesInCompressedPackage;
 

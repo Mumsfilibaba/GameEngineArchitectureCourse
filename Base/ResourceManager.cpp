@@ -15,7 +15,7 @@ ResourceManager::ResourceManager()
 
 ResourceManager::~ResourceManager()
 {
-	ResourceManager::UnloadUnusedResources();
+	ResourceManager::UnloadUnusedResources(true);
 }
 
 bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid, const std::string& file)
@@ -86,6 +86,17 @@ IResource* ResourceManager::GetResource(size_t guid)
 	return iterator->second;
 }
 
+IResource* ResourceManager::GetResource(const std::string& file)
+{
+	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(HashString(file.c_str()));
+	if (iterator == m_LoadedResources.end())
+	{
+		ThreadSafePrintf("Resource not found! [%s]\n", file.c_str());
+		return nullptr;
+	}
+	return iterator->second;
+}
+
 Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> files)
 {
 	Archiver& archiver = Archiver::GetInstance();
@@ -115,13 +126,13 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
 }
 
-void ResourceManager::LoadResourcesInBackground(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
+void ResourceManager::LoadResourcesInBackground(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
 {
 	TaskManager& taskManager = TaskManager::Get();
 	taskManager.Execute(std::bind(&ResourceManager::BackgroundLoading, this, std::move(files), callback));
 }
 
-void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
+void ResourceManager::BackgroundLoading(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
@@ -188,7 +199,7 @@ void ResourceManager::UnloadResource(IResource* resource)
 	}
 }
 
-void ResourceManager::UnloadUnusedResources()
+void ResourceManager::UnloadUnusedResources(bool force)
 {
 	std::scoped_lock<SpinLock> lock(m_LockLoaded);
 	std::vector<IResource*> resourcesToUnload;
@@ -200,11 +211,11 @@ void ResourceManager::UnloadUnusedResources()
 		for (auto it = m_LoadedResources.begin(); it != m_LoadedResources.end(); it++)
 		{
 			IResource* res = it->second;
-			if (res->GetRefCount() == 0)
+			if (res->GetRefCount() == 0 || force)
 			{
-				res->InternalRelease();
 				m_LoadedResources.erase(it);
 				m_UsedMemory -= res->m_Size;
+				res->InternalRelease();
 				exit = false;
 				break;
 			}
@@ -257,18 +268,22 @@ bool ResourceManager::UnloadResource(size_t guid)
 	if (resource->GetRefCount() == 0)
 	{
 		std::scoped_lock<SpinLock> lock(m_LockLoaded);
+		m_IsCleanup = true;
 		for (auto it = m_LoadedResources.begin(); it != m_LoadedResources.end(); ++it)
 		{
 			if (it->second == resource)
 			{
-				resource->InternalRelease();
 				m_LoadedResources.erase(it);
 				m_UsedMemory -= resource->m_Size;
-				break;
+				resource->InternalRelease();
+				m_IsCleanup = false;
+				return true;
 			}
 		}
+		m_IsCleanup = false;
 	}
     
+	ThreadSafePrintf("Failed to unload resource becouse it is currently being used [%s]", resource->GetName());
     return false;
 }
 

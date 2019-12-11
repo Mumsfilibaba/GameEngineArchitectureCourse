@@ -13,14 +13,6 @@ public:
 		return m_Refrences;
 	}
 
-protected:
-	inline IRefCountable() : m_Refrences(0) {};
-
-	inline virtual void InternalRelease()
-	{
-		delete this;
-	};
-
 	inline void AddRef()
 	{
 		m_Refrences++;
@@ -28,9 +20,16 @@ protected:
 
 	inline void RemoveRef()
 	{
-		if (--m_Refrences == 0)
-			InternalRelease();
+		m_Refrences--;
 	}
+
+protected:
+	inline IRefCountable() : m_Refrences(0) {};
+
+	inline virtual void InternalRelease()
+	{
+		delete this;
+	};
 
 private:
 	int m_Refrences;

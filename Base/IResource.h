@@ -28,7 +28,7 @@ private:
 #endif
 	};
 
-	inline virtual void InternalRelease() override
+	virtual inline void InternalRelease() override
 	{
 		Release();
 #ifdef _DEBUG

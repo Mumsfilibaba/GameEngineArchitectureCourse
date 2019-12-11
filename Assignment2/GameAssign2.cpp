@@ -22,15 +22,15 @@ const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
 
 #define RESOURCE_INFO_DEBUG
-#define IN_USE 3
-#define ONLY_LOADED 2
+#define IN_USE 2
+#define ONLY_LOADED 0
 #define NOT_LOADED 1
 
 const std::string PACKAGE_HEADER_PATH = "PackageHeader.txt";
 
 std::string g_stateChangeName = "";
 static int g_selectedState = -1;
-void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::string> resourceInPackage)
+void GameAssign2::RenderResourceDataInfo()
 {
 	ImVec4 notLoaded = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 	ImVec4 isLoadedAndUsed = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
@@ -43,11 +43,11 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 	
 	std::map<std::string, int> resourceStates;
 
-	for (auto file : resourceInPackage)
+	for (auto file : m_ResourcesInCompressedPackage)
 	{
 		if (manager->IsResourceLoaded(file))
 		{
-			IResource* res = manager->Get().GetResource(HashString(file.c_str()));
+			IResource* res = manager->Get().GetResource(file);
 			if (res->GetRefCount() > 0)
 				resourceStates[file] = IN_USE;
 			else
@@ -62,12 +62,10 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 
 	constexpr int nrCount = 90;
 	static float nrOfResources[nrCount] = { 0 };
-	static int   valuesOffset = 0;
-	const char* states[] = { "Load", "Unload", "Use",};
-	nrOfResources[valuesOffset] = ResourceManager::Get().GetNrOfResourcesInUse();
-	valuesOffset = (valuesOffset + 1) % nrCount;
+	static const char* states[] = { "Load", "Unload", "Use",};
+	nrOfResources[0] = resourcesInUses.size();
 
-	ImGui::Text("Number of Resources in use: %d", ResourceManager::Get().GetNrOfResourcesInUse());
+	ImGui::Text("Number of Resources: %d", m_ResourcesInCompressedPackage.size());
 	ImGui::PlotLines("", nrOfResources, 90, 0, "", 0.0f, 30.0f, ImVec2(0, 80));
 
 	ImGui::Separator();
@@ -92,11 +90,29 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 	{
 		ImGui::Text("Change State into:");
 		ImGui::Separator();
-		for (int i = 0; i < IM_ARRAYSIZE(states); i++)
+		for (int newState = 0; newState < IM_ARRAYSIZE(states); newState++)
 		{
-			if (ImGui::Selectable(states[i]))
+			if (ImGui::Selectable(states[newState]))
 			{
-				g_selectedState = i;
+				int currentState = resourceStates[g_stateChangeName];
+				if(currentState == newState)
+					break;
+
+				switch (newState)
+				{
+				case NOT_LOADED:
+					UnLoadResource(g_stateChangeName);
+					break;
+				case ONLY_LOADED:
+					if (currentState == NOT_LOADED)
+						LoadResource(g_stateChangeName);
+					else if (currentState == IN_USE)
+						UnUseResource(g_stateChangeName);
+					break;
+				case IN_USE:
+					UseResource(g_stateChangeName);
+					break;
+				}
 			}
 		}
 		ImGui::EndPopup();
@@ -117,17 +133,9 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 			break;
 		}
 
-		IResource* entity = manager->GetResource(HashString(it->first.c_str()));
-		//if (ImGui::Button(entity->GetName().c_str()))
-		//{
-		//	//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
-		//	name = entity->GetName();
-		//	ImGui::OpenPopup("ResourceGroup");
-
-		//}ImGui::NextColumn();
-
-		if (entity)
+		if (manager->IsResourceLoaded(it->first))
 		{
+			IResource* entity = manager->GetResource(it->first);
 			if (ImGui::Button(entity->GetName().c_str()))
 			{
 				//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
@@ -192,87 +200,61 @@ void GameAssign2::Init()
 			m_ResourcesInCompressedPackage.push_back(resource);
 	}
 
-	//Load Resources described in the Package Header
-	m_pBundle = resourceManager.LoadResources(m_ResourcesInCompressedPackage);
-	//m_pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
-
-	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
-	{
-		if (bundle)
-		{
-			m_pTexture = bundle.Get()->GetTexture("meme.tga");
-		}
-	});
-
-	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [this](const Ref<ResourceBundle>& bundle)
-	{
-       
-	});
-    
-    resourceManager.LoadResourcesInBackground({ "teapot.obj" }, [this](const Ref<ResourceBundle>& bundle)
-    {
-		if (bundle)
-		{
-			m_pMesh = bundle.Get()->GetMesh("teapot.obj");
-		}
-    });
-    
-    resourceManager.LoadResourcesInBackground({ "bunny.obj" }, [this](const Ref<ResourceBundle>& bundle)
-    {
-		if (bundle)
-		{
-			m_pBunny = bundle.Get()->GetMesh("bunny.obj");
-		}
-    });
-    
-    resourceManager.LoadResourcesInBackground({ "bunny.dae" }, [this](const Ref<ResourceBundle>& bundle)
-    {
-		if (bundle)
-		{
-			//m_pCube = bundle.Get()->GetMesh("bunny.dae");
-		}
-    });
-    
-    resourceManager.LoadResourcesInBackground({ "cube.dae" }, [this](const Ref<ResourceBundle>& bundle)
-    {
-		if (bundle)
-		{
-			m_pCube = bundle.Get()->GetMesh("cube.dae");
-		}
-	});
-    
-    resourceManager.LoadResourcesInBackground({ "M4A1.dae" }, [this](const Ref<ResourceBundle>& bundle)
-    {
-		if (bundle)
-		{
-			m_pGun = bundle.Get()->GetMesh("M4A1.dae");
-		}
-    });
-
-	resourceManager.LoadResourcesInBackground({ "AudiR8.dae" }, [this](const Ref<ResourceBundle>& bundle)
-	{
-		if (bundle)
-		{
-			m_pCar = bundle.Get()->GetMesh("AudiR8.dae");
-		}
-	});
-
-	resourceManager.LoadResourcesInBackground({ "stormtrooper.obj" }, [this](const Ref<ResourceBundle>& bundle)
-	{
-		if (bundle)
-		{
-			m_pStorm = bundle.Get()->GetMesh("stormtrooper.obj");
-		}
-	});
-
-	resourceManager.LoadResourcesInBackground({ "stormtrooper.tga" }, [this](const Ref<ResourceBundle>& bundle)
-	{
-		if (bundle)
-		{
-			m_pTexture2 = bundle.Get()->GetTexture("stormtrooper.tga");
-		}
-	});
 #endif
+}
+
+void GameAssign2::LoadResource(const std::string& file)
+{
+	if (m_Resources[file])
+		return;
+
+	ResourceManager::Get().LoadResourcesInBackground({ file.c_str() }, [this, file](const Ref<ResourceBundle>& bundle)
+	{
+		if (bundle)
+		{
+			m_Resources[file] = ResourceManager::Get().GetResource(file);
+		}
+	});
+}
+
+void GameAssign2::UnLoadResource(const std::string& file)
+{
+	m_Resources[file] = nullptr;
+	UnUseResource(file);
+
+	ResourceManager::Get().UnloadResource(HashString(file.c_str()));
+}
+
+void GameAssign2::UseResource(const std::string& file)
+{
+	if (m_Resources[file])
+	{
+		if (m_ResourcesInUse[file] != m_Resources[file])
+		{
+			m_ResourcesInUse[file] = m_Resources[file];
+			m_ResourcesInUse[file]->AddRef();
+		}
+		return;
+	}
+
+	ResourceManager::Get().LoadResourcesInBackground({ file.c_str() }, [this, file](const Ref<ResourceBundle>& bundle)
+	{
+		if (bundle)
+		{
+			m_Resources[file] = ResourceManager::Get().GetResource(file);
+			m_ResourcesInUse[file] = m_Resources[file];
+			m_ResourcesInUse[file]->AddRef();
+		}
+	});
+}
+
+void GameAssign2::UnUseResource(const std::string& file)
+{
+	if (m_ResourcesInUse[file])
+	{
+		m_ResourcesInUse[file]->RemoveRef();
+		m_ResourcesInUse[file] = nullptr;
+	}
 }
 
 void GameAssign2::Update(const sf::Time& deltaTime)
@@ -282,38 +264,38 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 void GameAssign2::Render()
 {
 #if !defined(CREATE_PACKAGE)
-	if (m_pBunny)
-		Renderer::Get().Submit(m_pBunny.Get(), sf::Color::Green, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+	if (m_ResourcesInUse["bunny.obj"])
+		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["bunny.obj"], sf::Color::Green, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
 
-	if (m_pMesh)
-		Renderer::Get().Submit(m_pMesh.Get(), sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
+	if (m_ResourcesInUse["teapot.obj"])
+		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["teapot.obj"], sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
     
-    if (m_pCube && m_pTexture)
-        Renderer::Get().Submit(m_pCube.Get(), m_pTexture.Get(), glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
+	if (m_ResourcesInUse["cube.dae"] && m_ResourcesInUse["meme.tga"])
+        Renderer::Get().Submit((Mesh*)m_ResourcesInUse["cube.dae"], (Texture*)m_ResourcesInUse["meme.tga"], glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
     
-    if (m_pGun)
+	if (m_ResourcesInUse["M4A1.dae"])
     {
         glm::mat4 translation   = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 4.5f));
         glm::mat4 rotation      = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 scale         = glm::scale(rotation, glm::vec3(0.15f, 0.15f, 0.15f));
-        Renderer::Get().Submit(m_pGun.Get(), sf::Color::Blue, scale);
+        Renderer::Get().Submit((Mesh*)m_ResourcesInUse["M4A1.dae"], sf::Color::Blue, scale);
     }
 
-	if (m_pCar)
+	if (m_ResourcesInUse["AudiR8.dae"])
 	{
 		glm::mat4 translation	= glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 1.0f, -4.5f));
 		glm::mat4 rotation = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 0.0f, 1.0f));
 		rotation = glm::rotate(rotation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 scale			= glm::scale(rotation, glm::vec3(1.0f, 1.0f, 1.0f));
-		Renderer::Get().Submit(m_pCar.Get(), sf::Color::White, scale);
+		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["AudiR8.dae"], sf::Color::White, scale);
 	}
 
-	if (m_pStorm && m_pTexture2)
+	if (m_ResourcesInUse["stormtrooper.obj"] && m_ResourcesInUse["stormtrooper.tga"])
 	{
 		glm::mat4 translation = glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 2.0f));
 		glm::mat4 rotation = glm::rotate(translation, glm::radians<float>(180), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 scale = glm::scale(rotation, glm::vec3(0.01f, 0.01f, 0.01f));
-		Renderer::Get().Submit(m_pStorm.Get(), m_pTexture2.Get(), scale);
+		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["stormtrooper.obj"], (Texture*)m_ResourcesInUse["stormtrooper.tga"], scale);
 	}
 #endif
 }
@@ -428,7 +410,7 @@ void GameAssign2::RenderImGui()
 	}
 #endif
 #if defined(RESOURCE_INFO_DEBUG)
-	RenderResourceDataInfo(m_pBundle, m_ResourcesInCompressedPackage);
+	RenderResourceDataInfo();
 #endif
 
 }

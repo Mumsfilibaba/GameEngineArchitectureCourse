@@ -28,8 +28,9 @@ public:
 
 	Ref<ResourceBundle> LoadResources(std::vector<std::string> files);
 
-	void LoadResourcesInBackground(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
+	void LoadResourcesInBackground(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	IResource* GetResource(size_t guid);
+	IResource* GetResource(const std::string& file);
 
 	bool IsResourceLoaded(size_t guid);
 	bool IsResourceLoaded(const std::string& path);
@@ -55,9 +56,9 @@ private:
 	ResourceManager();
 
 	bool LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid, const std::string& file);
-	void BackgroundLoading(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
+	void BackgroundLoading(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	void UnloadResource(IResource* resource);
-	void UnloadUnusedResources();
+	void UnloadUnusedResources(bool force = false);
 	void Update();
 
 	std::unordered_map<size_t, IResource*> m_LoadedResources;

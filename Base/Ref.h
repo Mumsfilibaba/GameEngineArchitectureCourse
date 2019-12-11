@@ -15,7 +15,11 @@ public:
 	virtual inline ~RefBase()
 	{
 		if (m_RefCountable)
+		{
 			m_RefCountable->RemoveRef();
+			if (m_RefCountable->GetRefCount() <= 0)
+				m_RefCountable->InternalRelease();
+		}	
 	};
 
 	RefBase& operator=(const RefBase& other)
@@ -24,7 +28,11 @@ public:
 			return *this;
 
 		if (m_RefCountable)
+		{
 			m_RefCountable->RemoveRef();
+			if (m_RefCountable->GetRefCount() <= 0)
+				m_RefCountable->InternalRelease();
+		}
 
 		m_RefCountable = other.m_RefCountable;
 		if (m_RefCountable)
