@@ -26,6 +26,7 @@ private:
 
 	Ref<ResourceBundle> m_pBundle;
 
+	std::vector<std::string> m_resourcesInPackage;
 	std::vector<char*> m_ResourcesNotInPackage;
 	std::vector<char*> m_ResourcesInPackage;
 };
