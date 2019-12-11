@@ -21,7 +21,7 @@ struct Allocation
 {
 	Allocation()
 	{
-		this->tag = "R�vslask";
+		this->tag = "";
 		this->sizeInBytes = 0;
 		this->padding = 0;
 	}

@@ -10,7 +10,7 @@
 
 class Archiver
 {	
-	static constexpr char PACKAGE_FILE_EXTENSION[] = ".txt";
+	static constexpr char PACKAGE_FILE_EXTENSION[] = ".chat";
 	static constexpr char COMPRESSION_LEVEL = Z_DEFAULT_COMPRESSION;
 
 public:
