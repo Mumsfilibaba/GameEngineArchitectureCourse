@@ -23,7 +23,7 @@ private:
 	ResourceLoader();
 
 	IResource* LoadResourceFromDisk(const std::string& file);
-	IResource* LoadResourceFromMemory(void* data, size_t size, size_t typeHash);
+	IResource* LoadResourceFromMemory(void* data, size_t size, size_t typeHash, const std::string& file);
 	size_t WriteResourceToBuffer(const std::string& file, void* buffer);
 	ILoader* GetLoader(size_t hash);
 	std::string GetFileType(const std::string& file);

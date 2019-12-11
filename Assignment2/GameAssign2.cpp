@@ -150,7 +150,6 @@ void GameAssign2::Init()
 
 	resourceManager.LoadResourcesInBackground({ "AudiR8.dae" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-		ThreadSafePrintf("Loaded AudiR8 in background!\n");
 		m_pCar = bundle.Get()->GetMesh("AudiR8.dae");
 	});
 #endif
