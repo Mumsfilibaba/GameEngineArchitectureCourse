@@ -48,7 +48,7 @@ void GameAssign2::RenderResourceDataInfo()
 		if (manager->IsResourceLoaded(file))
 		{
 			IResource* res = manager->Get().GetResource(file);
-			if (res->GetRefCount() > 0)
+			if (res && res->GetRefCount() > 0)
 				resourceStates[file] = IN_USE;
 			else
 				resourceStates[file] = ONLY_LOADED;
