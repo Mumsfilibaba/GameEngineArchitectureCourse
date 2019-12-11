@@ -26,7 +26,6 @@ public:
 
 private:
 	std::unordered_map<std::string, IResource*> m_Resources;
-	std::unordered_map<std::string, IResource*> m_ResourcesInUse;
 
 	std::vector<std::string> m_ResourcesInCompressedPackage;
 

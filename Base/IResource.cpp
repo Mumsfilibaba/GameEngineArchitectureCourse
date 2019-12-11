@@ -20,3 +20,8 @@ const std::string& IResource::GetName() const
 {
 	return m_Name;
 }
+
+bool IResource::IsReady() const
+{
+	return m_Ready;
+}

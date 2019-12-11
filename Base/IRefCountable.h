@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <algorithm>
 
 class IRefCountable
 {
@@ -13,6 +14,11 @@ public:
 		return m_Refrences;
 	}
 
+	inline bool InUse() const
+	{
+		return m_Refrences > 0;
+	}
+
 	inline void AddRef()
 	{
 		m_Refrences++;
@@ -20,7 +26,7 @@ public:
 
 	inline void RemoveRef()
 	{
-		m_Refrences--;
+		m_Refrences = std::max(m_Refrences - 1, 0);
 	}
 
 protected:

@@ -38,8 +38,8 @@ void GameAssign2::RenderResourceDataInfo()
 	ImVec4 color;
 
 	ResourceManager* manager = &ResourceManager::Get();
-	std::vector<IResource*> resourcesInUses;
-	ResourceManager::Get().GetResourcesInUse(resourcesInUses);
+	std::vector<IResource*> resourcesLoaded;
+	ResourceManager::Get().GetResourcesLoaded(resourcesLoaded);
 	
 	std::map<std::string, int> resourceStates;
 
@@ -57,10 +57,22 @@ void GameAssign2::RenderResourceDataInfo()
 			resourceStates[file] = NOT_LOADED;
 	}
 
+	for (auto res : m_Resources)
+	{
+		if (res.second)
+		{
+			if (!manager->IsResourceLoaded(res.first))
+			{
+				m_Resources[res.first] = nullptr; 
+				ThreadSafePrintf("Found removed resource [%s]", res.first.c_str());
+			}
+		}
+	}
+
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
 
-	static const char* states[] = { "Load", "Unload", "Use",};
+	static const char* states[] = { "Loaded", "Unloaded", "In Use",};
 
 	ImGui::Text("Number of kilobytes currently in use");
 	char buf[32];
@@ -87,7 +99,7 @@ void GameAssign2::RenderResourceDataInfo()
 
 	if (ImGui::BeginPopup("ResourceGroup"))
 	{
-		ImGui::Text("Change State into:");
+		ImGui::Text("Set State:");
 		ImGui::Separator();
 		for (int newState = 0; newState < IM_ARRAYSIZE(states); newState++)
 		{
@@ -218,20 +230,18 @@ void GameAssign2::LoadResource(const std::string& file)
 
 void GameAssign2::UnLoadResource(const std::string& file)
 {
-	m_Resources[file] = nullptr;
 	UnUseResource(file);
-
 	ResourceManager::Get().UnloadResource(HashString(file.c_str()));
+	m_Resources[file] = nullptr;
 }
 
 void GameAssign2::UseResource(const std::string& file)
 {
 	if (m_Resources[file])
 	{
-		if (m_ResourcesInUse[file] != m_Resources[file])
+		if (!m_Resources[file]->InUse())
 		{
-			m_ResourcesInUse[file] = m_Resources[file];
-			m_ResourcesInUse[file]->AddRef();
+			m_Resources[file]->AddRef();
 		}
 		return;
 	}
@@ -241,18 +251,16 @@ void GameAssign2::UseResource(const std::string& file)
 		if (bundle)
 		{
 			m_Resources[file] = ResourceManager::Get().GetResource(file);
-			m_ResourcesInUse[file] = m_Resources[file];
-			m_ResourcesInUse[file]->AddRef();
+			m_Resources[file]->AddRef();
 		}
 	});
 }
 
 void GameAssign2::UnUseResource(const std::string& file)
 {
-	if (m_ResourcesInUse[file])
+	if (m_Resources[file])
 	{
-		m_ResourcesInUse[file]->RemoveRef();
-		m_ResourcesInUse[file] = nullptr;
+		m_Resources[file]->RemoveRef();
 	}
 }
 
@@ -263,38 +271,48 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 void GameAssign2::Render()
 {
 #if !defined(CREATE_PACKAGE)
-	if (m_ResourcesInUse["bunny.obj"])
-		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["bunny.obj"], sf::Color::Green, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+	Mesh* bunny = (Mesh*)m_Resources["bunny.obj"];
+	Mesh* teapot = (Mesh*)m_Resources["teapot.obj"];
+	Mesh* cube = (Mesh*)m_Resources["cube.dae"];
+	Texture* meme = (Texture*)m_Resources["meme.tga"];
+	Mesh* m4a1 = (Mesh*)m_Resources["M4A1.dae"];
+	Mesh* audi = (Mesh*)m_Resources["AudiR8.dae"];
+	Mesh* stormtrooper = (Mesh*)m_Resources["stormtrooper.obj"];
+	Texture* storm = (Texture*)m_Resources["stormtrooper.tga"];
 
-	if (m_ResourcesInUse["teapot.obj"])
-		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["teapot.obj"], sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
+
+	if (bunny && bunny->InUse())
+		Renderer::Get().Submit(bunny, sf::Color::Green, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
+
+	if (teapot && teapot->InUse())
+		Renderer::Get().Submit(teapot, sf::Color::Red, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 0.0f)));
     
-	if (m_ResourcesInUse["cube.dae"] && m_ResourcesInUse["meme.tga"])
-        Renderer::Get().Submit((Mesh*)m_ResourcesInUse["cube.dae"], (Texture*)m_ResourcesInUse["meme.tga"], glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
+	if (cube && cube->InUse() && meme && meme->InUse())
+        Renderer::Get().Submit(cube, meme, glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 0.0f)));
     
-	if (m_ResourcesInUse["M4A1.dae"])
+	if (m4a1 && m4a1->InUse())
     {
         glm::mat4 translation   = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 4.5f));
         glm::mat4 rotation      = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 scale         = glm::scale(rotation, glm::vec3(0.15f, 0.15f, 0.15f));
-        Renderer::Get().Submit((Mesh*)m_ResourcesInUse["M4A1.dae"], sf::Color::Blue, scale);
+        Renderer::Get().Submit(m4a1, sf::Color::Blue, scale);
     }
 
-	if (m_ResourcesInUse["AudiR8.dae"])
+	if (audi && audi->InUse())
 	{
 		glm::mat4 translation	= glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 1.0f, -4.5f));
 		glm::mat4 rotation = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 0.0f, 1.0f));
 		rotation = glm::rotate(rotation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 scale			= glm::scale(rotation, glm::vec3(1.0f, 1.0f, 1.0f));
-		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["AudiR8.dae"], sf::Color::White, scale);
+		Renderer::Get().Submit(audi, sf::Color::White, scale);
 	}
 
-	if (m_ResourcesInUse["stormtrooper.obj"] && m_ResourcesInUse["stormtrooper.tga"])
+	if (stormtrooper && stormtrooper->InUse() && storm && storm->InUse())
 	{
 		glm::mat4 translation = glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 2.0f));
 		glm::mat4 rotation = glm::rotate(translation, glm::radians<float>(180), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 scale = glm::scale(rotation, glm::vec3(0.01f, 0.01f, 0.01f));
-		Renderer::Get().Submit((Mesh*)m_ResourcesInUse["stormtrooper.obj"], (Texture*)m_ResourcesInUse["stormtrooper.tga"], scale);
+		Renderer::Get().Submit(stormtrooper, storm, scale);
 	}
 #endif
 }

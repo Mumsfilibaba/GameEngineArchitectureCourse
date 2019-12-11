@@ -135,12 +135,18 @@ void Renderer::Begin(const sf::Color& color, const Camera& camera)
 
 void Renderer::Submit(Mesh* pMesh, Texture* pTexture, const glm::mat4& transform)
 {
+	if (!pTexture->IsReady())
+		return;
+
 	Submit(pMesh, pTexture->GetSFTexture(), sf::Color::White, transform);
 }
 
 
 void Renderer::Submit(Mesh* pMesh, Texture* pTexture, const sf::Color& color, const glm::mat4& transform)
 {
+	if (!pTexture->IsReady())
+		return;
+
 	Submit(pMesh, pTexture->GetSFTexture(), color, transform);
 }
 
@@ -153,6 +159,9 @@ void Renderer::Submit(Mesh* pMesh, const sf::Color& color, const glm::mat4& tran
 
 void Renderer::Submit(Mesh* pMesh, const sf::Texture& texture, const sf::Color& color, const glm::mat4& transform)
 {
+	if (!pMesh->IsReady())
+		return;
+
 	//Bind texture
 	GL_CALL(glActiveTexture(GL_TEXTURE0));
 	GL_CALL(glBindTexture(GL_TEXTURE_2D, texture.getNativeHandle()));
