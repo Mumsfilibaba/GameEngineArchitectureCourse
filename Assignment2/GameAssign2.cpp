@@ -16,7 +16,7 @@
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-#define CREATE_PACKAGE
+//#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
@@ -34,7 +34,7 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 
 	ResourceManager* manager = &ResourceManager::Get();
 	std::vector<IResource*> resourcesInUses;
-
+	std::string name = "";
 	ResourceManager::Get().GetResourcesInUse(resourcesInUses);
 	
 	std::map<std::string, int> resourceStates;
@@ -60,7 +60,8 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 	constexpr int nrCount = 90;
 	static float nrOfResources[nrCount] = { 0 };
 	static int   valuesOffset = 0;
-
+	static int selectedState = -1;
+	const char* states[] = { "Load", "Unload", "Use",};
 	nrOfResources[valuesOffset] = ResourceManager::Get().GetNrOfResourcesInUse();
 	valuesOffset = (valuesOffset + 1) % nrCount;
 
@@ -85,6 +86,20 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 
 	std::map<std::string, int>::iterator it = resourceStates.begin();
 
+	if (ImGui::BeginPopup("ResourceGroup"))
+	{
+		ImGui::Text("Change State into:");
+		ImGui::Separator();
+		for (int i = 0; i < IM_ARRAYSIZE(states); i++)
+		{
+			if (ImGui::Selectable(states[i]))
+			{
+				selectedState = i;
+			}
+		}
+		ImGui::EndPopup();
+	}
+
 	while (it != resourceStates.end())
 	{
 		switch (it->second)
@@ -101,30 +116,32 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		}
 
 		IResource* entity = manager->GetResource(HashString(it->first.c_str()));
+		if (ImGui::Button(entity->GetName().c_str()))
+		{
+			//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
+			name = entity->GetName();
+			ImGui::OpenPopup("ResourceGroup");
+
+		}ImGui::NextColumn();
+
 		if (entity)
 		{
-			ImGui::TextColored(color, entity->GetName().c_str()); ImGui::NextColumn();
+
+			//ImGui::TextColored(color, entity->GetName().c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
 		}
 		else
 		{
-			ImGui::TextColored(color, it->first.c_str()); ImGui::NextColumn();
+			ImGui::Button(it->first.c_str()); ImGui::NextColumn();
+			//ImGui::TextColored(color, it->first.c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
 			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
 			ImGui::TextColored(color, "No Data"); ImGui::NextColumn();
 		}
 
 		it++;
-	}
-
-	for (auto entity : resourcesInUses)
-	{
-		ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
-		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
 	}
 
 	ImGui::End();
@@ -158,11 +175,11 @@ void GameAssign2::Init()
 		packageHeader >> resource;
 
 		if (resource.length() > 0)
-			resourcesInPackage.push_back(resource);
+			m_ResourcesInCompressedPackage.push_back(resource);
 	}
 
 	//Load Resources described in the Package Header
-	Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
+	m_pBundle = resourceManager.LoadResources(m_ResourcesInCompressedPackage);
 	//m_pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
@@ -397,7 +414,7 @@ void GameAssign2::RenderImGui()
 	}
 #endif
 #if defined(RESOURCE_INFO_DEBUG)
-	RenderResourceDataInfo(m_pBundle, m_resourcesInPackage);
+	RenderResourceDataInfo(m_pBundle, m_ResourcesInCompressedPackage);
 #endif
 
 }
