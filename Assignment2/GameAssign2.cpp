@@ -168,7 +168,6 @@ void GameAssign2::Init()
 	std::ifstream packageHeader;
 	packageHeader.open(PACKAGE_HEADER_PATH, std::ios_base::in);
 
-	std::vector<std::string> resourcesInPackage;
 	while (!packageHeader.eof())
 	{
 		std::string resource;
