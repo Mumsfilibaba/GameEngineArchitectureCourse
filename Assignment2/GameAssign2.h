@@ -19,12 +19,13 @@ public:
 	virtual void Release() override final;
 private:
 	Ref<Texture> m_pTexture;
+	Ref<Texture> m_pTexture2;
 	Ref<Mesh> m_pCube;
 	Ref<Mesh> m_pMesh;
 	Ref<Mesh> m_pBunny;
     Ref<Mesh> m_pGun;
 	Ref<Mesh> m_pCar;
-
+	Ref<Mesh> m_pStorm;
 	Ref<ResourceBundle> m_pBundle;
 
 	std::vector<std::string> m_resourcesInPackage;

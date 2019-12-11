@@ -150,8 +150,20 @@ void GameAssign2::Init()
 
 	resourceManager.LoadResourcesInBackground({ "AudiR8.dae" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-		ThreadSafePrintf("Loaded AudiR8 in background!\n");
+		ThreadSafePrintf("Loaded AudiR8.dae in background!\n");
 		m_pCar = bundle.Get()->GetMesh("AudiR8.dae");
+	});
+
+	resourceManager.LoadResourcesInBackground({ "stormtrooper.obj" }, [this](const Ref<ResourceBundle>& bundle)
+	{
+		ThreadSafePrintf("Loaded stormtrooper.obj in background!\n");
+		m_pStorm = bundle.Get()->GetMesh("stormtrooper.obj");
+	});
+
+	resourceManager.LoadResourcesInBackground({ "stormtrooper.tga" }, [this](const Ref<ResourceBundle>& bundle)
+	{
+		ThreadSafePrintf("Loaded stormtrooper.tga in background!\n");
+		m_pTexture2 = bundle.Get()->GetTexture("stormtrooper.tga");
 	});
 #endif
 }
@@ -168,7 +180,7 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 void GameAssign2::Render()
 {
 #if !defined(CREATE_PACKAGE)
-	if (m_pBunny && m_pTexture)
+	if (m_pBunny)
 		Renderer::Get().Submit(m_pBunny.Get(), sf::Color::Green, glm::translate(glm::identity<glm::mat4>(), glm::vec3(2.0f, 0.0f, 0.0f)));
 
 	if (m_pMesh)
@@ -179,7 +191,7 @@ void GameAssign2::Render()
     
     if (m_pGun)
     {
-        glm::mat4 translation   = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 2.5f));
+        glm::mat4 translation   = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 0.0f, 4.5f));
         glm::mat4 rotation      = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 scale         = glm::scale(rotation, glm::vec3(0.15f, 0.15f, 0.15f));
         Renderer::Get().Submit(m_pGun.Get(), sf::Color::Blue, scale);
@@ -192,6 +204,14 @@ void GameAssign2::Render()
 		rotation = glm::rotate(rotation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 scale			= glm::scale(rotation, glm::vec3(1.0f, 1.0f, 1.0f));
 		Renderer::Get().Submit(m_pCar.Get(), sf::Color::White, scale);
+	}
+
+	if (m_pStorm && m_pTexture2)
+	{
+		glm::mat4 translation = glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0f, 0.0f, 2.0f));
+		glm::mat4 rotation = glm::rotate(translation, glm::radians<float>(180), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 scale = glm::scale(rotation, glm::vec3(0.01f, 0.01f, 0.01f));
+		Renderer::Get().Submit(m_pStorm.Get(), m_pTexture2.Get(), scale);
 	}
 #endif
 }
