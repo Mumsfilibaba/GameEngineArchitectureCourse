@@ -15,27 +15,43 @@ ResourceLoader::~ResourceLoader()
 	}
 }
 
-void ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader)
+bool ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader)
 {
-	size_t hash = HashString(fileType.c_str());
-	if (m_LoaderMap.find(hash) != m_LoaderMap.end())
+	if (HasLoader(fileType))
 	{
-		ThreadSafePrintf("Error! A loader of the filetype hash [%lu] is already registered!\n", hash);
-		return;
+		ThreadSafePrintf("Error! A loader of the filetype [%s] is already registered!\n", fileType.c_str());
+		return false;
 	}
-	ThreadSafePrintf("Registered [%lu] Loader\n", hash);
+
+	size_t hash = HashString(fileType.c_str());
+	ThreadSafePrintf("Registered [%s] Loader\n", fileType.c_str());
 	m_LoaderMap.insert({ hash, loader });
+}
+
+bool ResourceLoader::HasLoader(size_t fileTypeHash)
+{
+	return m_LoaderMap.find(fileTypeHash) != m_LoaderMap.end();
+}
+
+bool ResourceLoader::HasLoader(const std::string& fileType)
+{
+	return HasLoader(HashString(fileType.c_str()));
+}
+
+bool ResourceLoader::HasLoaderForFile(const std::string& file)
+{
+	std::string fileType = GetFileType(file);
+	if (fileType == "")
+		return false;
+
+	return HasLoader(fileType);
 }
 
 IResource* ResourceLoader::LoadResourceFromDisk(const std::string& file)
 {
-	std::size_t index = file.find_last_of(".");
-	if (index == std::string::npos)
-	{
-		ThreadSafePrintf("Error! Tried to load a file without a type [%s]!\n", file.c_str());
+	std::string fileType = GetFileType(file);
+	if (fileType == "")
 		return nullptr;
-	}
-	std::string fileType = file.substr(index);
 
 	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
@@ -55,13 +71,9 @@ IResource* ResourceLoader::LoadResourceFromMemory(void* data, size_t size, size_
 
 size_t ResourceLoader::WriteResourceToBuffer(const std::string& file, void* buffer)
 {
-	std::size_t index = file.find_last_of(".");
-	if (index == std::string::npos)
-	{
-		ThreadSafePrintf("Error! Tried to load a file without a type [%s]!\n", file.c_str());
-		return size_t(-1);
-	}
-	std::string fileType = file.substr(index);
+	std::string fileType = GetFileType(file);
+	if (fileType == "")
+		return ULLONG_MAX;
 
 	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
@@ -78,8 +90,18 @@ ILoader* ResourceLoader::GetLoader(size_t hash)
 		ThreadSafePrintf("No loader exist for the filetype hash [%lu]!\n", hash);
 		return nullptr;
 	}
-
 	return iterator->second;
+}
+
+std::string ResourceLoader::GetFileType(const std::string& file)
+{
+	std::size_t index = file.find_last_of(".");
+	if (index == std::string::npos)
+	{
+		ThreadSafePrintf("Error! Tried to load a file without a type [%s]!\n", file.c_str());
+		return "";
+	}
+	return file.substr(index);
 }
 
 ResourceLoader& ResourceLoader::Get()

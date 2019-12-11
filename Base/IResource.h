@@ -11,6 +11,9 @@ public:
 	IResource() : m_Guid(0) {};
 	virtual ~IResource();
 
+	size_t GetGUID() const;
+	size_t GetSize() const;
+
 protected:
 	virtual void Init() = 0;
 	virtual void Release() = 0;

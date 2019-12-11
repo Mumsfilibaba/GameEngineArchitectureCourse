@@ -12,7 +12,10 @@ class ResourceLoader
 public:
 	~ResourceLoader();
 
-	void RegisterLoader(const std::string& fileType, ILoader* loader);
+	bool RegisterLoader(const std::string& fileType, ILoader* loader);
+	bool HasLoader(size_t fileTypeHash);
+	bool HasLoader(const std::string& fileType);
+	bool HasLoaderForFile(const std::string& file);
 
 	static ResourceLoader& Get();
 
@@ -23,6 +26,7 @@ private:
 	IResource* LoadResourceFromMemory(void* data, size_t size, size_t typeHash);
 	size_t WriteResourceToBuffer(const std::string& file, void* buffer);
 	ILoader* GetLoader(size_t hash);
+	std::string GetFileType(const std::string& file);
 
 	std::unordered_map<size_t, ILoader*> m_LoaderMap;
 };

@@ -376,6 +376,23 @@ size_t ResourceManager::GetNrOfResourcesInUse() const
 	return resourcesInUse;
 }
 
+void ResourceManager::GetResourcesInUse(std::vector<IResource*>& vector) const
+{
+	for (std::pair<size_t, IResource*> resource : m_LoadedResources)
+	{
+		if (resource.second->GetRefCount() > 0)
+			vector.push_back(resource.second);
+	}
+}
+
+void ResourceManager::GetResourcesLoaded(std::vector<IResource*>& vector) const
+{
+	for (std::pair<size_t, IResource*> resource : m_LoadedResources)
+	{
+		vector.push_back(resource.second);
+	}
+}
+
 ResourceManager& ResourceManager::Get()
 {
 	static ResourceManager instance;
