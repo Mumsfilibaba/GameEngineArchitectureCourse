@@ -32,7 +32,8 @@ void Func()
 
 void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
 {
-	
+	std::vector<IResource*> resources;
+	ResourceManager::Get().GetResourcesInUse(resources);
 	ImGui::ShowDemoWindow();
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
@@ -49,16 +50,27 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
 
 	ImGui::Separator();
 
-	ImGui::Columns(3, "Resources being referenced", true);
+	ImGui::Columns(4, "Resources being referenced", true);
 
-	ImGui::Text("Resource:");
+	ImGui::Text("name:");
 	ImGui::NextColumn();
 
-	ImGui::Text("Number of references:");
+	ImGui::Text("Size(kb):");
 	ImGui::NextColumn();
 
-	ImGui::Text("Resource GUID:");
+	ImGui::Text("References:");
 	ImGui::NextColumn();
+
+	ImGui::Text("GUID:");
+	ImGui::NextColumn();
+
+
+	for (auto &entity : resources)
+	{
+		ImGui::Text(std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
+		ImGui::Text(std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
+		ImGui::Text(std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+	}
 	
 
 
