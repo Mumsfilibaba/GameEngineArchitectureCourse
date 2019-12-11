@@ -42,14 +42,18 @@ bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 
 	void* data = malloc(size);
 	size_t typeHash;
-	archiver.ReadPackageData(guid, typeHash, data, size);
-
-
+	if (!archiver.ReadPackageData(guid, typeHash, data, size))
+	{
+		ThreadSafePrintf("Failed to load resource data [%s]!\n", file.c_str());
+		free(data);
+		return false;
+	}
 
 	IResource* resource = resourceLoader.LoadResourceFromMemory(data, size, typeHash, file);
 	if (!resource)
 	{
-		ThreadSafePrintf("Failed to load load resource [%s]!\n", file.c_str());
+		ThreadSafePrintf("Failed to create resource [%s]!\n", file.c_str());
+		free(data);
 		return false;
 	}
 
@@ -98,7 +102,10 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 		if (iterator == m_LoadedResources.end())
 		{
 			if (!LoadResource(resourceLoader, archiver, guid, file))
-				return Ref<ResourceBundle>(nullptr);
+			{
+				delete[] guidArray;
+				return Ref<ResourceBundle>();
+			}
 			ThreadSafePrintf("Loaded [%s]\n", file.c_str());
 		}
 			
@@ -146,7 +153,7 @@ void ResourceManager::BackgroundLoading(std::vector<char*> files, const std::fun
 		if (!LoadResource(resourceLoader, archiver, pair.first, pair.second))
 		{
 			delete[] guidArray;
-			callback(Ref<ResourceBundle>(nullptr));
+			callback(Ref<ResourceBundle>());
 			return;
 		}
 		ThreadSafePrintf("Loaded [%s] in background!\n", pair.second);

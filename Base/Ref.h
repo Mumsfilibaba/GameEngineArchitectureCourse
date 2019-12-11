@@ -33,7 +33,7 @@ public:
 		return *this;
 	}
 
-	operator bool()
+	operator bool() const
 	{
 		return m_RefCountable;
 	}
