@@ -130,7 +130,7 @@ public:
 	void CloseCompressedPackage();
 
 	size_t ReadRequiredSizeForPackageData(size_t hash);
-	void ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t bufSize);
+	bool ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t bufSize);
 
 	void CreateUncompressedPackage();
 	void AddToUncompressedPackage(size_t hash, size_t typeHash, size_t sizeInBytes, void* pData);

@@ -132,14 +132,14 @@ size_t Archiver::ReadRequiredSizeForPackageData(size_t hash)
 	return packageTableEntry->second.uncompressedSize;
 }
 
-void Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t bufSize)
+bool Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t bufSize)
 {
 	auto packageTableEntry = m_CompressedPackage.table.find(hash);
 	if(packageTableEntry == m_CompressedPackage.table.end())
-		return;
+		return false;
 
 	if (bufSize < packageTableEntry->second.uncompressedSize)
-		return;
+		return false;
 
 	typeHash = packageTableEntry->second.typeHash;
 	void* pCompressedStart = nullptr;
@@ -171,7 +171,7 @@ void Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t
 					else
 					{
 						fileStream.read(reinterpret_cast<char*>(pBuf), packageTableEntry->second.uncompressedSize);
-						return;
+						return true;
 					}
 
 				}
@@ -217,6 +217,8 @@ void Archiver::ReadPackageData(size_t hash, size_t& typeHash, void* pBuf, size_t
 
 	if (m_CompressedPackage.packageMode == LOAD_AND_PREPARE)
 		MemoryManager::GetInstance().Free(pCompressedStart);
+
+	return true;
 }
 
 void Archiver::CreateUncompressedPackage()

@@ -99,19 +99,19 @@ void GameAssign2::Init()
 	std::ifstream packageHeader;
 	packageHeader.open(PACKAGE_HEADER_PATH, std::ios_base::in);
 
-	
+	std::vector<std::string> resourcesInPackage;
 	while (!packageHeader.eof())
 	{
 		std::string resource;
 		packageHeader >> resource;
 
 		if (resource.length() > 0)
-			m_resourcesInPackage.push_back(resource);
+			resourcesInPackage.push_back(resource);
 	}
 
 	//Load Resources described in the Package Header
-	//Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
-	m_pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
+	Ref<ResourceBundle> pBundle = resourceManager.LoadResources(resourcesInPackage);
+	//m_pBundle = resourceManager.LoadResources({ "BMPTest_24.bmp", "teapot.obj", "bunny.obj", "bunny.dae", "cube.dae", "M4A1.dae" });
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
