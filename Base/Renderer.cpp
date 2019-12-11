@@ -38,7 +38,7 @@ void Renderer::Init()
 	//Init shaders
 	std::string vs = R"(
 			#version 120
-			
+
 			attribute vec3 a_Position;
 			attribute vec3 a_Normal;
 			attribute vec2 a_TexCoord;
@@ -56,7 +56,7 @@ void Renderer::Init()
 				vec4 position = u_Transform * vec4(a_Position, 1.0);
 				v_Position	= position.xyz;
 
-				v_Normal	= normalize(a_Normal);
+				v_Normal	= normalize(mat3(u_Transform) * a_Normal);
 				v_TexCoord	= a_TexCoord;
 
 				gl_Position = u_Projection * u_View * position;

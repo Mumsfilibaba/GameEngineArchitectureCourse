@@ -56,7 +56,7 @@ IResource* ResourceLoader::LoadResourceFromDisk(const std::string& file)
 	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
 	{
-		ThreadSafePrintf("No loader exist for the filetype [%s]!\n", fileType);
+		ThreadSafePrintf("No loader exist for the filetype [%s]!\n", fileType.c_str());
 		return nullptr;
 	}
 
@@ -84,7 +84,7 @@ size_t ResourceLoader::WriteResourceToBuffer(const std::string& file, void* buff
 	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
 	{
-		ThreadSafePrintf("No loader exist for the filetype [%s]!\n", fileType);
+		ThreadSafePrintf("No loader exist for the filetype [%s]!\n", fileType.c_str());
 		return ULLONG_MAX;
 	}
 
