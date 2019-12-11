@@ -1,8 +1,10 @@
+AudiR8.dae
 BMPTest_24.bmp
 bunny.dae
 bunny.obj
 cube.dae
 flag_b16.tga
+handgun.dae
 M4A1.dae
 meme.tga
 Phone.tga

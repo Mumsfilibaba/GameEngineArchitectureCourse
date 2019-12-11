@@ -31,34 +31,34 @@ IResource* LoaderBMP::LoadFromDisk(const std::string& file)
 	switch (dibHeader.dibHeaderSize)
 	{
 	case BITMAPINFOHEADER_40:
-		std::cout << "BMP DIF Header: BITMAPINFOHEADER_40" << std::endl;
+		std::cout << "BMP DIB Header: BITMAPINFOHEADER_40" << std::endl;
 		break;
 	case OS21XBITMAPHEADER_12:
-		std::cout << "Unsupported BMP DIF Header: OS21XBITMAPHEADER_12" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: OS21XBITMAPHEADER_12" << std::endl;
 		return 0;
 		break;
 	case OS22XBITMAPHEADER_64:
-		std::cout << "Unsupported BMP DIF Header: OS22XBITMAPHEADER_64" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: OS22XBITMAPHEADER_64" << std::endl;
 		return 0;
 		break;
 	case OS22XBITMAPHEADER_16:
-		std::cout << "Unsupported BMP DIF Header: OS22XBITMAPHEADER_16" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: OS22XBITMAPHEADER_16" << std::endl;
 		return 0;
 		break;
 	case BITMAPV2INFOHEADER_52:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV2INFOHEADER_52" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV2INFOHEADER_52" << std::endl;
 		return 0;
 		break;
 	case BITMAPV3INFOHEADER_56:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV3INFOHEADER_56" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV3INFOHEADER_56" << std::endl;
 		return 0;
 		break;
 	case BITMAPV4HEADER_108:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV4HEADER_108" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV4HEADER_108" << std::endl;
 		return 0;
 		break;
 	case BITMAPV5HEADER_124:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV5HEADER_124" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV5HEADER_124" << std::endl;
 		return 0;
 		break;
 	default:
@@ -155,34 +155,34 @@ size_t LoaderBMP::LoadAndConvert(void* pBMPFileData, size_t size, void* pBuffer)
 	switch (dibHeader.dibHeaderSize)
 	{
 	case BITMAPINFOHEADER_40:
-		std::cout << "BMP DIF Header: BITMAPINFOHEADER_40" << std::endl;
+		std::cout << "BMP DIB Header: BITMAPINFOHEADER_40" << std::endl;
 		break;
 	case OS21XBITMAPHEADER_12:
-		std::cout << "Unsupported BMP DIF Header: OS21XBITMAPHEADER_12" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: OS21XBITMAPHEADER_12" << std::endl;
 		return 0;
 		break;
 	case OS22XBITMAPHEADER_64:
-		std::cout << "Unsupported BMP DIF Header: OS22XBITMAPHEADER_64" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: OS22XBITMAPHEADER_64" << std::endl;
 		return 0;
 		break;
 	case OS22XBITMAPHEADER_16:
-		std::cout << "Unsupported BMP DIF Header: OS22XBITMAPHEADER_16" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: OS22XBITMAPHEADER_16" << std::endl;
 		return 0;
 		break;
 	case BITMAPV2INFOHEADER_52:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV2INFOHEADER_52" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV2INFOHEADER_52" << std::endl;
 		return 0;
 		break;
 	case BITMAPV3INFOHEADER_56:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV3INFOHEADER_56" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV3INFOHEADER_56" << std::endl;
 		return 0;
 		break;
 	case BITMAPV4HEADER_108:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV4HEADER_108" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV4HEADER_108" << std::endl;
 		return 0;
 		break;
 	case BITMAPV5HEADER_124:
-		std::cout << "Unsupported BMP DIF Header: BITMAPV5HEADER_124" << std::endl;
+		std::cout << "Unsupported BMP DIB Header: BITMAPV5HEADER_124" << std::endl;
 		return 0;
 		break;
 	default:

@@ -32,6 +32,10 @@ void Func()
 
 void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
 {
+	ImVec4 notLoaded = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	ImVec4 isLoadedAndUsed = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+	ImVec4 istLoadedNotUsed = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+
 	std::vector<IResource*> resources;
 	ResourceManager::Get().GetResourcesInUse(resources);
 	ImGui::ShowDemoWindow();
@@ -67,9 +71,10 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle)
 
 	for (auto &entity : resources)
 	{
-		ImGui::Text(std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
-		ImGui::Text(std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
-		ImGui::Text(std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
 	}
 	
 
@@ -94,14 +99,14 @@ void GameAssign2::Init()
 	std::ifstream packageHeader;
 	packageHeader.open(PACKAGE_HEADER_PATH, std::ios_base::in);
 
-	std::vector<std::string> resourcesInPackage;
+	
 	while (!packageHeader.eof())
 	{
 		std::string resource;
 		packageHeader >> resource;
 
 		if (resource.length() > 0)
-			resourcesInPackage.push_back(resource);
+			m_resourcesInPackage.push_back(resource);
 	}
 
 	//Load Resources described in the Package Header
@@ -142,6 +147,12 @@ void GameAssign2::Init()
     {
         m_pGun = bundle.Get()->GetMesh("M4A1.dae");
     });
+
+	resourceManager.LoadResourcesInBackground({ "AudiR8.dae" }, [this](const Ref<ResourceBundle>& bundle)
+	{
+		ThreadSafePrintf("Loaded AudiR8 in background!\n");
+		m_pCar = bundle.Get()->GetMesh("AudiR8.dae");
+	});
 #endif
 }
 
@@ -168,6 +179,15 @@ void GameAssign2::Render()
         glm::mat4 scale         = glm::scale(rotation, glm::vec3(0.15f, 0.15f, 0.15f));
         Renderer::Get().Submit(m_pGun.Get(), sf::Color::Blue, scale);
     }
+
+	if (m_pCar)
+	{
+		glm::mat4 translation	= glm::translate(glm::identity<glm::mat4>(), glm::vec3(-2.0f, 1.0f, -4.5f));
+		glm::mat4 rotation = glm::rotate(translation, glm::radians<float>(90), glm::vec3(0.0f, 0.0f, 1.0f));
+		rotation = glm::rotate(rotation, glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 scale			= glm::scale(rotation, glm::vec3(1.0f, 1.0f, 1.0f));
+		Renderer::Get().Submit(m_pCar.Get(), sf::Color::White, scale);
+	}
 #endif
 }
 
