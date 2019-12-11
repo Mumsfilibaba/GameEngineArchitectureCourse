@@ -127,15 +127,13 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		it++;
 	}
 
-	//for (auto entity : resourcesInUses)
-	//{
-	//	ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
-	//	ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
-	//	ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
-	//	ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
-	//}
-	
-
+	for (auto entity : resourcesInUses)
+	{
+		ImGui::TextColored(isLoadedAndUsed, entity->GetName().c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
+		ImGui::TextColored(isLoadedAndUsed, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+	}
 
 	ImGui::End();
 }
