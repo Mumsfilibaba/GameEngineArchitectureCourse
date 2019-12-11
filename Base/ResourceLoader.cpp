@@ -24,7 +24,7 @@ bool ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader
 	}
 
 	size_t hash = HashString(fileType.c_str());
-	ThreadSafePrintf("Registered [%s] Loader\n", fileType.c_str());
+	ThreadSafePrintf("Registered [%s] Loader [%lu]\n", fileType.c_str(), hash);
 	m_LoaderMap.insert({ hash, loader });
 }
 
@@ -55,7 +55,10 @@ IResource* ResourceLoader::LoadResourceFromDisk(const std::string& file)
 
 	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
+	{
+		ThreadSafePrintf("No loader exist for the filetype [%s]!\n", fileType);
 		return nullptr;
+	}
 
 	return loader->LoadFromDisk(file);
 }
@@ -64,7 +67,10 @@ IResource* ResourceLoader::LoadResourceFromMemory(void* data, size_t size, size_
 {
 	ILoader* loader = GetLoader(typeHash);
 	if (!loader)
+	{
+		ThreadSafePrintf("No loader exist for the filetype Hash [%lu]!\n", typeHash);
 		return nullptr;
+	}
 
 	return loader->LoadFromMemory(data, size);
 }
@@ -77,7 +83,10 @@ size_t ResourceLoader::WriteResourceToBuffer(const std::string& file, void* buff
 
 	ILoader* loader = GetLoader(HashString(fileType.c_str()));
 	if (!loader)
-		return size_t(-1);
+	{
+		ThreadSafePrintf("No loader exist for the filetype [%s]!\n", fileType);
+		return ULLONG_MAX;
+	}
 
 	return loader->WriteToBuffer(file, buffer);
 }
@@ -86,10 +95,7 @@ ILoader* ResourceLoader::GetLoader(size_t hash)
 {
 	std::unordered_map<size_t, ILoader*>::const_iterator iterator = m_LoaderMap.find(hash);
 	if (iterator == m_LoaderMap.end())
-	{
-		ThreadSafePrintf("No loader exist for the filetype hash [%lu]!\n", hash);
 		return nullptr;
-	}
 	return iterator->second;
 }
 

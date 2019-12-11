@@ -23,6 +23,7 @@ private:
 	Ref<Mesh> m_pMesh;
 	Ref<Mesh> m_pBunny;
     Ref<Mesh> m_pGun;
+	Ref<Mesh> m_pCar;
 
 	Ref<ResourceBundle> m_pBundle;
 

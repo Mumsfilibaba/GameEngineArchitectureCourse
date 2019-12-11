@@ -24,16 +24,6 @@ Ref<Texture> ResourceBundle::GetTexture(const std::string& file)
 	return GetTexture(HashString(file.c_str()));
 }
 
-Ref<Sound> ResourceBundle::GetSound(size_t guid)
-{
-	return Ref<Sound>((Sound*)ResourceManager::Get().GetResource(guid));
-}
-
-Ref<Sound> ResourceBundle::GetSound(const std::string& file)
-{
-	return GetSound(HashString(file.c_str()));
-}
-
 Ref<Mesh> ResourceBundle::GetMesh(size_t guid)
 {
     return Ref<Mesh>((Mesh*)ResourceManager::Get().GetResource(guid));
