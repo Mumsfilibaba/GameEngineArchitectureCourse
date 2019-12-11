@@ -98,42 +98,36 @@ void GameAssign2::Init()
 
 	resourceManager.LoadResourcesInBackground({ "meme.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-        ThreadSafePrintf("Loaded meme.tga in background!\n");
         m_pTexture = bundle.Get()->GetTexture("meme.tga");
 	});
 
 	resourceManager.LoadResourcesInBackground({ "Phone.tga" }, [this](const Ref<ResourceBundle>& bundle)
 	{
-        ThreadSafePrintf("Loaded Phone.tga in background!\n");
+       
 	});
     
     resourceManager.LoadResourcesInBackground({ "teapot.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded teapot.obj  in background!\n");
         m_pMesh = bundle.Get()->GetMesh("teapot.obj");
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.obj" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded bunny.obj in background!\n");
         m_pBunny = bundle.Get()->GetMesh("bunny.obj");
     });
     
     resourceManager.LoadResourcesInBackground({ "bunny.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded bunny.dae  in background!\n");
         //m_pCube = bundle.Get()->GetMesh("bunny.dae");
     });
     
     resourceManager.LoadResourcesInBackground({ "cube.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded cube.dae in background!\n");
         m_pCube = bundle.Get()->GetMesh("cube.dae");
     });
     
     resourceManager.LoadResourcesInBackground({ "M4A1.dae" }, [this](const Ref<ResourceBundle>& bundle)
     {
-        ThreadSafePrintf("Loaded M4A1.dae in background!\n");
         m_pGun = bundle.Get()->GetMesh("M4A1.dae");
     });
 #endif

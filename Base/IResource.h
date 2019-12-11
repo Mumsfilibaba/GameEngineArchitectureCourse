@@ -13,6 +13,7 @@ public:
 
 	size_t GetGUID() const;
 	size_t GetSize() const;
+	const std::string& GetName() const;
 
 protected:
 	virtual void Init() = 0;
@@ -23,7 +24,7 @@ private:
 	{
 		Init();
 #ifdef _DEBUG
-		ThreadSafePrintf("Resource Initiated [%lu]\n", m_Guid);
+		ThreadSafePrintf("Resource Initiated [%s]\n", m_Name.c_str());
 #endif
 	};
 
@@ -31,11 +32,12 @@ private:
 	{
 		Release();
 #ifdef _DEBUG
-		ThreadSafePrintf("Resource Released [%lu]\n", m_Guid);
+		ThreadSafePrintf("Resource Released [%s]\n", m_Name.c_str());
 #endif
 		IRefCountable::InternalRelease();
 	};
 
 	size_t m_Guid;
 	size_t m_Size;
+	std::string m_Name;
 };

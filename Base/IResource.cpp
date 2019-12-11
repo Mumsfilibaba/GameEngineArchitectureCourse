@@ -15,3 +15,8 @@ size_t IResource::GetSize() const
 {
 	return m_Size;
 }
+
+const std::string& IResource::GetName() const
+{
+	return m_Name;
+}
