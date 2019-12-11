@@ -22,6 +22,9 @@ const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
 
 #define RESOURCE_INFO_DEBUG
+#define IN_USE 3
+#define ONLY_LOADED 2
+#define NOT_LOADED 1
 
 const std::string PACKAGE_HEADER_PATH = "PackageHeader.txt";
 
@@ -46,15 +49,14 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 		{
 			IResource* res = manager->Get().GetResource(HashString(file.c_str()));
 			if (res->GetRefCount() > 0)
-				resourceStates[file] = 3;
+				resourceStates[file] = IN_USE;
 			else
-				resourceStates[file] = 2;
+				resourceStates[file] = ONLY_LOADED;
 		}
 		else
-			resourceStates[file] = 1;
+			resourceStates[file] = NOT_LOADED;
 	}
 
-	ImGui::ShowDemoWindow();
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
 
@@ -104,13 +106,13 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 	{
 		switch (it->second)
 		{
-		case 1:
+		case NOT_LOADED:
 			color = notLoaded;
 			break;
-		case 2:
+		case ONLY_LOADED:
 			color = isLoadedNotUsed;
 			break;
-		case 3:
+		case IN_USE:
 			color = isLoadedAndUsed;
 			break;
 		}
