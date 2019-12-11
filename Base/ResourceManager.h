@@ -26,11 +26,10 @@ class ResourceManager
 public:
 	~ResourceManager();
 
-	Ref<ResourceBundle> LoadResources(std::initializer_list<size_t> guids);
-	Ref<ResourceBundle> LoadResources(std::initializer_list<char*> files);
-	Ref<ResourceBundle> LoadResources(std::vector<std::string>& files);
+	Ref<ResourceBundle> LoadResources(std::vector<std::string> files);
 
 	void LoadResourcesInBackground(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
+	IResource* GetResource(size_t guid);
 
 	bool IsResourceLoaded(size_t guid);
 	bool IsResourceLoaded(const std::string& path);
@@ -48,13 +47,15 @@ public:
 	size_t GetNrOfResourcesLoaded() const;
 	size_t GetNrOfResourcesInUse() const;
 
+	void GetResourcesInUse(std::vector<IResource*>& vector) const;
+	void GetResourcesLoaded(std::vector<IResource*>& vector) const;
+
 	static ResourceManager& Get();
 
 private:
 	ResourceManager();
 
-	bool LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid);
-	IResource* GetResource(size_t guid);
+	bool LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid, const std::string& file);
 	void BackgroundLoading(std::vector<char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	void UnloadResource(IResource* resource);
 	void UnloadUnusedResources();
