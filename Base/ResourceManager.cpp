@@ -33,7 +33,7 @@ bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 		UnloadUnusedResources();
 		if (m_UsedMemory + size > m_MaxMemory)
 		{
-			ThreadSafePrintf("Warning No more memory available for [%lu]!\n", guid);
+			ThreadSafePrintf("Error! No more memory available for [%s]!\n", file.c_str());
 			return false;
 		}
 	}
@@ -165,6 +165,11 @@ void ResourceManager::BackgroundLoading(std::vector<const char*> files, const st
 		{
 			delete[] guidArray;
 			callback(Ref<ResourceBundle>());
+			std::scoped_lock<SpinLock> lock(m_LockLoading);
+			for (auto& pair : resourcesToLoad)
+			{
+				m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair.first));
+			}
 			return;
 		}
 		ThreadSafePrintf("Loaded [%s] in background!\n", pair.second);
