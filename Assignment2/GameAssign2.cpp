@@ -43,27 +43,19 @@ void RenderResourceDataInfo(Ref<ResourceBundle>& pBundle, std::vector<std::strin
 	ResourceManager::Get().GetResourcesInUse(resourcesInUses);
 	
 	std::map<std::string, int> resourceStates;
-	int state = 1;
 
-	for (auto resource : resourceInPackage)
+	for (auto file : resourceInPackage)
 	{
-		if (manager->IsResourceLoaded(resource))
+		if (manager->IsResourceLoaded(file))
 		{
-			for (auto& inUse : resourcesInUses)
-			{
-				if (inUse->GetName() == resource)
-				{
-					state = 3;
-					break;
-				}
-				else
-				{
-					state = 2;
-				}
-			}
-			
+			IResource* res = manager->Get().GetResource(HashString(file));
+			if (res->GetRefCount() > 0)
+				resourceStates[file] = 3;
+			else
+				resourceStates[file] = 2;
 		}
-		resourceStates[resource] = state;
+		else
+			resourceStates[file] = 1;
 	}
 
 	ImGui::ShowDemoWindow();
