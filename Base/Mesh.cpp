@@ -1,10 +1,6 @@
 #include "Mesh.h"
 #include "MemoryManager.h"
 
-#ifdef VISUAL_STUDIO
-	#pragma warning(disable : 4291)		//Disable: "no matching operator delete found; memory will not be freed if initialization throws an exception"-warning
-#endif
-
 Mesh::Mesh(const Vertex* const vertices, const uint32_t* const indices, uint32_t numVertices, uint32_t numIndices)
 	: m_VAO(0),
 	m_VBO(0),

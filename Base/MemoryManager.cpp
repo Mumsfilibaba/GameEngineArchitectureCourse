@@ -2,7 +2,9 @@
 #include <thread>
 #include <iostream>
 #ifdef _WIN32
-    #include <windows.h>
+//include minimal windows headers
+#define WIN32_LEAN_AND_MEAN 1
+#include <windows.h>
 #endif
 
 std::atomic_size_t MemoryManager::s_TotalAllocated = 0;

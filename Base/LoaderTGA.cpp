@@ -3,8 +3,7 @@
 #include "PoolAllocator.h"
 #include "StackAllocator.h"
 
-
-#define INVERTED_BIT            (1 << 5)
+#define INVERTED_BIT (1 << 5)
 #define BYTE32 32
 #define TGADEBUG
 #define POOL_NEW(type, tag) new
@@ -26,7 +25,7 @@ IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 	return pTexture;
 }
 
-IResource* LoaderTGA::LoadFromMemory(void* data, size_t size)
+IResource* LoaderTGA::LoadFromMemory(void* data, size_t)
 {
 	short int width = *(short int*)(data);
 	short int height = *(short int*)((size_t)data + 2);

@@ -143,7 +143,7 @@ size_t LoaderBMP::WriteToBuffer(const std::string& file, void* pBuffer)
 	return textureSize;
 }
 
-size_t LoaderBMP::LoadAndConvert(void* pBMPFileData, size_t size, void* pBuffer)
+size_t LoaderBMP::LoadAndConvert(void* pBMPFileData, size_t, void* pBuffer)
 {
 	size_t startAddress = (size_t)pBMPFileData;
 	BMPHeader bmpHeader;
@@ -199,7 +199,7 @@ size_t LoaderBMP::LoadAndConvert(void* pBMPFileData, size_t size, void* pBuffer)
 
 	if (dibHeader.numBitsPerPixel != 24)
 	{
-		std::cout << "Unsopported Number of Bits per Pixel on BMP" << std::endl;
+		std::cout << "Unsupported Number of Bits per Pixel on BMP" << std::endl;
 		return 0;
 	}
 

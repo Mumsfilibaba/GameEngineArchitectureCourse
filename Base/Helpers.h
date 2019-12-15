@@ -9,6 +9,7 @@
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4505)		//Disable: "unreferenced local function has been removed"-warning
+	#pragma warning(disable : 4201)		//Disable: "nonstandard extension used: nameless struct/union"-warning
 #endif
 
 #if defined(_DEBUG)

@@ -159,22 +159,22 @@ void ResourceManager::BackgroundLoading(std::vector<const char*> files, const st
 	}
 
 	//Load resources
-	for (auto& pair : resourcesToLoad)
+	for (auto& pair1 : resourcesToLoad)
 	{
-		if (!LoadResource(resourceLoader, archiver, pair.first, pair.second))
+		if (!LoadResource(resourceLoader, archiver, pair1.first, pair1.second))
 		{
 			delete[] guidArray;
 			callback(Ref<ResourceBundle>());
 			std::scoped_lock<SpinLock> lock(m_LockLoading);
-			for (auto& pair : resourcesToLoad)
+			for (auto& pair2 : resourcesToLoad)
 			{
-				m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair.first));
+				m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair2.first));
 			}
 			return;
 		}
-		ThreadSafePrintf("Loaded [%s] in background!\n", pair.second);
+		ThreadSafePrintf("Loaded [%s] in background!\n", pair1.second);
 		std::scoped_lock<SpinLock> lock(m_LockLoading);
-		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair.first));
+		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair1.first));
 	}
 
 	//Wait to make sure all resources are loaded, in case the resource is loaded from another thread
@@ -288,7 +288,7 @@ bool ResourceManager::UnloadResource(size_t guid)
 		m_IsCleanup = false;
 	}
     
-	ThreadSafePrintf("Failed to unload resource becouse it is currently being used [%s]", resource->GetName());
+	ThreadSafePrintf("Failed to unload resource becouse it is currently being used [%s]", resource->GetName().c_str());
     return false;
 }
 

@@ -16,7 +16,7 @@
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-//#define CREATE_PACKAGE
+#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
@@ -182,8 +182,6 @@ void GameAssign2::RenderResourceDataInfo()
 
 void GameAssign2::Init()
 {
-	ResourceManager& resourceManager = ResourceManager::Get();
-
 #if defined(CREATE_PACKAGE)
 	for (const auto& entry : std::filesystem::directory_iterator(UNPACKAGED_RESOURCES_DIR))
 	{
@@ -451,7 +449,7 @@ void GameAssign2::RenderImGui()
 			ImGui::Text("Available Resources");
 			ImGui::PushItemWidth(listsWidth);
 			ImGui::PushID(0);
-			ImGui::ListBox("", &currentNotInPackageItem, m_ResourcesNotInPackage.data(), m_ResourcesNotInPackage.size());
+			ImGui::ListBox("", &currentNotInPackageItem, m_ResourcesNotInPackage.data(), (int)m_ResourcesNotInPackage.size());
 			ImGui::PopID();
 			ImGui::PopItemWidth();
 			ImGui::NextColumn();
@@ -486,7 +484,7 @@ void GameAssign2::RenderImGui()
 			ImGui::Text("Resources in Package");
 			ImGui::PushItemWidth(listsWidth);
 			ImGui::PushID(1);
-			ImGui::ListBox("", &currentInPackageItem, m_ResourcesInPackage.data(), m_ResourcesInPackage.size());
+			ImGui::ListBox("", &currentInPackageItem, m_ResourcesInPackage.data(), (int)m_ResourcesInPackage.size());
 			ImGui::PopID();
 			ImGui::PopItemWidth();
 			ImGui::NextColumn();

@@ -233,7 +233,7 @@ inline void ConstructVec3(const std::string& semantic, std::vector<glm::vec3>& v
         auto source = sources.find(sourceID);
         if (source != sources.end())
         {
-            uint32_t componentCount = source->second.Accessor.Params.size();
+            size_t componentCount = source->second.Accessor.Params.size();
             assert(componentCount == 3); // We only support vec3 here
             
             auto& data = source->second.FloatArray.Data;
@@ -261,7 +261,7 @@ inline void ConstructVec2(const std::string& semantic, std::vector<glm::vec2>& v
         auto source = sources.find(sourceID);
         if (source != sources.end())
         {
-            uint32_t componentCount = source->second.Accessor.Params.size();
+            uint32_t componentCount = uint32_t(source->second.Accessor.Params.size());
             assert(componentCount == 2); // We only support vec2 here
             
             auto& data = source->second.FloatArray.Data;
@@ -331,7 +331,7 @@ inline void ReadTriangles(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 			assert(result == XML_SUCCESS);
         
 			//Get the indices (Count of indices is 'elementsPerVertex * numberOfTriangles * 3')
-			COLLADAIntArray indices = ReadIndices(inputs.size() * triangleCount * 3, pTriangles);
+			COLLADAIntArray indices = ReadIndices(uint32_t(inputs.size()) * uint32_t(triangleCount) * 3U, pTriangles);
 			if (indices.Data.empty())
 			{
 				ThreadSafePrintf("COLLADA file does not contain any indices\n");
@@ -450,7 +450,7 @@ inline void ReadPolylists(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 				vertexCount += vc;
         
 			//Get the indices (Count of indices is 'elementsPerVertex * vertexCount')
-			COLLADAIntArray indices = ReadIndices(inputs.size() * vertexCount, pPolylist);
+			COLLADAIntArray indices = ReadIndices(uint32_t(inputs.size()) * uint32_t(vertexCount), pPolylist);
 			if (indices.Data.empty())
 			{
 				ThreadSafePrintf("COLLADA file does not contain any indices\n");
@@ -460,13 +460,13 @@ inline void ReadPolylists(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 			//Process faces
 			Vertex vertex = {};
 			int32_t baseIndex = 0;
-			int32_t indicesPerTriangle = 3 * inputs.size();
+			int32_t indicesPerTriangle = 3 * int32_t(inputs.size());
 			for (auto& vc : vcount.Data)
 			{
 				assert(vc >= 3);
 
 				//Read in three vertices
-				for (int32_t i = 0; i < indicesPerTriangle; i += inputs.size())
+				for (int32_t i = 0; i < indicesPerTriangle; i += int32_t(inputs.size()))
 				{
 					//Construct vertices
 					vertex.Position  = (positionOffset >= 0)  ? mesh.Positions[indices.Data[baseIndex + i + positionOffset]]    : glm::vec3();
@@ -477,12 +477,12 @@ inline void ReadPolylists(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 				}
             
 				//Calculate the indices for this polygon
-				int32_t indicesPerPolygon = vc * inputs.size();
+				int32_t indicesPerPolygon = vc * int32_t(inputs.size());
             
 				//Check if we have a polygon and convert it to triangles
 				size_t numIndices   = mesh.Indices.size();
 				uint32_t startIndex = mesh.Indices[numIndices - 3]; //Get the first vertex in the base triangle
-				for (int32_t i = indicesPerTriangle; i < indicesPerPolygon; i += inputs.size())
+				for (int32_t i = indicesPerTriangle; i < indicesPerPolygon; i += int32_t(inputs.size()))
 				{
 					//Construct vertices
 					vertex.Position  = (positionOffset >= 0)  ? mesh.Positions[indices.Data[baseIndex + i + positionOffset]]    : glm::vec3();
@@ -600,7 +600,7 @@ inline void GetFloatArray(COLLADAFloatArray& array, tinyxml2::XMLElement* pSourc
         const char* pIter = pText;
         for (int32_t i = 0; i < array.Count; i++)
         {
-            array.Data[i] = FastAtof(pIter, length);
+            array.Data[i] = float(FastAtof(pIter, length));
             pIter += length;
             if (*pIter == ' ')
                 pIter++;
@@ -612,8 +612,10 @@ inline void GetFloatArray(COLLADAFloatArray& array, tinyxml2::XMLElement* pSourc
 inline void ReadSources(std::unordered_map<std::string, COLLADASource>& sources, tinyxml2::XMLElement* pMesh)
 {
     using namespace tinyxml2;
-    
+
+#if DEBUG_PRINTS
     size_t oldSize = sources.size();
+#endif
 	COLLADASource source = {};
 
     XMLElement* pSource = pMesh->FirstChildElement("source");
@@ -735,7 +737,7 @@ MeshData LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
     memset(buff, 0, sizeof(buff));
     const char* pName = pFirst->Name();
     for (int32_t i = 0; pName[i] != 0; i++)
-        buff[i] = tolower(pName[i]);
+        buff[i] = (char)tolower(int(pName[i]));
     
     
     //Check so that the first element is a COLLADA element
@@ -758,7 +760,7 @@ MeshData LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
     {
         //If we have more than one mesh, we combine them into a single mesh
         MeshData singleMesh = {};
-        size_t vertexOffset = 0;
+        uint32_t vertexOffset = 0;
         for (auto& mesh : meshes)
         {
             //Add all vertices for this mesh
@@ -768,7 +770,7 @@ MeshData LoaderCOLLADA::ReadFromDisk(const std::string& filepath)
             for (auto& index : mesh.Indices)
                 singleMesh.Indices.emplace_back(index + vertexOffset); //Add the vertexoffset to the index
             //Set offset
-            vertexOffset = singleMesh.Vertices.size();
+            vertexOffset = uint32_t(singleMesh.Vertices.size());
         }
         
         //Print number of vertices, indices and triangles

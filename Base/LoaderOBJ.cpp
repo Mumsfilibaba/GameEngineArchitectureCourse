@@ -416,7 +416,6 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 				uint32_t startIndex = meshes[currentMesh].Indices[numIndices - 3]; //Get the first vertex in the base triangle
 				while (!IsNewLine(&iter))
 				{
-					const char* pTemp = iter;
 					iter++;
 					//Get vertex
 					ParseOBJVertex(objVertex, &iter);

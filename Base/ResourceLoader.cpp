@@ -26,6 +26,7 @@ bool ResourceLoader::RegisterLoader(const std::string& fileType, ILoader* loader
 	size_t hash = HashString(fileType.c_str());
 	ThreadSafePrintf("Registered [%s] Loader\n", fileType.c_str());
 	m_LoaderMap.insert({ hash, loader });
+	return true;
 }
 
 bool ResourceLoader::HasLoader(size_t fileTypeHash)

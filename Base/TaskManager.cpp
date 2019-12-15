@@ -2,7 +2,6 @@
 #include <iostream>
 #include <algorithm>
 
-
 void TaskManager::TaskThread()
 {
 	while (TaskManager::Get().ShouldRunWorker())

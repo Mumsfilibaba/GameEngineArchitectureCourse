@@ -8,6 +8,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
+#ifdef VISUAL_STUDIO
+	#pragma warning(disable : 4291)		//Disable: "no matching operator delete found; memory will not be freed if initialization throws an exception"-warning
+#endif
+
 //Define vertex used by application
 struct Vertex
 {
