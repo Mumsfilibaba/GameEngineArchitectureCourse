@@ -64,7 +64,6 @@ void GameAssign2::RenderResourceDataInfo()
 			if (!manager->IsResourceLoaded(res.first))
 			{
 				m_Resources[res.first] = nullptr; 
-				ThreadSafePrintf("Found removed resource [%s]", res.first.c_str());
 			}
 		}
 	}
@@ -211,29 +210,8 @@ void GameAssign2::Init()
 			m_ResourcesInCompressedPackage.push_back(resource);
 	}
 
-	ResourceLoader& loader = ResourceLoader::Get();
-	IResource** resources = new IResource*[m_ResourcesInCompressedPackage.size()];
-	sf::Clock deltaClock;
-
-	sf::Time dt = deltaClock.restart();
-	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
-	{
-		resources[i] = loader.LoadResourceFromDisk(m_ResourcesInCompressedPackage[i]);
-	}
-	dt = deltaClock.restart();
-	ThreadSafePrintf("Elapsed time: %f", dt.asSeconds());
-
-	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
-	{
-		delete resources[i];
-	}
-	delete[] resources;
-
-	dt = deltaClock.restart();
-	resourceManager.LoadResources(m_ResourcesInCompressedPackage);
-	dt = deltaClock.restart();
-	ThreadSafePrintf("Elapsed time: %f", dt.asSeconds());
-
+	//SingleThreadedTest();
+	//MultiThreadedTest();
 #endif
 }
 
@@ -338,6 +316,77 @@ void GameAssign2::Render()
 		Renderer::Get().Submit(stormtrooper, storm, scale);
 	}
 #endif
+}
+
+void GameAssign2::SingleThreadedTest()
+{
+	ResourceManager& resourceManager = ResourceManager::Get();
+	ResourceLoader& loader = ResourceLoader::Get();
+	IResource** resources = new IResource*[m_ResourcesInCompressedPackage.size()];
+	sf::Clock deltaClock;
+
+	sf::Time dt = deltaClock.restart();
+	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
+	{
+		resources[i] = loader.LoadResourceFromDisk("Resources/" + m_ResourcesInCompressedPackage[i]);
+	}
+	dt = deltaClock.restart();
+	ThreadSafePrintf("Elapsed time: %f\n", dt.asSeconds());
+
+	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
+	{
+		delete resources[i];
+	}
+	delete[] resources;
+
+	dt = deltaClock.restart();
+	resourceManager.LoadResources(m_ResourcesInCompressedPackage);
+	dt = deltaClock.restart();
+	ThreadSafePrintf("Elapsed time: %f\n", dt.asSeconds());
+}
+
+void GameAssign2::MultiThreadedTest()
+{
+	ResourceManager& resourceManager = ResourceManager::Get();
+	ResourceLoader& loader = ResourceLoader::Get();
+	TaskManager& taskManager = TaskManager::Get();
+	IResource** resources = new IResource*[m_ResourcesInCompressedPackage.size()];
+	sf::Clock deltaClock;
+	std::atomic_int finished = 0;
+
+	sf::Time dt = deltaClock.restart();
+	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
+	{
+		std::string file = m_ResourcesInCompressedPackage[i];
+		taskManager.Execute([this, &resources, &loader, file, i, &finished]
+		{
+			resources[i] = loader.LoadResourceFromDisk("Resources/" + file);
+			finished++;
+		});
+	}
+	while (finished < m_ResourcesInCompressedPackage.size()){}
+
+	dt = deltaClock.restart();
+	ThreadSafePrintf("Elapsed time: %f\n", dt.asSeconds());
+
+	for (int i = 0; i < finished; i++)
+	{
+		delete resources[i];
+	}
+	delete[] resources;
+
+	finished = 0;
+	dt = deltaClock.restart();
+	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
+	{
+		resourceManager.LoadResourcesInBackground({ m_ResourcesInCompressedPackage[i].c_str() }, [this, &finished](const Ref<ResourceBundle>& bundle)
+		{
+			finished++;
+		});
+	}
+	while (finished < m_ResourcesInCompressedPackage.size()) {}
+	dt = deltaClock.restart();
+	ThreadSafePrintf("Elapsed time: %f\n", dt.asSeconds());
 }
 
 void GameAssign2::RenderImGui()

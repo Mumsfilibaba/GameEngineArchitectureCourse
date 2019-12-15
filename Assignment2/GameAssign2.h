@@ -31,4 +31,7 @@ private:
 
 	std::vector<char*> m_ResourcesNotInPackage;
 	std::vector<char*> m_ResourcesInPackage;
+
+	void SingleThreadedTest();
+	void MultiThreadedTest();
 };

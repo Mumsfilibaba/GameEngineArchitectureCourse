@@ -1,3 +1,0 @@
-flag_b16.tga
-meme.tga
-stormtrooper.tga

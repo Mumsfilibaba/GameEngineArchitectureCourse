@@ -327,7 +327,7 @@ void Archiver::SaveUncompressedPackage(const std::string& filename)
 	void* pHeader = MemoryManager::GetInstance().Allocate(headerString.length(), 1, "Archiver Package Uncompressed Header");
 	memcpy(pHeader, headerString.c_str(), headerString.length());
 
-	size_t compressedHeaderMaxSize = headerString.length() + 2;
+	size_t compressedHeaderMaxSize = headerString.length() + 4; //4 bytes extra for potential zlib header.
 	void* pCompressedHeader = MemoryManager::GetInstance().Allocate(compressedHeaderMaxSize, 1, "Archiver Package Compressed Header");
 	size_t compressedHeaderSize = CompressHeader(pHeader, headerString.length(), pCompressedHeader, compressedHeaderMaxSize);
 
@@ -375,7 +375,7 @@ void* Archiver::DecompressHeader(std::ifstream& fileStream)
 	fileStream >> headerUncompressedSize;
 
 	void* pCompressedHeader = MemoryManager::GetInstance().Allocate(headerCompressedSize, 1, "Archiver Package Compressed Header");
-	void* pUncompressedHeader = MemoryManager::GetInstance().Allocate(headerUncompressedSize, 1, "Archiver Package Uncompressed Header");
+	void* pDecompressedHeader = MemoryManager::GetInstance().Allocate(headerUncompressedSize, 1, "Archiver Package Uncompressed Header");
 	fileStream.seekg(1, std::ios_base::cur);
 	fileStream.read(reinterpret_cast<char*>(pCompressedHeader), headerCompressedSize);
 
@@ -389,7 +389,7 @@ void* Archiver::DecompressHeader(std::ifstream& fileStream)
 	ARCHIVER_CHECK_ERR(err, "inflateInit");
 
 	decompressionStream.next_in = reinterpret_cast<Byte*>(pCompressedHeader);
-	decompressionStream.next_out = reinterpret_cast<Byte*>(pUncompressedHeader);
+	decompressionStream.next_out = reinterpret_cast<Byte*>(pDecompressedHeader);
 	decompressionStream.avail_in = (uInt)headerCompressedSize;
 	decompressionStream.avail_out = (uInt)headerUncompressedSize;
 
@@ -400,7 +400,7 @@ void* Archiver::DecompressHeader(std::ifstream& fileStream)
 	ARCHIVER_CHECK_ERR(err, "inflateEnd");
 
 	MemoryManager::GetInstance().Free(pCompressedHeader);
-	return pUncompressedHeader;
+	return pDecompressedHeader;
 }
 
 size_t Archiver::CompressHeader(void* pHeader, size_t headerSize, void* pBuf, size_t bufSize)

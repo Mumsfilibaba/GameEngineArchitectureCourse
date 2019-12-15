@@ -25,18 +25,14 @@ private:
 	inline void InternalInit()
 	{
 		Init();
-#ifdef _DEBUG
 		ThreadSafePrintf("Resource Initiated [%s]\n", m_Name.c_str());
-#endif
 		m_Ready = true;
 	};
 
 	virtual inline void InternalRelease() override
 	{
 		Release();
-#ifdef _DEBUG
 		ThreadSafePrintf("Resource Released [%s]\n", m_Name.c_str());
-#endif
 		IRefCountable::InternalRelease();
 	};
 
