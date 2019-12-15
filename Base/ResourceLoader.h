@@ -17,12 +17,13 @@ public:
 	bool HasLoader(const std::string& fileType);
 	bool HasLoaderForFile(const std::string& file);
 
+	IResource* LoadResourceFromDisk(const std::string& file);
+
 	static ResourceLoader& Get();
 
 private:
 	ResourceLoader();
 
-	IResource* LoadResourceFromDisk(const std::string& file);
 	IResource* LoadResourceFromMemory(void* data, size_t size, size_t typeHash, const std::string& file);
 	size_t WriteResourceToBuffer(const std::string& file, void* buffer);
 	ILoader* GetLoader(size_t hash);

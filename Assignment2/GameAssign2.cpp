@@ -211,6 +211,29 @@ void GameAssign2::Init()
 			m_ResourcesInCompressedPackage.push_back(resource);
 	}
 
+	ResourceLoader& loader = ResourceLoader::Get();
+	IResource** resources = new IResource*[m_ResourcesInCompressedPackage.size()];
+	sf::Clock deltaClock;
+
+	sf::Time dt = deltaClock.restart();
+	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
+	{
+		resources[i] = loader.LoadResourceFromDisk(m_ResourcesInCompressedPackage[i]);
+	}
+	dt = deltaClock.restart();
+	ThreadSafePrintf("Elapsed time: %f", dt.asSeconds());
+
+	for (int i = 0; i < m_ResourcesInCompressedPackage.size(); i++)
+	{
+		delete resources[i];
+	}
+	delete[] resources;
+
+	dt = deltaClock.restart();
+	resourceManager.LoadResources(m_ResourcesInCompressedPackage);
+	dt = deltaClock.restart();
+	ThreadSafePrintf("Elapsed time: %f", dt.asSeconds());
+
 #endif
 }
 
