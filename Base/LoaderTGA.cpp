@@ -21,7 +21,7 @@ IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 {
 	TGAHeader pTGAfile;
 	ReadFromDisk(file, pTGAfile);
-	Texture* pTexture = POOL_NEW(Texture, file) Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
+	Texture* pTexture = new Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
 	mm_free(pTGAfile.imageDataBuffer);
 	return pTexture;
 }
@@ -117,7 +117,7 @@ void LoaderTGA::ReadFromDisk(const std::string& file, TGAHeader& pTGAfile)
 
 	//allocating memory for the data
 	//pTGAfile.imageDataBuffer = (unsigned char*)malloc((sizeof(unsigned char)*imageSize));
-	pTGAfile.imageDataBuffer = (unsigned char*)POOL_NEW((sizeof(unsigned char)*imageSize), file) unsigned char;
+	pTGAfile.imageDataBuffer = (unsigned char*)mm_allocate((sizeof(unsigned char)*imageSize), 1, "TextureTGA");
 
 	// Read the image data.
 	//fread(&pTGAfile->imageDataBuffer[0], sizeof(unsigned char), imageSize, pFile);
