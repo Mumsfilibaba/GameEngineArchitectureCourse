@@ -126,26 +126,26 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
 }
 
-void ResourceManager::LoadResourcesInBackground(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
+void ResourceManager::LoadResourcesInBackground(std::vector<std::string> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
 {
 	TaskManager& taskManager = TaskManager::Get();
 	taskManager.Execute(std::bind(&ResourceManager::BackgroundLoading, this, std::move(files), callback));
 }
 
-void ResourceManager::BackgroundLoading(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
+void ResourceManager::BackgroundLoading(std::vector<std::string> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
 {
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
-	std::vector<std::pair<size_t, const char*>> resourcesToLoad;
+	std::vector<std::pair<size_t, std::string>> resourcesToLoad;
 	size_t* guidArray = new size_t[files.size()];
 	int index = 0;
 
 	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
 
 	//Find resources to load
-	for (const char* file : files)
+	for (std::string file : files)
 	{
-		size_t guid = HashString(file);
+		size_t guid = HashString(file.c_str());
 		if (!IsResourceLoaded(guid))
 		{
 			std::scoped_lock<SpinLock> lock(m_LockLoading);
@@ -172,7 +172,7 @@ void ResourceManager::BackgroundLoading(std::vector<const char*> files, const st
 			}
 			return;
 		}
-		ThreadSafePrintf("Loaded [%s] in background!\n", pair1.second);
+		ThreadSafePrintf("Loaded [%s] in background!\n", pair1.second.c_str());
 		std::scoped_lock<SpinLock> lock(m_LockLoading);
 		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair1.first));
 	}
@@ -246,6 +246,7 @@ void ResourceManager::Update()
 
 bool ResourceManager::IsResourceLoaded(size_t guid)
 {
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
 	return m_LoadedResources.find(guid) != m_LoadedResources.end();
 }
 
@@ -354,8 +355,9 @@ size_t ResourceManager::GetNrOfResourcesInUse() const
 	return resourcesInUse;
 }
 
-void ResourceManager::GetResourcesInUse(std::vector<IResource*>& vector) const
+void ResourceManager::GetResourcesInUse(std::vector<IResource*>& vector)
 {
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
 	for (std::pair<size_t, IResource*> resource : m_LoadedResources)
 	{
 		if (resource.second->GetRefCount() > 0)

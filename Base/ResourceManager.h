@@ -28,7 +28,7 @@ public:
 
 	Ref<ResourceBundle> LoadResources(std::vector<std::string> files);
 
-	void LoadResourcesInBackground(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
+	void LoadResourcesInBackground(std::vector<std::string> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	IResource* GetResource(size_t guid);
 	IResource* GetResource(const std::string& file);
 
@@ -47,7 +47,7 @@ public:
 	size_t GetNrOfResourcesLoaded() const;
 	size_t GetNrOfResourcesInUse() const;
 
-	void GetResourcesInUse(std::vector<IResource*>& vector) const;
+	void GetResourcesInUse(std::vector<IResource*>& vector);
 	void GetResourcesLoaded(std::vector<IResource*>& vector) const;
 
 	static ResourceManager& Get();
@@ -56,7 +56,7 @@ private:
 	ResourceManager();
 
 	bool LoadResource(ResourceLoader& resourceLoader, Archiver& archiver, size_t guid, const std::string& file);
-	void BackgroundLoading(std::vector<const char*> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
+	void BackgroundLoading(std::vector<std::string> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	void UnloadResource(IResource* resource);
 	void UnloadUnusedResources(bool force = false);
 	void Update();

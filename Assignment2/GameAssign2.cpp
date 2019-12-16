@@ -11,12 +11,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include <filesystem>
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
 
 #ifdef VISUAL_STUDIO
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-#define CREATE_PACKAGE
+//#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
@@ -43,19 +45,7 @@ void GameAssign2::RenderResourceDataInfo()
 	
 	std::map<std::string, int> resourceStates;
 
-	for (auto file : m_ResourcesInCompressedPackage)
-	{
-		if (manager->IsResourceLoaded(file))
-		{
-			IResource* res = manager->Get().GetResource(file);
-			if (res && res->GetRefCount() > 0)
-				resourceStates[file] = IN_USE;
-			else
-				resourceStates[file] = ONLY_LOADED;
-		}
-		else
-			resourceStates[file] = NOT_LOADED;
-	}
+	GetCurrentState(resourceStates);
 
 	for (auto res : m_Resources)
 	{
@@ -77,6 +67,12 @@ void GameAssign2::RenderResourceDataInfo()
 	char buf[32];
 	sprintf(buf, "%.2f/%.2f", (float)manager->GetUsedMemory() / 1024, (float)manager->GetMaxMemory() / 1024);
 	ImGui::ProgressBar(((float)manager->GetUsedMemory() / (float)manager->GetMaxMemory()), ImVec2(0.0f, 0.0f), buf);
+
+	ImGui::SameLine();
+	if (ImGui::Button(m_StressTest ? "Stop test" : "Start test"))
+	{
+		m_StressTest = !m_StressTest;
+	}
 
 	ImGui::Separator();
 
@@ -104,25 +100,8 @@ void GameAssign2::RenderResourceDataInfo()
 		{
 			if (ImGui::Selectable(states[newState]))
 			{
-				int currentState = resourceStates[g_stateChangeName];
-				if(currentState == newState)
-					break;
-
-				switch (newState)
-				{
-				case NOT_LOADED:
-					UnLoadResource(g_stateChangeName);
-					break;
-				case ONLY_LOADED:
-					if (currentState == NOT_LOADED)
-						LoadResource(g_stateChangeName);
-					else if (currentState == IN_USE)
-						UnUseResource(g_stateChangeName);
-					break;
-				case IN_USE:
-					UseResource(g_stateChangeName);
-					break;
-				}
+				ChangeStateOfResource(g_stateChangeName, newState, resourceStates);
+				break;
 			}
 		}
 		ImGui::EndPopup();
@@ -180,8 +159,51 @@ void GameAssign2::RenderResourceDataInfo()
 	ImGui::End();
 }
 
+void GameAssign2::GetCurrentState(std::map<std::string, int>& resourceStates)
+{
+	ResourceManager* manager = &ResourceManager::Get();
+	for (auto file : m_ResourcesInCompressedPackage)
+	{
+		if (manager->IsResourceLoaded(file))
+		{
+			IResource* res = manager->Get().GetResource(file);
+			if (res && res->GetRefCount() > 0)
+				resourceStates[file] = IN_USE;
+			else
+				resourceStates[file] = ONLY_LOADED;
+		}
+		else
+			resourceStates[file] = NOT_LOADED;
+	}
+}
+
+void GameAssign2::ChangeStateOfResource(const std::string& file, int state, const std::map<std::string, int>& resourceStates)
+{
+	int currentState = resourceStates.at(file);
+	if (currentState == state)
+		return;
+
+	switch (state)
+	{
+	case NOT_LOADED:
+		UnLoadResource(file);
+		break;
+	case ONLY_LOADED:
+		if (currentState == NOT_LOADED)
+			LoadResource(file);
+		else if (currentState == IN_USE)
+			UnUseResource(file);
+		break;
+	case IN_USE:
+		UseResource(file);
+		break;
+	}
+}
+
 void GameAssign2::Init()
 {
+	srand(time(NULL));
+	m_StressTest = false;
 #if defined(CREATE_PACKAGE)
 	for (const auto& entry : std::filesystem::directory_iterator(UNPACKAGED_RESOURCES_DIR))
 	{
@@ -265,6 +287,25 @@ void GameAssign2::UnUseResource(const std::string& file)
 
 void GameAssign2::Update(const sf::Time& deltaTime)
 {
+	if (m_StressTest)
+	{
+		m_Timer += deltaTime.asMilliseconds();
+		if (m_Timer > 500)
+		{
+			m_Timer = 0;
+			std::string file = m_ResourcesInCompressedPackage[rand() % m_ResourcesInCompressedPackage.size()];
+			std::map<std::string, int> resourceStates;
+			GetCurrentState(resourceStates);
+
+			int state = resourceStates[file];
+			do
+			{
+				state = rand() % 3;
+			} while (state == resourceStates[file]);
+
+			ChangeStateOfResource(file, state, resourceStates);
+		}
+	}
 }
 
 void GameAssign2::Render()

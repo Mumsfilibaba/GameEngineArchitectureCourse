@@ -23,6 +23,8 @@ public:
 	void UnUseResource(const std::string& file);
 
 	void RenderResourceDataInfo();
+	void ChangeStateOfResource(const std::string& file, int state, const std::map<std::string, int>& resourceStates);
+	void GameAssign2::GetCurrentState(std::map<std::string, int>& resourceStates);
 
 private:
 	std::unordered_map<std::string, IResource*> m_Resources;
@@ -31,6 +33,8 @@ private:
 
 	std::vector<char*> m_ResourcesNotInPackage;
 	std::vector<char*> m_ResourcesInPackage;
+	bool m_StressTest;
+	int m_Timer;
 
 	void SingleThreadedTest();
 	void MultiThreadedTest();
