@@ -78,13 +78,9 @@ void ImGuiPrintMemoryManagerAllocations()
 		{
 			const FreeEntry* pFreeListHead = MemoryManager::GetInstance().GetFreeListHead();
 			const FreeEntry* pCurrentFreeEntry = pFreeListHead;
-			size_t pFreeListStartAddress = ULLONG_MAX;
 
 			do
 			{
-				if ((size_t)pCurrentFreeEntry < pFreeListStartAddress)
-					pFreeListStartAddress = (size_t)pCurrentFreeEntry;
-
 				freeListMap[(size_t)pCurrentFreeEntry] = DebugFreeEntry(pCurrentFreeEntry);
 
 				pCurrentFreeEntry = pCurrentFreeEntry->pNext;
