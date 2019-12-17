@@ -425,7 +425,7 @@ uint32_t ReadTextfile(const std::string& filename, const char** const ppBuffer)
 	fseek(file, 0, SEEK_SET);
 
 	//Store in a tempptr to avoid casting -> more readable code
-	void* pTempPtr = calloc(filesize, sizeof(char));
+	void* pTempPtr = mm_allocate(filesize, sizeof(char), ("textfile " + filename));
 	uint32_t bytesRead = (uint32_t)fread(pTempPtr, sizeof(uint8_t), filesize, file);
 
 	(*ppBuffer) = (const char*)pTempPtr;
