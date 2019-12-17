@@ -204,6 +204,7 @@ void GameAssign2::Init()
 {
 	srand(time(NULL));
 	m_StressTest = false;
+	m_Timer = 0;
 #if defined(CREATE_PACKAGE)
 	for (const auto& entry : std::filesystem::directory_iterator(UNPACKAGED_RESOURCES_DIR))
 	{
@@ -289,8 +290,8 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 {
 	if (m_StressTest)
 	{
-		m_Timer += deltaTime.asMilliseconds();
-		if (m_Timer > 500)
+		m_Timer += deltaTime.asMicroseconds();
+		if (m_Timer > 500000)
 		{
 			m_Timer = 0;
 			std::string file = m_ResourcesInCompressedPackage[rand() % m_ResourcesInCompressedPackage.size()];
