@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #define DEBUG_PRINTS 0
+#define MAX_STRING_LENGTH 128
 
 IResource* LoaderCOLLADA::LoadFromDisk(const std::string& file)
 {
@@ -83,7 +84,7 @@ size_t LoaderCOLLADA::WriteToBuffer(const std::string& file, void* buffer)
 template<typename T>
 struct TArray
 {
-	char ID[256];
+	char ID[MAX_STRING_LENGTH];
     T* pData = nullptr;
     int32_t Count = 0;
 };
@@ -93,22 +94,22 @@ using COLLADAIntArray = TArray<int32_t>;
 
 struct COLLADAInput
 {
-    std::string Semantic;
-    std::string Source;
+    char Semantic[MAX_STRING_LENGTH];
+    char Source[MAX_STRING_LENGTH];
     int32_t Offset = -1;
 };
 
 
 struct COLLADAParam
 {
-    std::string Name;
-    std::string Type;
+    char Name[MAX_STRING_LENGTH];
+    char Type[32];
 };
 
 
 struct COLLADAAccessor
 {
-    std::string Source;
+    char Source[MAX_STRING_LENGTH];
     int32_t Count;
     int32_t Stride;
     std::vector<COLLADAParam> Params;
@@ -117,7 +118,7 @@ struct COLLADAAccessor
 
 struct COLLADASource
 {
-    std::string ID;
+    char ID[MAX_STRING_LENGTH];
     COLLADAFloatArray FloatArray;
     COLLADAAccessor Accessor;
 };
@@ -125,9 +126,12 @@ struct COLLADASource
 
 struct COLLADAMesh
 {
-    std::vector<glm::vec3> Positions;
-    std::vector<glm::vec3> Normals;
-    std::vector<glm::vec2> TexCoords;
+    glm::vec3* pPositions = nullptr;
+    int32_t NumPositions = 0;
+    glm::vec3* pNormals = nullptr;
+    int32_t NumNormals = 0;
+    glm::vec2* pTexCoords = nullptr;
+    int32_t NumTexCoords = 0;
     std::vector<Vertex> Vertices;
     std::vector<uint32_t> Indices;
     std::unordered_map<Vertex, uint32_t> UniqueVertices;
@@ -155,8 +159,6 @@ inline COLLADAIntArray ReadIndices(uint32_t count, tinyxml2::XMLElement* pParent
         {
             indices.pData[i] = FastAtoi(pIter, length);
             
-            //assert(indices.pData[i] < 418144);
-
             pIter += length;
             if (*pIter == ' ')
                 pIter++;
@@ -209,12 +211,12 @@ inline void ReadInputs(std::unordered_map<std::string, COLLADAInput>& inputs, ti
         //Get semantic
         const char* semantic = pInput->Attribute("semantic");
         assert(semantic != nullptr);
-        input.Semantic = semantic;
+        strcpy(input.Semantic, semantic);
         
         //Get source
         const char* source = pInput->Attribute("source");
         assert(semantic != nullptr);
-        input.Source = source;
+        strcpy(input.Source, source);
         
         //Get offset and set
         XMLError result = pInput->QueryIntAttribute("offset", &input.Offset);
@@ -228,14 +230,21 @@ inline void ReadInputs(std::unordered_map<std::string, COLLADAInput>& inputs, ti
 }
 
 
-inline void ConstructVec3(const std::string& semantic, std::vector<glm::vec3>& vec, std::unordered_map<std::string, COLLADASource>& sources, std::unordered_map<std::string, COLLADAInput>& inputs)
+inline void ConstructVec3(const std::string& semantic, glm::vec3** pVec, int32_t& numVectors, std::unordered_map<std::string, COLLADASource>& sources, std::unordered_map<std::string, COLLADAInput>& inputs)
 {
+    if (*pVec != nullptr && numVectors != 0)
+    {
+        //Assume that this vector already has been constructed
+        return;
+    }
+
     //Read positions and construct positions
     auto input = inputs.find(semantic);
     if (input != inputs.end())
     {
         //Get source ID, but remove the # in the beginning
-        std::string sourceID = input->second.Source.substr(1);
+        char sourceID[MAX_STRING_LENGTH];
+        strcpy(sourceID, input->second.Source + 1);
         
         //Get the source and construct positions
         auto source = sources.find(sourceID);
@@ -245,25 +254,41 @@ inline void ConstructVec3(const std::string& semantic, std::vector<glm::vec3>& v
             assert(componentCount == 3); // We only support vec3 here
             
             auto& data = source->second.FloatArray;
+            numVectors = data.Count / 3;
+            glm::vec3* pVectors = (glm::vec3*)stack_allocate(sizeof(glm::vec3)*numVectors, 1, "Vec3Array");           
             for (size_t i = 0; i < data.Count; i += 3)
-                vec.emplace_back(data.pData[i], data.pData[i+1], data.pData[i+2]);
+            {
+                int32_t index = i / 3;
+                pVectors[index].x = data.pData[i+0];
+                pVectors[index].y = data.pData[i+1];
+                pVectors[index].z = data.pData[i+2];
+            }
+
+            (*pVec) = pVectors;
         }
         else
         {
-            ThreadSafePrintf("Source '%s' in COLLADA file was not found\n", input->second.Source.c_str());
+            ThreadSafePrintf("Source '%s' in COLLADA file was not found\n", input->second.Source);
         }
     }
 }
 
 
-inline void ConstructVec2(const std::string& semantic, std::vector<glm::vec2>& vec, std::unordered_map<std::string, COLLADASource>& sources, std::unordered_map<std::string, COLLADAInput>& inputs)
+inline void ConstructVec2(const std::string& semantic, glm::vec2** pVec, int32_t& numVectors, std::unordered_map<std::string, COLLADASource>& sources, std::unordered_map<std::string, COLLADAInput>& inputs)
 {
+    if (*pVec != nullptr && numVectors != 0)
+    {
+        //Assume that this vector already has been constructed
+        return;
+    }
+
     //Read positions and construct positions
     auto input = inputs.find(semantic);
     if (input != inputs.end())
     {
         //Get source ID, but remove the # in the beginning
-        std::string sourceID = input->second.Source.substr(1);
+        char sourceID[MAX_STRING_LENGTH];
+        strcpy(sourceID, input->second.Source + 1);
         
         //Get the source and construct positions
         auto source = sources.find(sourceID);
@@ -273,12 +298,20 @@ inline void ConstructVec2(const std::string& semantic, std::vector<glm::vec2>& v
             assert(componentCount == 2); // We only support vec2 here
             
             auto& data = source->second.FloatArray;
+            numVectors = data.Count / 3;
+            glm::vec2* pVectors = (glm::vec2*)stack_allocate(sizeof(glm::vec2) * numVectors, 1, "Vec3Array");
             for (size_t i = 0; i < data.Count; i += 2)
-                vec.emplace_back(data.pData[i], data.pData[i+1]);
+            {
+                int32_t index = i / 2;
+                pVectors[index].x = data.pData[i + 0];
+                pVectors[index].y = data.pData[i + 1];
+            }
+
+            (*pVec) = pVectors;
         }
         else
         {
-            ThreadSafePrintf("Source '%s' in COLLADA file was not found\n", input->second.Source.c_str());
+            ThreadSafePrintf("Source '%s' in COLLADA file was not found\n", input->second.Source);
         }
     }
 }
@@ -297,7 +330,7 @@ inline void ReadVertices(COLLADAMesh& mesh, std::unordered_map<std::string, COLL
         ReadInputs(inputs, pVertices);
         
         //Construct positions
-        ConstructVec3("POSITION", mesh.Positions, sources, inputs);
+        ConstructVec3("POSITION", &mesh.pPositions, mesh.NumPositions, sources, inputs);
     }
     else
     {
@@ -347,9 +380,9 @@ inline void ReadTriangles(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 			}
         
 			//Construct normals
-			ConstructVec3("NORMAL", mesh.Normals, sources, inputs);
+			ConstructVec3("NORMAL", &mesh.pNormals, mesh.NumNormals, sources, inputs);
 			//Construct texcoords
-			ConstructVec2("TEXCOORD", mesh.TexCoords, sources, inputs);
+			ConstructVec2("TEXCOORD", &mesh.pTexCoords, mesh.NumTexCoords, sources, inputs);
 
 			//Read normal components
 			int32_t normalOffset = -1;
@@ -379,13 +412,13 @@ inline void ReadTriangles(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 			{
 				//Construct vertices
                     int32_t pos = indices.pData[i + positionOffset];
-                    vertex.Position = (positionOffset >= 0) ? mesh.Positions[pos] : glm::vec3();
+                    vertex.Position = (positionOffset >= 0) ? mesh.pPositions[pos] : glm::vec3();
 
                     int32_t norm = indices.pData[i + normalOffset];
-                    vertex.Normal = (normalOffset >= 0) ? mesh.Normals[norm] : glm::vec3();
+                    vertex.Normal = (normalOffset >= 0) ? mesh.pNormals[norm] : glm::vec3();
 
                     int32_t uv = indices.pData[i + texcoordOffset];
-                    vertex.TexCoords = (texcoordOffset >= 0) ? mesh.TexCoords[uv] : glm::vec3();
+                    vertex.TexCoords = (texcoordOffset >= 0) ? mesh.pTexCoords[uv] : glm::vec3();
             
 				InsertUniqueVertex(mesh, vertex);
 			}
@@ -418,9 +451,9 @@ inline void ReadPolylists(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 			ReadInputs(inputs, pPolylist);
         
 			//Construct normals
-			ConstructVec3("NORMAL", mesh.Normals, sources, inputs);
+			ConstructVec3("NORMAL", &mesh.pNormals, mesh.NumNormals, sources, inputs);
 			//Construct texcoords
-			ConstructVec2("TEXCOORD", mesh.TexCoords, sources, inputs);
+			ConstructVec2("TEXCOORD", &mesh.pTexCoords, mesh.NumTexCoords, sources, inputs);
 
 			//Read normal components
 			int32_t normalOffset = -1;
@@ -486,13 +519,13 @@ inline void ReadPolylists(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 				{
 					//Construct vertices
                     int32_t pos = indices.pData[baseIndex + j + positionOffset];
-					vertex.Position  = (positionOffset >= 0)  ? mesh.Positions[pos] : glm::vec3();
+					vertex.Position  = (positionOffset >= 0)  ? mesh.pPositions[pos] : glm::vec3();
 
                     int32_t norm = indices.pData[baseIndex + j + normalOffset];
-					vertex.Normal    = (normalOffset >= 0)    ? mesh.Normals[norm] : glm::vec3();
+					vertex.Normal    = (normalOffset >= 0)    ? mesh.pNormals[norm] : glm::vec3();
 
                     int32_t uv = indices.pData[baseIndex + j + texcoordOffset];
-					vertex.TexCoords = (texcoordOffset >= 0)  ? mesh.TexCoords[uv] : glm::vec3();
+					vertex.TexCoords = (texcoordOffset >= 0)  ? mesh.pTexCoords[uv] : glm::vec3();
                 
 					InsertUniqueVertex(mesh, vertex);
 				}
@@ -507,13 +540,13 @@ inline void ReadPolylists(COLLADAMesh& mesh, std::unordered_map<std::string, COL
 				{
                     //Construct vertices
                     int32_t pos = indices.pData[baseIndex + j + positionOffset];
-                    vertex.Position = (positionOffset >= 0) ? mesh.Positions[pos] : glm::vec3();
+                    vertex.Position = (positionOffset >= 0) ? mesh.pPositions[pos] : glm::vec3();
 
                     int32_t norm = indices.pData[baseIndex + j + normalOffset];
-                    vertex.Normal = (normalOffset >= 0) ? mesh.Normals[norm] : glm::vec3();
+                    vertex.Normal = (normalOffset >= 0) ? mesh.pNormals[norm] : glm::vec3();
 
                     int32_t uv = indices.pData[baseIndex + j + texcoordOffset];
-                    vertex.TexCoords = (texcoordOffset >= 0) ? mesh.TexCoords[uv] : glm::vec3();
+                    vertex.TexCoords = (texcoordOffset >= 0) ? mesh.pTexCoords[uv] : glm::vec3();
                 
 					//Add a new triangle base on the last couple of ones
 					mesh.Indices.emplace_back(startIndex);
@@ -552,11 +585,11 @@ inline void GetParams(COLLADAAccessor& accessor, tinyxml2::XMLElement* pAccessor
         //Get param name
         const char* name = pParam->Attribute("name");
         if (name != nullptr)
-            param.Name = name;
+            strcpy(param.Name, name);
         //Get param type
         const char* type = pParam->Attribute("type");
         if (type != nullptr)
-            param.Type = type;
+            strcpy(param.Type, type);
         
         accessor.Params.push_back(param);
         pParam = pParam->NextSiblingElement("param");
@@ -584,7 +617,7 @@ inline COLLADAAccessor GetAccessor(tinyxml2::XMLElement* pSource)
         //Get source id
         const char* source = pAccessor->Attribute("source");
         assert(source != nullptr);
-        accessor.Source = source;
+        strcpy(accessor.Source, source);
         
         //Get count
         XMLError result = pAccessor->QueryIntAttribute("count", &accessor.Count);
@@ -651,7 +684,7 @@ inline void ReadSources(std::unordered_map<std::string, COLLADASource>& sources,
         //Get attributes
         const char* ID = pSource->Attribute("id");
         assert(ID != nullptr);
-        source.ID = ID;
+        strcpy(source.ID, ID);
         
         //Get techniques
         source.Accessor   = GetAccessor(pSource);
@@ -664,7 +697,7 @@ inline void ReadSources(std::unordered_map<std::string, COLLADASource>& sources,
 		//Clear previous source
 		source.FloatArray.pData = nullptr;
 		source.FloatArray.Count = 0;
-		source.ID = "";
+		memset(source.ID, 0, sizeof(source.ID));
     }
     
 #if DEBUG_PRINTS
@@ -714,9 +747,12 @@ inline bool ReadMeshes(std::vector<MeshData>& meshes, tinyxml2::XMLElement* pRoo
 			mesh.Indices.clear();
 			mesh.Vertices.clear();
 			colladaMesh.Indices.clear();
-			colladaMesh.Normals.clear();
-			colladaMesh.Positions.clear();
-			colladaMesh.TexCoords.clear();
+			colladaMesh.pNormals = nullptr;
+            colladaMesh.NumNormals = 0;
+            colladaMesh.pPositions = nullptr;
+            colladaMesh.NumPositions = 0;
+			colladaMesh.pTexCoords = nullptr;
+            colladaMesh.NumTexCoords = 0;
 			colladaMesh.UniqueVertices.clear();
 			colladaMesh.Vertices.clear();
         }

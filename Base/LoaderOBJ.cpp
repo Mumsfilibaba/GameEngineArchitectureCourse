@@ -283,7 +283,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 					//There should be an empty space after the attribute
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
-					free((void*)buffer);
+					mm_free((void*)buffer);
 					return false;
 				}
 
@@ -296,7 +296,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 					//After two floats there should be a new line otherwise a corrupt file
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
-					free((void*)buffer);
+					mm_free((void*)buffer);
 					return false;
 				}
 
@@ -313,7 +313,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 				{
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
-					free((void*)buffer);
+					mm_free((void*)buffer);
 					return false;
 				}
 
@@ -325,7 +325,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 				{
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
-					free((void*)buffer);
+					mm_free((void*)buffer);
 					return false;
 				}
 
@@ -344,7 +344,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 				{
 					PrintError(OBJ_ERROR_CORRUPT_FILE);
 
-					free((void*)buffer);
+					mm_free((void*)buffer);
 					return false;
 				}
 
@@ -358,7 +358,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 				//The character after v is not a 't', 'n' or ' ' we have a corrupted file
 				PrintError(OBJ_ERROR_CORRUPT_FILE);
 
-				free((void*)buffer);
+				mm_free((void*)buffer);
 				return false;
 			}
 
@@ -376,7 +376,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 			{
 				PrintError(OBJ_ERROR_CORRUPT_FILE);
 
-				free((void*)buffer);
+				mm_free((void*)buffer);
 				return false;
 			}
 
@@ -402,7 +402,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 				{
 					PrintError(OBJ_ERROR_INDICES_OUT_OF_BOUNDS);
 
-					free((void*)buffer);
+					mm_free((void*)buffer);
 					return false;
 				}
 #if defined(DEBUG_PRINTS)
@@ -438,7 +438,7 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
 					{
 						PrintError(OBJ_ERROR_INDICES_OUT_OF_BOUNDS);
 
-						free((void*)buffer);
+						mm_free((void*)buffer);
 						return false;
 					}
 #if defined(DEBUG_PRINTS)
@@ -481,6 +481,6 @@ inline bool LoadOBJ(std::vector<MeshData>& meshes, const std::string& filepath)
     //Print number of vertices, indices and triangles
     ThreadSafePrintf("Finished loading OBJ-file '%s' - VertexCount=%d, IndexCount=%d, TriangleCount=%d\n", filepath.c_str(), meshes[0].Vertices.size(), meshes[0].Indices.size(), meshes[0].Indices.size() / 3);
 
-	free((void*)buffer);
+	mm_free((void*)buffer);
 	return true;
 }
