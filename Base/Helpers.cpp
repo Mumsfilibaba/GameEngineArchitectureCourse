@@ -69,8 +69,28 @@ void ImGuiPrintMemoryManagerAllocations()
 		auto& poolAllocationsRef = MemoryManager::GetInstance().GetPoolAllocations();
 		auto& stackAllocationsRef = MemoryManager::GetInstance().GetStackAllocations();
 
+		static std::map<size_t, DebugFreeEntry> freeListMap;
+		freeListMap.clear();
+
 		MemoryManager::GetInstance().GetMemoryLock().lock();
-		auto memoryManagerAllocations = std::map<size_t, Allocation*>(memoryManagerAllocationsRef);
+		auto memoryManagerAllocations = std::map<size_t, Allocation>(memoryManagerAllocationsRef);
+
+		{
+			const FreeEntry* pFreeListHead = MemoryManager::GetInstance().GetFreeListHead();
+			const FreeEntry* pCurrentFreeEntry = pFreeListHead;
+			size_t pFreeListStartAddress = ULLONG_MAX;
+
+			do
+			{
+				if ((size_t)pCurrentFreeEntry < pFreeListStartAddress)
+					pFreeListStartAddress = (size_t)pCurrentFreeEntry;
+
+				freeListMap[(size_t)pCurrentFreeEntry] = DebugFreeEntry(pCurrentFreeEntry);
+
+				pCurrentFreeEntry = pCurrentFreeEntry->pNext;
+			} while (pCurrentFreeEntry != pFreeListHead);
+		}
+
 		MemoryManager::GetInstance().GetMemoryLock().unlock();
 
 		MemoryManager::GetInstance().GetPoolAllocationLock().lock();
@@ -84,25 +104,10 @@ void ImGuiPrintMemoryManagerAllocations()
 		auto memoryManagerAllocationIt = memoryManagerAllocations.begin();
 		auto poolAllocationIt = poolAllocations.begin();
 		auto stackAllocationIt = stackAllocations.begin();
-		const void* pMemoryManagerStart = MemoryManager::GetInstance().GetMemoryStart();
-		const FreeEntry* pFreeListHead = MemoryManager::GetInstance().GetFreeListHead();
-		const FreeEntry* pCurrentFreeEntry = pFreeListHead;
-		size_t pFreeListStartAddress = ULLONG_MAX;
-
-		do
-		{
-			if ((size_t)pCurrentFreeEntry < pFreeListStartAddress)
-				pFreeListStartAddress = (size_t)pCurrentFreeEntry;
-
-			pCurrentFreeEntry = pCurrentFreeEntry->pNext;
-		} while (pCurrentFreeEntry != pFreeListHead);
-
-		const FreeEntry* pStartFreeEntry = (FreeEntry*)pFreeListStartAddress;
-		pCurrentFreeEntry = pStartFreeEntry;
+		auto freeListIt = freeListMap.begin();
 
 		size_t lastAddress = 0;
-		size_t currentAddress = (size_t)pMemoryManagerStart;
-		bool hasEncounteredFreeBlock = false;
+		size_t currentAddress = (size_t)MemoryManager::GetInstance().GetMemoryStart();
 
 		while (true)
 		{
@@ -119,8 +124,8 @@ void ImGuiPrintMemoryManagerAllocations()
 				distanceToStackAllocation = stackAllocationIt->first - currentAddress;
 
 			size_t distanceToFreeEntry = ULLONG_MAX;
-			if (pCurrentFreeEntry != pStartFreeEntry || !hasEncounteredFreeBlock)
-				distanceToFreeEntry = (size_t)pCurrentFreeEntry - currentAddress;
+			if (freeListIt != freeListMap.end())
+				distanceToFreeEntry = freeListIt->first - currentAddress;
 
 			size_t minDistance = std::min(distanceToFreeEntry, std::min(distanceToStackAllocation, std::min(distanceToMemoryManagerAllocation, distanceToPoolAllocation)));
 
@@ -133,10 +138,10 @@ void ImGuiPrintMemoryManagerAllocations()
 			if (minDistance == distanceToMemoryManagerAllocation)
 			{
 				std::string allocationStr =
-					memoryManagerAllocationIt->second->tag + "\n"
+					memoryManagerAllocationIt->second.tag + "\n"
 					"Address:   " + N2HexStr(memoryManagerAllocationIt->first) + "\n"
-					"Padding: " + std::to_string(memoryManagerAllocationIt->second->padding) + "\n"
-					"Size: " + std::to_string(memoryManagerAllocationIt->second->sizeInBytes) + "bytes\n\n";
+					"Padding: " + std::to_string(memoryManagerAllocationIt->second.padding) + "\n"
+					"Size: " + std::to_string(memoryManagerAllocationIt->second.sizeInBytes) + "bytes\n\n";
 				if (showMemoryManagerAllocations) ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), allocationStr.c_str());
 
 				lastAddress = currentAddress;
@@ -171,15 +176,14 @@ void ImGuiPrintMemoryManagerAllocations()
 			{
 				std::string freeEntryStr =
 					"Free Memory Block\n"
-					"Address:   " + N2HexStr((size_t)pCurrentFreeEntry) + "\n"
-					"Size: " + std::to_string(pCurrentFreeEntry->sizeInBytes) + "bytes\n"
-					"Next Free: " + N2HexStr((size_t)pCurrentFreeEntry->pNext) + "\n\n";
+					"Address:   " + N2HexStr((size_t)freeListIt->first) + "\n"
+					"Size: " + std::to_string(freeListIt->second.sizeInBytes) + "bytes\n"
+					"Next Free: " + N2HexStr((size_t)freeListIt->second.nextAddress) + "\n\n";
 				if (showMemoryManagerFreeBlock) ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), freeEntryStr.c_str());
 
 				lastAddress = currentAddress;
-				currentAddress = (size_t)pCurrentFreeEntry;
-				pCurrentFreeEntry = pCurrentFreeEntry->pNext;
-				hasEncounteredFreeBlock = true;
+				currentAddress = freeListIt->first;
+				freeListIt++;
 			}
 			else
 			{

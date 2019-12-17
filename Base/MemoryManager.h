@@ -67,6 +67,24 @@ struct FreeEntry
 	FreeEntry* pNext = nullptr;
 };
 
+struct DebugFreeEntry
+{
+	DebugFreeEntry()
+	{
+		this->sizeInBytes = 0;
+		this->nextAddress = 0;
+	}
+
+	DebugFreeEntry(const FreeEntry* pFreeEntry)
+	{
+		this->sizeInBytes = pFreeEntry->sizeInBytes;
+		this->nextAddress = (size_t)pFreeEntry->pNext;
+	}
+
+	size_t sizeInBytes = 0;
+	size_t nextAddress = 0;
+};
+
 class MemoryManager
 {
 public:
@@ -83,7 +101,7 @@ public:
 	void ClearStackAllocations();
 	const std::map<size_t, SubAllocation>& GetStackAllocations() { return m_StackAllocations; }
 
-	const std::map<size_t, Allocation*>& GetAllocations() { return m_AllocationHeaders; }
+	const std::map<size_t, Allocation>& GetAllocations() { return m_AllocationHeaders; }
 	const void* GetMemoryStart() { return m_pMemory; }
 	const FreeEntry* GetFreeListHead() { return m_pFreeHead; };
 #endif
@@ -102,7 +120,7 @@ private:
 
 private:
 	void* m_pMemory;
-	std::map<size_t, Allocation*> m_AllocationHeaders;
+	std::map<size_t, Allocation> m_AllocationHeaders;
 	FreeEntry* m_pFreeHead;
 	FreeEntry* m_pFreeTail;
 	SpinLock m_MemoryLock;

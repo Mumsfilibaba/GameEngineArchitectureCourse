@@ -78,15 +78,6 @@ MemoryManager::~MemoryManager()
 	m_pFreeHead = nullptr;
 	m_pFreeTail = nullptr;
 
-	for (auto& allocation : m_AllocationHeaders)
-	{
-		if (allocation.second != nullptr)
-		{
-			delete allocation.second;
-			allocation.second = nullptr;
-		}
-	}
-
 	m_AllocationHeaders.clear();
 }
 
@@ -286,16 +277,16 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 				m_pFreeHead = pNewFreeEntryAfter;
 			}
 
-			//Create a new Allocation at the CurrentFree Address
+			//Create a new allocation at the CurrentFree Address
 			assert(m_AllocationHeaders.find(aligned) == m_AllocationHeaders.end());
-			m_AllocationHeaders[aligned] = new Allocation(tag, allocationSizeInBytes + internalPadding, internalPadding);
+			m_AllocationHeaders[aligned] = Allocation(tag, allocationSizeInBytes + internalPadding, internalPadding);
 
 #ifdef DEBUG_MEMORY_MANAGER
 			CheckFreeListCorruption();
 #endif
 
 #ifndef COLLECT_PERFORMANCE_DATA
-			s_TotalUsed += (allocationSizeInBytes + padding);
+			s_TotalUsed += (allocationSizeInBytes + internalPadding);
 #endif
 			//Return the address of the allocation
 			return (void*)(aligned);
@@ -319,7 +310,7 @@ void MemoryManager::Free(void* allocationPtr)
 
 	assert(m_AllocationHeaders.find(allocationAddress) != m_AllocationHeaders.end());
 
-	Allocation* pAllocation = m_AllocationHeaders[allocationAddress];
+	Allocation allocation = m_AllocationHeaders[allocationAddress];
 	m_AllocationHeaders.erase(allocationAddress);
 
 #ifdef DEBUG_MEMORY_MANAGER
@@ -327,7 +318,11 @@ void MemoryManager::Free(void* allocationPtr)
 	PrintFreeList();
 #endif
 
-	size_t offsetAllocationAddress = allocationAddress - pAllocation->padding;
+#ifndef COLLECT_PERFORMANCE_DATA
+	s_TotalUsed -= allocation.sizeInBytes;
+#endif
+
+	size_t offsetAllocationAddress = allocationAddress - allocation.padding;
 
 	FreeEntry* pLastFree = m_pFreeTail;
 	FreeEntry* pCurrentFree = m_pFreeHead;
@@ -346,9 +341,9 @@ void MemoryManager::Free(void* allocationPtr)
 				FreeEntry* pNewFreeEntry = nullptr;
 
 				//We have a block on our right that we can coalesce with as well
-				if (offsetAllocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree->pNext)
+				if (offsetAllocationAddress + allocation.sizeInBytes == (size_t)pCurrentFree->pNext)
 				{
-					size_t newFreeSize = pCurrentFree->sizeInBytes + pAllocation->sizeInBytes + pCurrentFree->pNext->sizeInBytes;
+					size_t newFreeSize = pCurrentFree->sizeInBytes + allocation.sizeInBytes + pCurrentFree->pNext->sizeInBytes;
 
 					FreeEntry* pCurrentFreeNextNext = pCurrentFree->pNext->pNext;
 					pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
@@ -361,7 +356,7 @@ void MemoryManager::Free(void* allocationPtr)
 				}
 				else
 				{
-					size_t newFreeSize = pCurrentFree->sizeInBytes + pAllocation->sizeInBytes;
+					size_t newFreeSize = pCurrentFree->sizeInBytes + allocation.sizeInBytes;
 
 					FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
 					pNewFreeEntry = new(pCurrentFree) FreeEntry(newFreeSize);
@@ -380,19 +375,17 @@ void MemoryManager::Free(void* allocationPtr)
 #ifdef DEBUG_MEMORY_MANAGER
 				CheckFreeListCorruption();
 #endif
-
-				delete pAllocation;
 				return;
 			}
 			//We encounter a block that starts in our end (Coalesce right)
-			else if (offsetAllocationAddress + pAllocation->sizeInBytes == (size_t)pCurrentFree)
+			else if (offsetAllocationAddress + allocation.sizeInBytes == (size_t)pCurrentFree)
 			{
 				FreeEntry* pNewFreeEntry = nullptr;
 
 				//We have a block on our left that we can coalesce with as well
 				if ((size_t)pLastFree + pLastFree->sizeInBytes == offsetAllocationAddress)
 				{
-					size_t newFreeSize = pLastFree->sizeInBytes + pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
+					size_t newFreeSize = pLastFree->sizeInBytes + allocation.sizeInBytes + pCurrentFree->sizeInBytes;
 
 					FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
 					pNewFreeEntry = new(pLastFree) FreeEntry(newFreeSize);
@@ -410,7 +403,7 @@ void MemoryManager::Free(void* allocationPtr)
 				}
 				else
 				{
-					size_t newFreeSize = pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
+					size_t newFreeSize = allocation.sizeInBytes + pCurrentFree->sizeInBytes;
 
 					FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
 					pNewFreeEntry = new((void*)offsetAllocationAddress) FreeEntry(newFreeSize);
@@ -427,9 +420,6 @@ void MemoryManager::Free(void* allocationPtr)
 					CheckFreeListCorruption();
 #endif
 				}
-
-				delete pAllocation;
-
 				return;
 			}
 
@@ -461,7 +451,7 @@ void MemoryManager::Free(void* allocationPtr)
 		pClosestRight = m_pFreeHead;
 	}
 
-	FreeEntry* pNewFreeEntry = new((void*)offsetAllocationAddress) FreeEntry(pAllocation->sizeInBytes);
+	FreeEntry* pNewFreeEntry = new((void*)offsetAllocationAddress) FreeEntry(allocation.sizeInBytes);
 	pClosestLeft->pNext = pNewFreeEntry;
 	pNewFreeEntry->pNext = pClosestRight;
 
@@ -473,8 +463,6 @@ void MemoryManager::Free(void* allocationPtr)
 	std::cout << "Single Free" << std::endl;
 	CheckFreeListCorruption();
 #endif
-
-	delete pAllocation;
 }
 
 #ifdef SHOW_ALLOCATIONS_DEBUG
