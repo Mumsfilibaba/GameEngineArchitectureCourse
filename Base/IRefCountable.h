@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <algorithm>
+#include <atomic>
 
 class IRefCountable
 {
@@ -38,5 +39,5 @@ protected:
 	};
 
 private:
-	int m_Refrences;
+	std::atomic_int32_t m_Refrences;
 };

@@ -20,7 +20,7 @@ IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 
 	TGAHeader pTGAfile;
 	ReadFromDisk(file, pTGAfile);
-	Texture* pTexture = stack_new(file.c_str()) Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
+	Texture* pTexture = new Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
 	stack_delete(pTGAfile.imageDataBuffer);
 	return pTexture;
 }

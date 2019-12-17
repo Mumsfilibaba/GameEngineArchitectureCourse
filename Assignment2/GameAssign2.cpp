@@ -48,17 +48,6 @@ void GameAssign2::RenderResourceDataInfo()
 
 	GetCurrentState(resourceStates);
 
-	for (auto res : m_Resources)
-	{
-		if (res.second)
-		{
-			if (!manager->IsResourceLoaded(res.first))
-			{
-				m_Resources[res.first] = nullptr; 
-			}
-		}
-	}
-
 	ImGui::Begin("Resource Data Window");
 	ImGui::Separator();
 
@@ -125,7 +114,7 @@ void GameAssign2::RenderResourceDataInfo()
 
 		if (manager->IsResourceLoaded(it->first))
 		{
-			IResource* entity = manager->GetResource(it->first);
+			IResource* entity = manager->GetStrongResource(it->first);
 			if (ImGui::Button(entity->GetName().c_str()))
 			{
 				//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
@@ -137,6 +126,8 @@ void GameAssign2::RenderResourceDataInfo()
 			ImGui::TextColored(color, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
 			ImGui::TextColored(color, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+
+			entity->RemoveRef();
 		}
 		else
 		{
@@ -240,15 +231,9 @@ void GameAssign2::Init()
 
 void GameAssign2::LoadResource(const std::string& file)
 {
-	if (m_Resources[file])
-		return;
-
 	ResourceManager::Get().LoadResourcesInBackground({ file.c_str() }, [this, file](const Ref<ResourceBundle>& bundle)
 	{
-		if (bundle)
-		{
-			m_Resources[file] = ResourceManager::Get().GetResource(file);
-		}
+		
 	});
 }
 
@@ -256,16 +241,16 @@ void GameAssign2::UnLoadResource(const std::string& file)
 {
 	UnUseResource(file);
 	ResourceManager::Get().UnloadResource(HashString(file.c_str()));
-	m_Resources[file] = nullptr;
 }
 
 void GameAssign2::UseResource(const std::string& file)
 {
-	if (m_Resources[file])
+	IResource* resource = ResourceManager::Get().GetResource(file);
+	if (resource)
 	{
-		if (!m_Resources[file]->InUse())
+		if (!resource->InUse())
 		{
-			m_Resources[file]->AddRef();
+			resource->AddRef();
 		}
 		return;
 	}
@@ -274,17 +259,21 @@ void GameAssign2::UseResource(const std::string& file)
 	{
 		if (bundle)
 		{
-			m_Resources[file] = ResourceManager::Get().GetResource(file);
-			m_Resources[file]->AddRef();
+			IResource* resource = ResourceManager::Get().GetResource(file);
+			if (!resource->InUse())
+			{
+				resource->AddRef();
+			}
 		}
 	});
 }
 
 void GameAssign2::UnUseResource(const std::string& file)
 {
-	if (m_Resources[file])
+	IResource* resource = ResourceManager::Get().GetResource(file);
+	if (resource)
 	{
-		m_Resources[file]->RemoveRef();
+		resource->RemoveRef();
 	}
 }
 
@@ -293,10 +282,11 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 	if (m_StressTest)
 	{
 		m_Timer += deltaTime.asMicroseconds();
-		if (m_Timer > 500000)
+		if (m_Timer > 50000)
 		{
 			m_Timer = 0;
-			std::string file = m_ResourcesInCompressedPackage[rand() % m_ResourcesInCompressedPackage.size()];
+			int rnd = rand() % m_ResourcesInCompressedPackage.size();
+			std::string file = m_ResourcesInCompressedPackage[rnd];
 			std::map<std::string, int> resourceStates;
 			GetCurrentState(resourceStates);
 
@@ -313,15 +303,17 @@ void GameAssign2::Update(const sf::Time& deltaTime)
 
 void GameAssign2::Render()
 {
+	ResourceManager& manager = ResourceManager::Get();
+
 #if !defined(CREATE_PACKAGE)
-	Mesh* bunny = (Mesh*)m_Resources["bunny.obj"];
-	Mesh* teapot = (Mesh*)m_Resources["teapot.obj"];
-	Mesh* cube = (Mesh*)m_Resources["cube.dae"];
-	Texture* meme = (Texture*)m_Resources["meme.tga"];
-	Mesh* m4a1 = (Mesh*)m_Resources["M4A1.dae"];
-	Mesh* audi = (Mesh*)m_Resources["AudiR8.dae"];
-	Mesh* stormtrooper = (Mesh*)m_Resources["stormtrooper.obj"];
-	Texture* storm = (Texture*)m_Resources["stormtrooper.tga"];
+	Mesh* bunny = (Mesh*)manager.GetResource("bunny.obj");
+	Mesh* teapot = (Mesh*)manager.GetResource("teapot.obj");
+	Mesh* cube = (Mesh*)manager.GetResource("cube.dae");
+	Texture* meme = (Texture*)manager.GetResource("meme.tga");
+	Mesh* m4a1 = (Mesh*)manager.GetResource("M4A1.dae");
+	Mesh* audi = (Mesh*)manager.GetResource("AudiR8.dae");
+	Mesh* stormtrooper = (Mesh*)manager.GetResource("stormtrooper.obj");
+	Texture* storm = (Texture*)manager.GetResource("stormtrooper.tga");
 
 
 	if (bunny && bunny->InUse())

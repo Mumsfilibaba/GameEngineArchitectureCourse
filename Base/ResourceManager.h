@@ -11,7 +11,7 @@
 
 
 #define PACKAGE_PATH "package"
-#define RESOURCE_MANAGER_MAX_MEMORY 4096 * 4096 * 2
+#define RESOURCE_MANAGER_MAX_MEMORY 4096 * 4096 * 3
 
 class ResourceLoader;
 class Archiver;
@@ -31,6 +31,7 @@ public:
 	void LoadResourcesInBackground(std::vector<std::string> files, const std::function<void(const Ref<ResourceBundle>&)>& callback);
 	IResource* GetResource(size_t guid);
 	IResource* GetResource(const std::string& file);
+	IResource* GetStrongResource(const std::string& file);
 
 	bool IsResourceLoaded(size_t guid);
 	bool IsResourceLoaded(const std::string& path);
@@ -48,7 +49,7 @@ public:
 	size_t GetNrOfResourcesInUse() const;
 
 	void GetResourcesInUse(std::vector<IResource*>& vector);
-	void GetResourcesLoaded(std::vector<IResource*>& vector) const;
+	void GetResourcesLoaded(std::vector<IResource*>& vector);
 
 	static ResourceManager& Get();
 
@@ -60,6 +61,8 @@ private:
 	void UnloadResource(IResource* resource);
 	void UnloadUnusedResources(bool force = false);
 	void Update();
+
+	bool IsResourceBeingLoadedInternal(size_t guid);
 
 	std::unordered_map<size_t, IResource*> m_LoadedResources;
 	std::vector<size_t> m_ResourcesToBeLoaded;

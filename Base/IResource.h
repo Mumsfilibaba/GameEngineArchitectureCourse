@@ -25,14 +25,14 @@ private:
 	inline void InternalInit()
 	{
 		Init();
-		ThreadSafePrintf("Resource Initiated [%s]\n", m_Name.c_str());
+		//ThreadSafePrintf("Resource Initiated [%s]\n", m_Name.c_str());
 		m_Ready = true;
 	};
 
 	virtual inline void InternalRelease() override
 	{
 		Release();
-		ThreadSafePrintf("Resource Released [%s]\n", m_Name.c_str());
+		//ThreadSafePrintf("Resource Released [%s]\n", m_Name.c_str());
 		IRefCountable::InternalRelease();
 	};
 

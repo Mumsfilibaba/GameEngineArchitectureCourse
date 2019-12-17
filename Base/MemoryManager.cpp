@@ -87,6 +87,8 @@ void MemoryManager::PrintMemoryLayout()
 	FreeEntry* pLastFree = m_pFreeTail;
 	FreeEntry* pCurrentFree = m_pFreeHead;
 
+	size_t totalSize = 0;
+
 	do
 	{
 		if ((size_t)pCurrentFree < (size_t)pLastFree)
@@ -105,21 +107,38 @@ void MemoryManager::PrintMemoryLayout()
 
 	do
 	{
-		if (prevNext != (size_t)pCurrentFree && prevNext > 0)
+		if (prevNext > 0)
+		{
+			if (prevNext != (size_t)pCurrentFree)
+			{
+				while (allocationIt != m_AllocationHeaders.end())
+				{
+					if (allocationIt->first >= (size_t)pCurrentFree)
+						break;
+
+					totalSize += allocationIt->second.sizeInBytes;
+					std::cout << yellowText << N2HexStr(allocationIt->first) << " : " << allocationIt->second.tag << " - " << allocationIt->second.sizeInBytes << std::endl;
+					allocationIt++;
+				}
+			}
+		}
+		else
 		{
 			while (allocationIt != m_AllocationHeaders.end())
 			{
 				if (allocationIt->first >= (size_t)pCurrentFree)
 					break;
 
-				std::cout << yellowText << N2HexStr(allocationIt->first) << " : " << allocationIt->second.tag << std::endl;
+				totalSize += allocationIt->second.sizeInBytes;
+				std::cout << yellowText << N2HexStr(allocationIt->first) << " : " << allocationIt->second.tag << " - " << allocationIt->second.sizeInBytes << std::endl;
 				allocationIt++;
 			}
 		}
 			
 
 		size_t next = (size_t)pCurrentFree + pCurrentFree->sizeInBytes;
-		std::cout << blueText << N2HexStr((size_t)pCurrentFree) << " next: " << N2HexStr(next) << " points to: " << N2HexStr((size_t)pCurrentFree->pNext);
+		std::cout << blueText << N2HexStr((size_t)pCurrentFree) << " - " << pCurrentFree->sizeInBytes << " next: " << N2HexStr(next) << " points to: " << N2HexStr((size_t)pCurrentFree->pNext);
+		totalSize += pCurrentFree->sizeInBytes;
 
 		if (pCurrentFree == m_pFreeHead)
 			std::cout << " <-- H";
@@ -136,6 +155,9 @@ void MemoryManager::PrintMemoryLayout()
 	} while (pCurrentFree != pTrueStart);
 
 	std::cout << whiteText << std::endl;
+
+	assert(totalSize == SIZE_IN_BYTES);
+
 #endif
 }
 
@@ -217,8 +239,6 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 
 	std::scoped_lock<SpinLock> lock(m_MemoryLock);
 
-	PrintMemoryLayout();
-
 	FreeEntry* pLastFree = m_pFreeTail;
 	FreeEntry* pCurrentFree = m_pFreeHead;
 
@@ -269,7 +289,6 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 
 				m_pFreeTail = pNewFreeEntryBefore;
 				m_pFreeHead = pNewFreeEntryAfter;
-
 			}
 			else if (pNewFreeEntryBefore != nullptr)
 			{
@@ -284,9 +303,15 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 				pLastFree->pNext = pNewFreeEntryAfter;
 				pNewFreeEntryAfter->pNext = pCurrentFreeNext;
 
-
 				m_pFreeTail = pLastFree;
 				m_pFreeHead = pNewFreeEntryAfter;
+			}
+			else
+			{
+				pLastFree->pNext = pCurrentFreeNext;
+
+				m_pFreeTail = pLastFree;
+				m_pFreeHead = pCurrentFreeNext;
 			}
 
 			//Create a new allocation at the CurrentFree Address
@@ -324,12 +349,14 @@ void MemoryManager::Free(void* allocationPtr)
 	assert(m_AllocationHeaders.find(allocationAddress) != m_AllocationHeaders.end());
 
 	Allocation allocation = m_AllocationHeaders[allocationAddress];
-	m_AllocationHeaders.erase(allocationAddress);
 
 #ifdef DEBUG_MEMORY_MANAGER
 	std::cout << "Freeing Memory: " << N2HexStr(allocationAddress) << " from: " << allocation.tag << std::endl;
 	PrintMemoryLayout();
 #endif
+
+	m_AllocationHeaders.erase(allocationAddress);
+
 
 #ifndef COLLECT_PERFORMANCE_DATA
 	s_TotalUsed -= allocation.sizeInBytes;
@@ -442,13 +469,17 @@ void MemoryManager::Free(void* allocationPtr)
 				{
 					pClosestLeft = pLastFree;
 					pClosestRight = pCurrentFree;
-					//break;
 				}
-				else if ((size_t)pCurrentFree < (size_t)pLastFree && (size_t)pCurrentFree < (size_t)pClosestRight)
+			}
+			else if ((size_t)pLastFree > allocationAddress)
+			{
+				if ((size_t)pCurrentFree > allocationAddress)
 				{
-					pClosestLeft = pLastFree;
-					pClosestRight = pCurrentFree;
-					//break;
+					if ((size_t)pCurrentFree < (size_t)pLastFree)
+					{
+						pClosestLeft = pLastFree;
+						pClosestRight = pCurrentFree;
+					}
 				}
 			}
 
@@ -467,7 +498,6 @@ void MemoryManager::Free(void* allocationPtr)
 	FreeEntry* pNewFreeEntry = new((void*)offsetAllocationAddress) FreeEntry(allocation.sizeInBytes);
 	pClosestLeft->pNext = pNewFreeEntry;
 	pNewFreeEntry->pNext = pClosestRight;
-
 
 	m_pFreeHead = pNewFreeEntry;
 	m_pFreeTail = pClosestLeft;

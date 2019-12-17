@@ -9,6 +9,8 @@
 #include "SpinLock.h"
 #include "Helpers.h"
 
+#define MAX_THREADS 8
+
 class TaskManager
 {
 public:

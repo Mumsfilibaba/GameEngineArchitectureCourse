@@ -27,8 +27,6 @@ public:
 	void GameAssign2::GetCurrentState(std::map<std::string, int>& resourceStates);
 
 private:
-	std::unordered_map<std::string, IResource*> m_Resources;
-
 	std::vector<std::string> m_ResourcesInCompressedPackage;
 
 	std::vector<char*> m_ResourcesNotInPackage;

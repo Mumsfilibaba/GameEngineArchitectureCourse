@@ -76,10 +76,11 @@ bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 
 IResource* ResourceManager::GetResource(size_t guid)
 {
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
 	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
 	if (iterator == m_LoadedResources.end())
 	{
-		ThreadSafePrintf("Resource not found! [%lu]\n", guid);
+		//ThreadSafePrintf("Resource not found! [%lu]\n", guid);
 		return nullptr;
 	}
 
@@ -88,12 +89,26 @@ IResource* ResourceManager::GetResource(size_t guid)
 
 IResource* ResourceManager::GetResource(const std::string& file)
 {
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
 	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(HashString(file.c_str()));
 	if (iterator == m_LoadedResources.end())
 	{
-		ThreadSafePrintf("Resource not found! [%s]\n", file.c_str());
+		//ThreadSafePrintf("Resource not found! [%s]\n", file.c_str());
 		return nullptr;
 	}
+	return iterator->second;
+}
+
+IResource* ResourceManager::GetStrongResource(const std::string& file)
+{
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
+	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(HashString(file.c_str()));
+	if (iterator == m_LoadedResources.end())
+	{
+		//ThreadSafePrintf("Resource not found! [%s]\n", file.c_str());
+		return nullptr;
+	}
+	iterator->second->AddRef();
 	return iterator->second;
 }
 
@@ -117,7 +132,7 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 				delete[] guidArray;
 				return Ref<ResourceBundle>();
 			}
-			ThreadSafePrintf("Loaded [%s]\n", file.c_str());
+			//ThreadSafePrintf("Loaded [%s]\n", file.c_str());
 		}
 			
 		guidArray[index++] = guid;
@@ -149,7 +164,7 @@ void ResourceManager::BackgroundLoading(std::vector<std::string> files, const st
 		if (!IsResourceLoaded(guid))
 		{
 			std::scoped_lock<SpinLock> lock(m_LockLoading);
-			if (!IsResourceBeingLoaded(guid))
+			if (!IsResourceBeingLoadedInternal(guid))
 			{
 				m_ResourcesToBeLoaded.push_back(guid);
 				resourcesToLoad.push_back({ guid, file });
@@ -172,7 +187,7 @@ void ResourceManager::BackgroundLoading(std::vector<std::string> files, const st
 			}
 			return;
 		}
-		ThreadSafePrintf("Loaded [%s] in background!\n", pair1.second.c_str());
+		//ThreadSafePrintf("Loaded [%s] in background!\n", pair1.second.c_str());
 		std::scoped_lock<SpinLock> lock(m_LockLoading);
 		m_ResourcesToBeLoaded.erase(std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), pair1.first));
 	}
@@ -244,6 +259,11 @@ void ResourceManager::Update()
 	}
 }
 
+bool ResourceManager::IsResourceBeingLoadedInternal(size_t guid)
+{
+	return std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), guid) != m_ResourcesToBeLoaded.end();
+}
+
 bool ResourceManager::IsResourceLoaded(size_t guid)
 {
 	std::scoped_lock<SpinLock> lock(m_LockLoaded);
@@ -257,7 +277,8 @@ bool ResourceManager::IsResourceLoaded(const std::string& path)
 
 bool ResourceManager::IsResourceBeingLoaded(size_t guid)
 {
-	return std::find(m_ResourcesToBeLoaded.begin(), m_ResourcesToBeLoaded.end(), guid) != m_ResourcesToBeLoaded.end();
+	std::scoped_lock<SpinLock> lock(m_LockLoading);
+	return IsResourceBeingLoadedInternal(guid);
 }
 
 bool ResourceManager::IsResourceBeingLoaded(const std::string& path)
@@ -289,7 +310,7 @@ bool ResourceManager::UnloadResource(size_t guid)
 		m_IsCleanup = false;
 	}
     
-	ThreadSafePrintf("Failed to unload resource becouse it is currently being used [%s]", resource->GetName().c_str());
+	ThreadSafePrintf("Failed to unload resource becouse it is currently being used [%s], Ref count = %i\n", resource->GetName().c_str(), resource->GetRefCount());
     return false;
 }
 
@@ -365,8 +386,9 @@ void ResourceManager::GetResourcesInUse(std::vector<IResource*>& vector)
 	}
 }
 
-void ResourceManager::GetResourcesLoaded(std::vector<IResource*>& vector) const
+void ResourceManager::GetResourcesLoaded(std::vector<IResource*>& vector)
 {
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
 	for (std::pair<size_t, IResource*> resource : m_LoadedResources)
 	{
 		vector.push_back(resource.second);
