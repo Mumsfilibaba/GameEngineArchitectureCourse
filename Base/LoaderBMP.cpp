@@ -1,4 +1,5 @@
 #include "LoaderBMP.h"
+#include "StackAllocator.h"
 
 LoaderBMP::LoaderBMP()
 {
@@ -18,7 +19,7 @@ IResource* LoaderBMP::LoadFromDisk(const std::string& file)
 	size_t sizeInBytes = fileStream.tellg();
 	fileStream.seekg(0, std::ios::beg);
 
-	void* pBuf = MemoryManager::GetInstance().Allocate(sizeInBytes, 1, "BMP Buffer");
+	void* pBuf = stack_allocate(sizeInBytes, 1, "BMP Buffer");
 	fileStream.read(reinterpret_cast<char*>(pBuf), sizeInBytes);
 
 	size_t startAddress = (size_t)pBuf;
@@ -81,13 +82,13 @@ IResource* LoaderBMP::LoadFromDisk(const std::string& file)
 
 	size_t totalPixelDataSize = dibHeader.height * (size_t)ceilf(dibHeader.numBitsPerPixel * dibHeader.width / 32.0f) * 4;
 
-	void* pPixelData = MemoryManager::GetInstance().Allocate(totalPixelDataSize, 1, "BMP Pixel Data");
+	void* pPixelData = stack_allocate(totalPixelDataSize, 1, "BMP Pixel Data");
 	size_t pixelDataStartAddress = (size_t)pPixelData;
 	memcpy(pPixelData, (void*)(startAddress + bmpHeader.pixelDataOffset), totalPixelDataSize);
-	MemoryManager::GetInstance().Free(pPixelData);
+	//MemoryManager::GetInstance().Free(pPixelData);
 
 	size_t pixelDataLength = dibHeader.width * dibHeader.height;
-	BMPPixel* pBMPConvertedPixels = (BMPPixel*)MemoryManager::GetInstance().Allocate(pixelDataLength * sizeof(BMPPixel), 1, "BMP Converted Pixel Data");
+	BMPPixel* pBMPConvertedPixels = (BMPPixel*)stack_allocate(pixelDataLength * sizeof(BMPPixel), 1, "BMP Converted Pixel Data");
 
 	for (size_t i = 0; i < pixelDataLength; i++)
 	{
@@ -101,7 +102,8 @@ IResource* LoaderBMP::LoadFromDisk(const std::string& file)
 	}
 
 	Texture* pTexture = new Texture(dibHeader.width, dibHeader.height, reinterpret_cast<unsigned char*>(pBMPConvertedPixels));
-	MemoryManager::GetInstance().Free(pBMPConvertedPixels);
+	//MemoryManager::GetInstance().Free(pBMPConvertedPixels);
+	stack_reset();
 
 	return pTexture;
 }
@@ -115,13 +117,14 @@ IResource* LoaderBMP::LoadFromMemory(void* pData, size_t)
 	memcpy(&width, pData, sizeof(width));
 	memcpy(&height, (void*)(dataStartAddress + sizeof(width)), sizeof(height));
 
-	size_t pixelDataSize = width * height * sizeof(BMPPixel);
+	size_t pixelDataSize = (size_t)width * (size_t)height * sizeof(BMPPixel);
 
-	void* pPixelData = MemoryManager::GetInstance().Allocate(pixelDataSize, 1, "BMP Texture Pixel Data");
+	void* pPixelData = stack_allocate(pixelDataSize, 1, "BMP Texture Pixel Data");
 	memcpy(pPixelData, (void*)(dataStartAddress + sizeof(width) + sizeof(height)), pixelDataSize);
 
 	Texture* pTexture = new Texture(width, height, reinterpret_cast<unsigned char*>(pPixelData));
-	MemoryManager::GetInstance().Free(pPixelData);
+	//MemoryManager::GetInstance().Free(pPixelData);
+	stack_reset();
 
 	return pTexture;
 }
@@ -135,11 +138,12 @@ size_t LoaderBMP::WriteToBuffer(const std::string& file, void* pBuffer)
 	size_t sizeInBytes = fileStream.tellg();
 	fileStream.seekg(0, std::ios::beg);
 
-	void* pBMPFileData = MemoryManager::GetInstance().Allocate(sizeInBytes, 1, "BMP File Data");
+	void* pBMPFileData = stack_allocate(sizeInBytes, 1, "BMP File Data");
 	fileStream.read(reinterpret_cast<char*>(pBMPFileData), sizeInBytes);
 
 	size_t textureSize = LoadAndConvert(pBMPFileData, sizeInBytes, pBuffer);
-	MemoryManager::GetInstance().Free(pBMPFileData);
+	//MemoryManager::GetInstance().Free(pBMPFileData);
+	stack_reset();
 	return textureSize;
 }
 
@@ -205,13 +209,13 @@ size_t LoaderBMP::LoadAndConvert(void* pBMPFileData, size_t, void* pBuffer)
 
 	size_t totalPixelDataSize = dibHeader.height * (size_t)ceilf(dibHeader.numBitsPerPixel * dibHeader.width / 32.0f) * 4;
 
-	void* pPixelData = MemoryManager::GetInstance().Allocate(totalPixelDataSize, 1, "BMP Pixel Data");
+	void* pPixelData = stack_allocate(totalPixelDataSize, 1, "BMP Pixel Data");
 	size_t pixelDataStartAddress = (size_t)pPixelData;
 	memcpy(pPixelData, (void*)(startAddress + bmpHeader.pixelDataOffset), totalPixelDataSize);
-	MemoryManager::GetInstance().Free(pPixelData);
+	//MemoryManager::GetInstance().Free(pPixelData);
 
 	size_t pixelDataLength = dibHeader.width * dibHeader.height;
-	BMPPixel* pBMPConvertedPixels = (BMPPixel*)MemoryManager::GetInstance().Allocate(pixelDataLength * sizeof(BMPPixel), 1, "BMP Converted Pixel Data");
+	BMPPixel* pBMPConvertedPixels = (BMPPixel*)stack_allocate(pixelDataLength * sizeof(BMPPixel), 1, "BMP Converted Pixel Data");
 
 	for (size_t i = 0; i < pixelDataLength; i++)
 	{
@@ -228,7 +232,8 @@ size_t LoaderBMP::LoadAndConvert(void* pBMPFileData, size_t, void* pBuffer)
 	memcpy(pBuffer, &dibHeader.width, sizeof(dibHeader.width));
 	memcpy((void*)(bufferStartAddress + sizeof(dibHeader.width)), &dibHeader.height, sizeof(dibHeader.height));
 	memcpy((void*)(bufferStartAddress + sizeof(dibHeader.width) + sizeof(dibHeader.height)), pBMPConvertedPixels, sizeof(BMPPixel) * pixelDataLength);
-	MemoryManager::GetInstance().Free(pBMPConvertedPixels);
+	//MemoryManager::GetInstance().Free(pBMPConvertedPixels);
 
+	stack_reset();
 	return sizeof(dibHeader.width) + sizeof(dibHeader.height) + sizeof(BMPPixel) * pixelDataLength;
 }

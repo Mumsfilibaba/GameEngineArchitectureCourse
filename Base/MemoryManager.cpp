@@ -54,8 +54,8 @@ inline std::ostream& whiteText(std::ostream& s)
 }
 #endif
 
-MemoryManager::MemoryManager()
-	: m_pMemory(malloc(SIZE_IN_BYTES))
+MemoryManager::MemoryManager() :
+	m_pMemory(malloc(SIZE_IN_BYTES))
 {
 	m_pFreeTail = new(m_pMemory) FreeEntry(SIZE_IN_BYTES / 2);
 	m_pFreeHead = new((void*)((size_t)m_pMemory + SIZE_IN_BYTES / 2)) FreeEntry(SIZE_IN_BYTES / 2);
@@ -81,7 +81,7 @@ MemoryManager::~MemoryManager()
 	m_AllocationHeaders.clear();
 }
 
-void MemoryManager::PrintFreeList()
+void MemoryManager::PrintMemoryLayout()
 {
 #ifdef DEBUG_MEMORY_MANAGER
 	FreeEntry* pLastFree = m_pFreeTail;
@@ -101,10 +101,22 @@ void MemoryManager::PrintFreeList()
 	FreeEntry* pTrueStart = pCurrentFree;
 	size_t prevNext = 0;
 
+	auto& allocationIt = m_AllocationHeaders.begin();
+
 	do
 	{
 		if (prevNext != (size_t)pCurrentFree && prevNext > 0)
-			std::cout << yellowText << N2HexStr(prevNext) << " next: " << N2HexStr((size_t)pCurrentFree) << std::endl;
+		{
+			while (allocationIt != m_AllocationHeaders.end())
+			{
+				if (allocationIt->first >= (size_t)pCurrentFree)
+					break;
+
+				std::cout << yellowText << N2HexStr(allocationIt->first) << " : " << allocationIt->second.tag << std::endl;
+				allocationIt++;
+			}
+		}
+			
 
 		size_t next = (size_t)pCurrentFree + pCurrentFree->sizeInBytes;
 		std::cout << blueText << N2HexStr((size_t)pCurrentFree) << " next: " << N2HexStr(next) << " points to: " << N2HexStr((size_t)pCurrentFree->pNext);
@@ -130,9 +142,9 @@ void MemoryManager::PrintFreeList()
 void MemoryManager::CheckFreeListCorruption()
 {
 #ifdef DEBUG_MEMORY_MANAGER
-	std::cout << "--------------------------------------------" << std::endl;
+	std::cout << "---------------------START---------------------" << std::endl;
 
-	PrintFreeList();
+	PrintMemoryLayout();
 
 	FreeEntry* pLastFree = m_pFreeTail;
 	FreeEntry* pCurrentFree = m_pFreeHead;
@@ -185,7 +197,7 @@ void MemoryManager::CheckFreeListCorruption()
 
 			} while (pCurrentFree != pTrueStart);
 
-			std::cout << whiteText << "--------------------------------------------" << std::endl << std::endl;
+			std::cout << whiteText << "------------CORRUPTION DETECTED END------------" << std::endl << std::endl;
 			return;
 		}
 
@@ -194,7 +206,7 @@ void MemoryManager::CheckFreeListCorruption()
 
 	} while (pCurrentFree != pTrueStart);
 
-	
+	std::cout << whiteText << "----------------------END----------------------" << std::endl << std::endl;
 #endif
 }
 
@@ -205,7 +217,7 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 
 	std::scoped_lock<SpinLock> lock(m_MemoryLock);
 
-	PrintFreeList();
+	PrintMemoryLayout();
 
 	FreeEntry* pLastFree = m_pFreeTail;
 	FreeEntry* pCurrentFree = m_pFreeHead;
@@ -221,7 +233,7 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 		{
 #ifdef DEBUG_MEMORY_MANAGER
 			std::cout << "Allocating Memory: " << N2HexStr(aligned) << " to: " << tag << std::endl;
-			PrintFreeList();
+			PrintMemoryLayout();
 #endif
 
 			FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
@@ -297,6 +309,7 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 
 	} while (pCurrentFree != m_pFreeHead);
 
+	assert(false);
 	return nullptr;
 }
 
@@ -314,8 +327,8 @@ void MemoryManager::Free(void* allocationPtr)
 	m_AllocationHeaders.erase(allocationAddress);
 
 #ifdef DEBUG_MEMORY_MANAGER
-	std::cout << "Freeing Memory: " << N2HexStr(allocationAddress) << " from: " << pAllocation->tag << std::endl;
-	PrintFreeList();
+	std::cout << "Freeing Memory: " << N2HexStr(allocationAddress) << " from: " << allocation.tag << std::endl;
+	PrintMemoryLayout();
 #endif
 
 #ifndef COLLECT_PERFORMANCE_DATA

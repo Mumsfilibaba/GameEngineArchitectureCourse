@@ -19,7 +19,7 @@
 	#pragma warning(disable : 4100)		//Disable: "unreferenced formal parameter"-warning
 #endif
 
-#define CREATE_PACKAGE
+//#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
 const char* UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
