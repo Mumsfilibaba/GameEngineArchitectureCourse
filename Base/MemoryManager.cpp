@@ -10,7 +10,7 @@
 std::atomic_size_t MemoryManager::s_TotalAllocated = 0;
 std::atomic_size_t MemoryManager::s_TotalUsed = 0;
 
-//#define DEBUG_MEMORY_MANAGER
+#define DEBUG_MEMORY_MANAGER
 
 #if defined(DEBUG_MEMORY_MANAGER) && defined(_WIN32)
 inline std::ostream& redText(std::ostream& s)
@@ -314,7 +314,7 @@ void MemoryManager::Free(void* allocationPtr)
 	m_AllocationHeaders.erase(allocationAddress);
 
 #ifdef DEBUG_MEMORY_MANAGER
-	std::cout << "Freeing Memory: " << N2HexStr(allocationAddress) << " from: " << pAllocation->tag << std::endl;
+	std::cout << "Freeing Memory: " << N2HexStr(allocationAddress) << " from: " << allocation.tag << std::endl;
 	PrintFreeList();
 #endif
 
