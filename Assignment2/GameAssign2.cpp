@@ -8,6 +8,7 @@
 #include "LoaderBMP.h"
 #include "LoaderCOLLADA.h"
 #include "Renderer.h"
+#include "MemoryManager.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include <filesystem>
@@ -20,7 +21,7 @@
 
 //#define CREATE_PACKAGE
 #ifdef CREATE_PACKAGE
-const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
+const char* UNPACKAGED_RESOURCES_DIR = "Resources";
 #endif
 
 #define RESOURCE_INFO_DEBUG
@@ -28,7 +29,7 @@ const std::string UNPACKAGED_RESOURCES_DIR = "Resources";
 #define ONLY_LOADED 0
 #define NOT_LOADED 1
 
-const std::string PACKAGE_HEADER_PATH = "PackageHeader.txt";
+const char* PACKAGE_HEADER_PATH = "PackageHeader.txt";
 
 std::string g_stateChangeName = "";
 static int g_selectedState = -1;
@@ -204,6 +205,7 @@ void GameAssign2::Init()
 {
 	srand(time(NULL));
 	m_StressTest = false;
+	m_Timer = 0;
 #if defined(CREATE_PACKAGE)
 	for (const auto& entry : std::filesystem::directory_iterator(UNPACKAGED_RESOURCES_DIR))
 	{
@@ -211,7 +213,8 @@ void GameAssign2::Init()
 
 		if (ResourceLoader::Get().HasLoaderForFile(fileNameString))
 		{
-			char* fileName = new char[fileNameString.length() + 1];
+			size_t size = (fileNameString.length() + 1) * sizeof(char);
+			char* fileName = (char*)mm_allocate(size, 1, "filename" + fileNameString);
 			strcpy(fileName, fileNameString.c_str());
 			m_ResourcesNotInPackage.push_back(fileName);
 		}
@@ -442,7 +445,7 @@ void GameAssign2::RenderImGui()
 			if (ImGui::Button("Create Package", ImVec2(120, 20)))
 			{
 				//create package
-				ResourceManager::Get().CreateResourcePackage(UNPACKAGED_RESOURCES_DIR + "/", m_ResourcesInPackage);
+				ResourceManager::Get().CreateResourcePackage(std::string(UNPACKAGED_RESOURCES_DIR) + "/", m_ResourcesInPackage);
 
 				std::ofstream fileStream;
 				fileStream.open(PACKAGE_HEADER_PATH, std::ios_base::out);
@@ -547,11 +550,11 @@ void GameAssign2::Release()
 {
 	for (size_t i = 0; i < m_ResourcesNotInPackage.size(); i++)
 	{
-		delete[] m_ResourcesNotInPackage[i];
+		mm_free(m_ResourcesNotInPackage[i]);
 	}
 
 	for (size_t i = 0; i < m_ResourcesInPackage.size(); i++)
 	{
-		delete[] m_ResourcesInPackage[i];
+		mm_free(m_ResourcesInPackage[i]);
 	}
 }

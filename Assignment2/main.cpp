@@ -1,10 +1,9 @@
 #include <iostream>
 #include "GameAssign2.h"
 
-int main()
+int main(int, const char**)
 {
-	Game* pGame = new GameAssign2();
-	pGame->Run();
-	delete pGame;
+	GameAssign2 game;
+	game.Run();
 	return 0;
 }

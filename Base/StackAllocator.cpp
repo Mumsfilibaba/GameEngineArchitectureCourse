@@ -32,11 +32,16 @@ void* StackAllocator::AllocateMemory(const std::string& tag, size_t size, size_t
     size_t padding = alignedCurrent - (size_t)m_pCurrent;
     
     void* pMemory = nullptr;
+
     if ((void*)((size_t)alignedCurrent + size) <= m_pEnd)
     {
         pMemory = (void*)alignedCurrent;
         m_pCurrent = (void*)((size_t)alignedCurrent + size);
     }
+	else
+	{
+		ThreadSafePrintf("Stack has not enough memory. Left %d bytes, Required %d bytes\n", size_t(m_pEnd) - size_t(m_pCurrent), size + padding);
+	}
 
 	m_Used		+= size + padding;
 

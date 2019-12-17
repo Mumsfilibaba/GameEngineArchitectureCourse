@@ -7,7 +7,7 @@
     } \
 }
 
-/*void* ArchiverAlloc(void*, unsigned num, unsigned size)
+void* ArchiverAlloc(void*, unsigned num, unsigned size)
 {
 	return MemoryManager::GetInstance().Allocate((size_t)num * (size_t)size, 1, "zLib");
 }
@@ -15,17 +15,17 @@
 void ArchiverFree(void*, void* pAddress)
 {
 	MemoryManager::GetInstance().Free(pAddress);
-}*/
-
-void* ArchiverAlloc(void*, unsigned num, unsigned size)
-{
-	return calloc(num, size);
 }
 
-void ArchiverFree(void*, void* pAddress)
-{
-	free(pAddress);
-}
+//void* ArchiverAlloc(void*, unsigned num, unsigned size)
+//{
+//	return calloc(num, size);
+//}
+//
+//void ArchiverFree(void*, void* pAddress)
+//{
+//	free(pAddress);
+//}
 
 
 static alloc_func zalloc = ArchiverAlloc;

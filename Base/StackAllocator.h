@@ -32,7 +32,7 @@ private:
 	size_t m_Used;
 	const size_t m_Size;
 public:
-	static StackAllocator& GetInstance(size_t size = 1024 * 1024 * 4) // = 4mb
+	static StackAllocator& GetInstance(size_t size = 1024 * 1024 * 64) // = 64MB
 	{
 		thread_local static StackAllocator instance(size);
 		return instance;
@@ -63,6 +63,7 @@ inline void* operator new(size_t size, size_t alignment, Helpers::StackDummy, co
 	return StackAllocator::GetInstance().AllocateMemory(tag, size, alignment);
 }
 
+#define stack_allocate(size, alignment, tag) StackAllocator::GetInstance().AllocateMemory(tag, size, alignment)
 #define stack_new(tag)			new(1, Helpers::StackDummy(), tag)
 #define stack_delete(object)	{ using T = std::remove_pointer< std::remove_reference<decltype(object)>::type >::type; object->~T(); }
 #define stack_reset				StackAllocator::GetInstance().Reset

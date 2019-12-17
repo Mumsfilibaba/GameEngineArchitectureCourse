@@ -132,13 +132,17 @@ void MemoryManager::PrintFreeList()
 
 	} while (pCurrentFree != pTrueStart);
 
-	std::cout << whiteText;
+	std::cout << whiteText << std::endl;
 #endif
 }
 
 void MemoryManager::CheckFreeListCorruption()
 {
 #ifdef DEBUG_MEMORY_MANAGER
+	std::cout << "--------------------------------------------" << std::endl;
+
+	PrintFreeList();
+
 	FreeEntry* pLastFree = m_pFreeTail;
 	FreeEntry* pCurrentFree = m_pFreeHead;
 
@@ -155,6 +159,8 @@ void MemoryManager::CheckFreeListCorruption()
 	FreeEntry* pTrueTail = pLastFree;
 	FreeEntry* pTrueStart = pCurrentFree;
 
+	std::cout << "True Start: " << N2HexStr((size_t)pTrueStart) << std::endl;
+
 	do
 	{
 		size_t offset = (size_t)pLastFree + pLastFree->sizeInBytes;
@@ -170,9 +176,13 @@ void MemoryManager::CheckFreeListCorruption()
 
 			do
 			{
-				if (pCurrentFree == pCorruptionLast || pCurrentFree == pCorruptionCurrent)
+				if (pCurrentFree == pCorruptionLast)
 				{
-					std::cout << redText << N2HexStr((size_t)pCurrentFree) << " next: " << N2HexStr((size_t)pCurrentFree + pCurrentFree->sizeInBytes) << " points to: " << N2HexStr((size_t)pCurrentFree->pNext) << std::endl;
+					std::cout << redText << N2HexStr((size_t)pCurrentFree) << " next: " << N2HexStr((size_t)pCurrentFree + pCurrentFree->sizeInBytes) << " points to: " << N2HexStr((size_t)pCurrentFree->pNext) << " <-- L" << std::endl;
+				}
+				else if (pCurrentFree == pCorruptionCurrent)
+				{
+					std::cout << redText << N2HexStr((size_t)pCurrentFree) << " next: " << N2HexStr((size_t)pCurrentFree + pCurrentFree->sizeInBytes) << " points to: " << N2HexStr((size_t)pCurrentFree->pNext) << " <-- C" << std::endl;
 				}
 				else
 				{
@@ -184,7 +194,7 @@ void MemoryManager::CheckFreeListCorruption()
 
 			} while (pCurrentFree != pTrueStart);
 
-			std::cout << whiteText;
+			std::cout << whiteText << "--------------------------------------------" << std::endl << std::endl;
 			return;
 		}
 
@@ -192,6 +202,8 @@ void MemoryManager::CheckFreeListCorruption()
 		pCurrentFree = pCurrentFree->pNext;
 
 	} while (pCurrentFree != pTrueStart);
+
+	
 #endif
 }
 
@@ -216,6 +228,11 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 		//Not Perfect Fit Free Block (Need to create a new FreeEntry after the allocation)
 		if (pCurrentFree->sizeInBytes >= allocationSizeInBytes + padding)
 		{
+#ifdef DEBUG_MEMORY_MANAGER
+			std::cout << "Allocating Memory: " << N2HexStr(aligned) << " to: " << tag << std::endl;
+			PrintFreeList();
+#endif
+
 			FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
 
 			size_t internalPadding = padding;
@@ -229,16 +246,17 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 				pNewFreeEntryAfter = new((void*)(aligned + allocationSizeInBytes)) FreeEntry(pCurrentFree->sizeInBytes - (allocationSizeInBytes + padding));
 			}
 
-			//Check if Padding can fit a Free Block
-			if (padding > sizeof(FreeEntry))
+			//Check if previous Free Block is our neighbor, if so coalesce padding with it.
+			if ((size_t)pLastFree + pLastFree->sizeInBytes == (size_t)pCurrentFree)
+			{
+				pLastFree->sizeInBytes += padding;
+				internalPadding = 0;
+			}
+			else if (padding > sizeof(FreeEntry)) //Check if Padding can fit a Free Block
 			{
 				pNewFreeEntryBefore = new(pCurrentFree) FreeEntry(padding);
 				internalPadding = 0;
 			}
-
-#ifdef DEBUG_MEMORY_MANAGER
-			std::cout << "Allocating Memory: " << N2HexStr(aligned) << " to: " << tag << std::endl;
-#endif
 
 			if (pNewFreeEntryBefore != nullptr && pNewFreeEntryAfter != nullptr)
 			{
@@ -274,7 +292,6 @@ void* MemoryManager::Allocate(size_t allocationSizeInBytes, size_t alignment, co
 
 #ifdef DEBUG_MEMORY_MANAGER
 			CheckFreeListCorruption();
-			std::cout << "--------------------------------------------" << std::endl;
 #endif
 
 #ifndef COLLECT_PERFORMANCE_DATA
@@ -296,8 +313,12 @@ void MemoryManager::Free(void* allocationPtr)
 {
 	std::scoped_lock<SpinLock> lock(m_MemoryLock);
 
+	assert(allocationPtr != nullptr);
 
 	size_t allocationAddress = (size_t)allocationPtr;
+
+	assert(m_AllocationHeaders.find(allocationAddress) != m_AllocationHeaders.end());
+
 	Allocation* pAllocation = m_AllocationHeaders[allocationAddress];
 	m_AllocationHeaders.erase(allocationAddress);
 
@@ -314,8 +335,8 @@ void MemoryManager::Free(void* allocationPtr)
 	FreeEntry* pClosestLeft = nullptr;
 	FreeEntry* pClosestRight = (FreeEntry*)ULLONG_MAX;
 
-	//Check if we have more than one allocation left, if this is the last allocation, we don't want to coalesce the last two freeblocks
-	if (m_AllocationHeaders.size() > 1)
+	//Check if we have one or more allocation left, if this is the last allocation we don't want to coalesce the last two freeblocks
+	if (m_AllocationHeaders.size() >= 1)
 	{
 		do
 		{
@@ -358,7 +379,6 @@ void MemoryManager::Free(void* allocationPtr)
 
 #ifdef DEBUG_MEMORY_MANAGER
 				CheckFreeListCorruption();
-				std::cout << "--------------------------------------------" << std::endl;
 #endif
 
 				delete pAllocation;
@@ -386,17 +406,11 @@ void MemoryManager::Free(void* allocationPtr)
 					std::cout << "Coalesce Right then left" << std::endl;
 
 					CheckFreeListCorruption();
-					std::cout << "--------------------------------------------" << std::endl;
 #endif
 				}
 				else
 				{
 					size_t newFreeSize = pAllocation->sizeInBytes + pCurrentFree->sizeInBytes;
-
-					/*std::cout << "Last: " << N2HexStr((size_t)pLastFree) << std::endl;
-					std::cout << "New:  " << N2HexStr(offsetAllocationAddress) << std::endl;
-					std::cout << "Curr: " << N2HexStr((size_t)pCurrentFree) << std::endl;
-					std::cout << std::endl;*/
 
 					FreeEntry* pCurrentFreeNext = pCurrentFree->pNext;
 					pNewFreeEntry = new((void*)offsetAllocationAddress) FreeEntry(newFreeSize);
@@ -411,7 +425,6 @@ void MemoryManager::Free(void* allocationPtr)
 					std::cout << "Coalesce Right" << std::endl;
 
 					CheckFreeListCorruption();
-					std::cout << "--------------------------------------------" << std::endl;
 #endif
 				}
 
@@ -459,7 +472,6 @@ void MemoryManager::Free(void* allocationPtr)
 #ifdef DEBUG_MEMORY_MANAGER
 	std::cout << "Single Free" << std::endl;
 	CheckFreeListCorruption();
-	std::cout << "--------------------------------------------" << std::endl;
 #endif
 
 	delete pAllocation;
