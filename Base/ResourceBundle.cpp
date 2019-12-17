@@ -10,8 +10,10 @@ ResourceBundle::ResourceBundle(size_t* guids, size_t nrOfGuids) :
 
 ResourceBundle::~ResourceBundle()
 {
-	if(m_Guids)
-		delete[] m_Guids;
+	if (m_Guids)
+	{
+		mm_free(m_Guids);
+	}
 }
 
 Ref<Texture> ResourceBundle::GetTexture(size_t guid)

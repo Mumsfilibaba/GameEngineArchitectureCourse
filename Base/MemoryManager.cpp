@@ -10,7 +10,7 @@
 std::atomic_size_t MemoryManager::s_TotalAllocated = 0;
 std::atomic_size_t MemoryManager::s_TotalUsed = 0;
 
-//#define DEBUG_MEMORY_MANAGER
+#define DEBUG_MEMORY_MANAGER
 
 #if defined(DEBUG_MEMORY_MANAGER) && defined(_WIN32)
 inline std::ostream& redText(std::ostream& s)

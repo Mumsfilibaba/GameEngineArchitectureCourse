@@ -17,10 +17,9 @@ LoaderTGA::~LoaderTGA()
 
 IResource* LoaderTGA::LoadFromDisk(const std::string& file)
 {
-
 	TGAHeader pTGAfile;
 	ReadFromDisk(file, pTGAfile);
-	Texture* pTexture = new Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
+	Texture* pTexture = new(file.c_str()) Texture(pTGAfile.imageWidth, pTGAfile.imageHeight, pTGAfile.imageDataBuffer);
 	stack_delete(pTGAfile.imageDataBuffer);
 	return pTexture;
 }
@@ -29,8 +28,7 @@ IResource* LoaderTGA::LoadFromMemory(void* data, size_t guid)
 {
 	short int width = *(short int*)(data);
 	short int height = *(short int*)((size_t)data + 2);
-
-	return new Texture(width, height, (unsigned char*)((size_t)data + 4));
+	return new("Texture Loaded From Memory") Texture(width, height, (unsigned char*)((size_t)data + 4));
 }
 
 size_t LoaderTGA::WriteToBuffer(const std::string& file, void* buffer)

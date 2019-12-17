@@ -41,12 +41,12 @@ IResource* LoaderCOLLADA::LoadFromMemory(void* pData, size_t)
         
         //Create a new array for these (That can be stores inside the Mesh and destroyed when constructed later)
         uint32_t vertexStride = sizeof(Vertex) * data.VertexCount;
-        Vertex* pVertices = new(mm_allocate(vertexStride, 1, "Vertices LoadFromMemory")) Vertex[data.VertexCount];
+        Vertex* pVertices = (Vertex*)mm_allocate(vertexStride, 1, "Vertices LoadFromMemory");
         memcpy(pVertices, pByteBuffer + sizeof(BinaryMeshData), vertexStride);
 
         uint32_t indexStride = sizeof(uint32_t) * data.IndexCount;
-        uint32_t* pIndices = new(mm_allocate(indexStride, 1, "Indices LoadFromMemory")) uint32_t[data.IndexCount];
-        memcpy(pIndices, pByteBuffer + sizeof(BinaryMeshData) + vertexStride, indexStride);
+        uint32_t* pIndices = (uint32_t*)mm_allocate(indexStride, 1, "Indices LoadFromMemory");
+        memcpy(pIndices, pByteBuffer + (sizeof(BinaryMeshData) + vertexStride), indexStride);
         
         return new("Mesh LoadedFromMemory") Mesh(pVertices, pIndices, data.VertexCount, data.IndexCount);
     }

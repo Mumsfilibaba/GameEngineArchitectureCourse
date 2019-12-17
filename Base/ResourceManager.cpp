@@ -40,12 +40,12 @@ bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 
 	m_UsedMemory += size;
 
-	void* data = malloc(size);
+	void* data = mm_allocate(size, 1, "LoadResource Buffer");
 	size_t typeHash;
 	if (!archiver.ReadPackageData(guid, typeHash, data, size))
 	{
 		ThreadSafePrintf("Failed to load resource data [%s]!\n", file.c_str());
-		free(data);
+		mm_free(data);
 		return false;
 	}
 
@@ -53,14 +53,14 @@ bool ResourceManager::LoadResource(ResourceLoader& resourceLoader, Archiver& arc
 	if (!resource)
 	{
 		ThreadSafePrintf("Failed to create resource [%s]!\n", file.c_str());
-		free(data);
+		mm_free(data);
 		return false;
 	}
 
 	resource->m_Guid = guid;
 	resource->m_Size = size;
 	resource->m_Name = file;
-	free(data);
+	mm_free(data);
 
 	{
 		std::scoped_lock<SpinLock> lock(m_LockLoaded);
@@ -119,7 +119,7 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 
 	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
 
-	size_t* guidArray = new size_t[files.size()];
+	size_t* guidArray = new(mm_allocate(files.size()*sizeof(size_t), 1, "GUID Array")) size_t[files.size()];
 	int index = 0;
 	for (std::string& file : files)
 	{
@@ -129,7 +129,7 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 		{
 			if (!LoadResource(resourceLoader, archiver, guid, file))
 			{
-				delete[] guidArray;
+				mm_free((void*)guidArray);
 				return Ref<ResourceBundle>();
 			}
 			//ThreadSafePrintf("Loaded [%s]\n", file.c_str());
@@ -138,7 +138,7 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 		guidArray[index++] = guid;
 	}
 
-	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
+	return Ref<ResourceBundle>(new("ResourceBundle") ResourceBundle(guidArray, files.size()));
 }
 
 void ResourceManager::LoadResourcesInBackground(std::vector<std::string> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
@@ -152,7 +152,7 @@ void ResourceManager::BackgroundLoading(std::vector<std::string> files, const st
 	Archiver& archiver = Archiver::GetInstance();
 	ResourceLoader& resourceLoader = ResourceLoader::Get();
 	std::vector<std::pair<size_t, std::string>> resourcesToLoad;
-	size_t* guidArray = new size_t[files.size()];
+	size_t* guidArray = new(mm_allocate(files.size() * sizeof(size_t), 1, "GUID Array")) size_t[files.size()];
 	int index = 0;
 
 	archiver.OpenCompressedPackage(PACKAGE_PATH, Archiver::LOAD_AND_PREPARE);
@@ -178,7 +178,7 @@ void ResourceManager::BackgroundLoading(std::vector<std::string> files, const st
 	{
 		if (!LoadResource(resourceLoader, archiver, pair1.first, pair1.second))
 		{
-			delete[] guidArray;
+			mm_free((void*)guidArray);
 			callback(Ref<ResourceBundle>());
 			std::scoped_lock<SpinLock> lock(m_LockLoading);
 			for (auto& pair2 : resourcesToLoad)
@@ -199,7 +199,7 @@ void ResourceManager::BackgroundLoading(std::vector<std::string> files, const st
 		while (!IsResourceLoaded(guid)){}
 	}
 
-	callback(Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size())));
+	callback(Ref<ResourceBundle>(new("ResourceBundle") ResourceBundle(guidArray, files.size())));
 }
 
 void ResourceManager::UnloadResource(IResource* resource)
@@ -321,8 +321,7 @@ void ResourceManager::CreateResourcePackage(const std::string& directory, std::v
 
 	archiver.CreateUncompressedPackage();
 
-	void* data = malloc(4096 * 4096 * 4);
-
+	void* data = mm_allocate(4096 * 4096 * 4, 1, "CreateResourcePackage");
 	for (const char* file : fileNames)
 	{
 		std::string fileName = std::string(file);
@@ -342,7 +341,7 @@ void ResourceManager::CreateResourcePackage(const std::string& directory, std::v
 		}
 		archiver.AddToUncompressedPackage(HashString(file), typeHash, bytesWritten, data);
 	}
-	free(data);
+	mm_free(data);
 
 	archiver.SaveUncompressedPackage(PACKAGE_PATH);
 	archiver.CloseUncompressedPackage();

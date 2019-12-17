@@ -101,8 +101,7 @@ IResource* LoaderBMP::LoadFromDisk(const std::string& file)
 		pBMPConvertedPixels[i].a = 255;
 	}
 
-	Texture* pTexture = new Texture(dibHeader.width, dibHeader.height, reinterpret_cast<unsigned char*>(pBMPConvertedPixels));
-	//MemoryManager::GetInstance().Free(pBMPConvertedPixels);
+	Texture* pTexture = new(file.c_str()) Texture(dibHeader.width, dibHeader.height, reinterpret_cast<unsigned char*>(pBMPConvertedPixels));
 	stack_reset();
 
 	return pTexture;
@@ -122,8 +121,7 @@ IResource* LoaderBMP::LoadFromMemory(void* pData, size_t)
 	void* pPixelData = stack_allocate(pixelDataSize, 1, "BMP Texture Pixel Data");
 	memcpy(pPixelData, (void*)(dataStartAddress + sizeof(width) + sizeof(height)), pixelDataSize);
 
-	Texture* pTexture = new Texture(width, height, reinterpret_cast<unsigned char*>(pPixelData));
-	//MemoryManager::GetInstance().Free(pPixelData);
+	Texture* pTexture = new("Texture Loaded From Memory") Texture(width, height, reinterpret_cast<unsigned char*>(pPixelData));
 	stack_reset();
 
 	return pTexture;

@@ -36,7 +36,7 @@ TaskManager::TaskManager()
     m_CurrentFence(0),
     m_QueueLock()
 {
-	uint32_t numThreads = std::max(1U, std::thread::hardware_concurrency());
+	uint32_t numThreads = std::min(std::max(1U, std::thread::hardware_concurrency()), 8U);
 	ThreadSafePrintf("TaskManager: Starting up %u threads\n", numThreads);
 
     //Yes run all workers

@@ -1,7 +1,11 @@
 #pragma once
-
 #include "Helpers.h"
 #include "IRefCountable.h"
+#include "MemoryManager.h"
+
+#ifdef VISUAL_STUDIO
+	#pragma warning(disable : 4291)		//Disable: "no matching operator delete found; memory will not be freed if initialization throws an exception"-warning
+#endif
 
 class IResource : public IRefCountable
 {
@@ -17,6 +21,19 @@ public:
 
 	bool IsReady() const;
 
+	inline void* operator new(size_t size, const char* tag)
+	{
+#ifdef SHOW_ALLOCATIONS_DEBUG
+		return mm_allocate(size, 1, tag);
+#else
+		return mm_allocate(size, 1, tag);
+#endif
+	}
+
+	inline void operator delete(void* ptr)
+	{
+		mm_free(ptr);
+	}
 protected:
 	virtual void Init() = 0;
 	virtual void Release() = 0;
