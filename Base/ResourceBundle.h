@@ -5,6 +5,7 @@
 #include "Mesh.h"
 #include "Ref.h"
 #include "IRefCountable.h"
+#include "PoolAllocator.h"
 
 class ResourceBundle : public IRefCountable
 {
@@ -20,6 +21,19 @@ public:
 
 	void Unload();
 
+	inline void* operator new(size_t size, const char* tag)
+	{
+#ifdef SHOW_ALLOCATIONS_DEBUG
+		return PoolAllocator<ResourceBundle>::Get().AllocateBlock(tag);
+#else
+		return PoolAllocator<ResourceBundle>::Get().AllocateBlock(tag);
+#endif
+	}
+
+	inline void operator delete(void* ptr)
+	{
+		PoolAllocator<ResourceBundle>::Get().FreeBlock(ptr);
+	}
 private:
 	size_t* m_Guids;
 	size_t m_NrOfGuids;

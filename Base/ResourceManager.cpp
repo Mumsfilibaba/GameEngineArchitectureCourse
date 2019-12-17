@@ -3,7 +3,6 @@
 #include "ResourceLoader.h"
 #include "TaskManager.h"
 #include "ResourceBundle.h"
-#include "PoolAllocator.h"
 #include <mutex>
 
 ResourceManager::ResourceManager()
@@ -124,7 +123,7 @@ Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> file
 		guidArray[index++] = guid;
 	}
 
-	return Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size()));
+	return Ref<ResourceBundle>(new("ResourceBundle") ResourceBundle(guidArray, files.size()));
 }
 
 void ResourceManager::LoadResourcesInBackground(std::vector<std::string> files, const std::function<void(const Ref<ResourceBundle>&)>& callback)
@@ -185,7 +184,7 @@ void ResourceManager::BackgroundLoading(std::vector<std::string> files, const st
 		while (!IsResourceLoaded(guid)){}
 	}
 
-	callback(Ref<ResourceBundle>(new ResourceBundle(guidArray, files.size())));
+	callback(Ref<ResourceBundle>(new("ResourceBundle") ResourceBundle(guidArray, files.size())));
 }
 
 void ResourceManager::UnloadResource(IResource* resource)
