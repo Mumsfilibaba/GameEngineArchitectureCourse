@@ -13,7 +13,7 @@
 #include "Helpers.h"
 
 //#define SIZE_IN_BYTES (64 * 1024)
-#define SIZE_IN_BYTES 1024ULL * 1024ULL * 2048ULL // = 128mb
+#define SIZE_IN_BYTES 1024ULL * 1024ULL * 1024ULL // = 1024MB
 #define mm_allocate(...) MemoryManager::GetInstance().Allocate(__VA_ARGS__)
 #define mm_free(...) MemoryManager::GetInstance().Free(__VA_ARGS__)
 
