@@ -33,6 +33,8 @@ public:
 	IResource* GetResource(const std::string& file);
 	IResource* GetStrongResource(const std::string& file);
 
+	IResource * GetStrongResource(size_t guid);
+
 	bool IsResourceLoaded(size_t guid);
 	bool IsResourceLoaded(const std::string& path);
 

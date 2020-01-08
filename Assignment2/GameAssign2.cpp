@@ -115,19 +115,21 @@ void GameAssign2::RenderResourceDataInfo()
 		if (manager->IsResourceLoaded(it->first))
 		{
 			IResource* entity = manager->GetStrongResource(it->first);
-			if (ImGui::Button(entity->GetName().c_str()))
+			if (entity)
 			{
-				//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
-				g_stateChangeName = entity->GetName();
-				ImGui::OpenPopup("ResourceGroup");
+				if (ImGui::Button(entity->GetName().c_str()))
+				{
+					//name keeps track of which entity was selected, I don't think ImGui know which button was pressed. 
+					g_stateChangeName = entity->GetName();
+					ImGui::OpenPopup("ResourceGroup");
 
-			}ImGui::NextColumn();
-			//ImGui::TextColored(color, entity->GetName().c_str()); ImGui::NextColumn();
-			ImGui::TextColored(color, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
-			ImGui::TextColored(color, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
-			ImGui::TextColored(color, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
-
-			entity->RemoveRef();
+				}ImGui::NextColumn();
+				//ImGui::TextColored(color, entity->GetName().c_str()); ImGui::NextColumn();
+				ImGui::TextColored(color, std::to_string(entity->GetSize() / 1024.0f).c_str()); ImGui::NextColumn();
+				ImGui::TextColored(color, std::to_string(entity->GetRefCount()).c_str()); ImGui::NextColumn();
+				ImGui::TextColored(color, std::to_string(entity->GetGUID()).c_str()); ImGui::NextColumn();
+				entity->RemoveRef();
+			}
 		}
 		else
 		{

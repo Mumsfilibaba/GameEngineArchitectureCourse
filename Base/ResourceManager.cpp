@@ -112,6 +112,20 @@ IResource* ResourceManager::GetStrongResource(const std::string& file)
 	return iterator->second;
 }
 
+IResource* ResourceManager::GetStrongResource(size_t guid)
+{
+	std::scoped_lock<SpinLock> lock(m_LockLoaded);
+	std::unordered_map<size_t, IResource*>::const_iterator iterator = m_LoadedResources.find(guid);
+	if (iterator == m_LoadedResources.end())
+	{
+		//ThreadSafePrintf("Resource not found! [%lu]\n", guid);
+		return nullptr;
+	}
+
+	iterator->second->AddRef();
+	return iterator->second;
+}
+
 Ref<ResourceBundle> ResourceManager::LoadResources(std::vector<std::string> files)
 {
 	Archiver& archiver = Archiver::GetInstance();
@@ -251,9 +265,13 @@ void ResourceManager::Update()
 		std::scoped_lock<SpinLock> lock(m_LockInitiate);
 		for (size_t guid : m_ResourcesToInitiate)
 		{
-			IResource* resource = GetResource(guid);
-			if(resource)
+			IResource* resource = GetStrongResource(guid);
+			if (resource)
+			{
 				resource->InternalInit();
+				resource->RemoveRef();
+			}
+				
 		}
 		m_ResourcesToInitiate.clear();
 	}
@@ -288,11 +306,11 @@ bool ResourceManager::IsResourceBeingLoaded(const std::string& path)
 
 bool ResourceManager::UnloadResource(size_t guid)
 {
-	IResource* resource = GetResource(guid);
+	IResource* resource = GetStrongResource(guid);
 	if (!resource)
 		return true;
 
-	if (resource->GetRefCount() == 0)
+	if (resource->GetRefCount() == 1)
 	{
 		std::scoped_lock<SpinLock> lock(m_LockLoaded);
 		m_IsCleanup = true;
@@ -310,6 +328,7 @@ bool ResourceManager::UnloadResource(size_t guid)
 		m_IsCleanup = false;
 	}
     
+	resource->RemoveRef();
 	ThreadSafePrintf("Failed to unload resource becouse it is currently being used [%s], Ref count = %i\n", resource->GetName().c_str(), resource->GetRefCount());
     return false;
 }
