@@ -24,7 +24,7 @@ public:
 
 	void RenderResourceDataInfo();
 	void ChangeStateOfResource(const std::string& file, int state, const std::map<std::string, int>& resourceStates);
-	void GameAssign2::GetCurrentState(std::map<std::string, int>& resourceStates);
+	void GetCurrentState(std::map<std::string, int>& resourceStates);
 
 private:
 	std::vector<std::string> m_ResourcesInCompressedPackage;
